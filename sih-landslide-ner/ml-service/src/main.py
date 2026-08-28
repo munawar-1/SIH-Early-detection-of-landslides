@@ -5,6 +5,7 @@ import numpy as np
 
 # pyrefly: ignore [missing-import]
 from fastapi import FastAPI, HTTPException
+from typing import List
 # pyrefly: ignore [missing-import]
 from pydantic import BaseModel
 
@@ -94,3 +95,47 @@ def predict_risk(features: LandslideFeatures):
         "risk_level": risk_level,
         "prediction_horizon": "next 24 hours"
     }
+
+@app.post("/predict-batch")
+def predict_batch_risk(points: List[LandslideFeatures]):
+    """Takes in an array of JSON objects, vectorizes them into a single DataFrame, and returns an array of probabilities."""
+    if model is None or features_list is None:
+        raise HTTPException(status_code=500, detail="Model artifact not fully loaded on server.")
+    
+    if not points:
+        return {"probabilities": []}
+
+    try:
+        # Vectorize input conversion using DataFrame creation
+        input_data = pd.DataFrame([p.dict() for p in points])[features_list]
+    except KeyError as e:
+        raise HTTPException(status_code=400, detail=f"Missing required feature: {e}")
+    
+    try:
+        class_1_index = np.where(model.classes_ == 1)[0][0]
+        # Predict all probabilities and classes at once
+        risk_probabilities = model.predict_proba(input_data)[:, class_1_index]
+        predictions = model.predict(input_data)
+        
+        # Vectorize risk level assignment
+        conditions = [
+            risk_probabilities >= 0.70,
+            risk_probabilities >= 0.40
+        ]
+        choices = ["HIGH", "MODERATE"]
+        risk_levels = np.select(conditions, choices, default="LOW")
+        
+        results = [
+            {
+                "prediction": int(pred),
+                "landslide_probability": float(prob),
+                "risk_level": rl,
+                "prediction_horizon": "next 24 hours"
+            }
+            for pred, prob, rl in zip(predictions, risk_probabilities, risk_levels)
+        ]
+        
+    except IndexError:
+        results = []
+        
+    return {"results": results}

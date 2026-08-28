@@ -1,5 +1,5 @@
 import os
-import pandas as pd 
+import pandas as pd
 import requests
 import numpy as np
 from tqdm import tqdm
@@ -22,10 +22,13 @@ def get_elevation_batch(lats, lons):
     return [1200.0] * len(lats)  # Fallback elevation if API fails
 
 def main():
+    if not os.path.exists(INPUT_CSV):
+        print(f"[ERROR] Cannot find {INPUT_CSV}. Did you run script 01?")
+        return
+
     print(f"[INFO] Loading dataset from: {INPUT_CSV}")
     df = pd.read_csv(INPUT_CSV)
     
-    # Lists to store our new features
     elevations, slopes, aspects = [], [], []
     
     # Process in batches of 40 to respect API rate limits
@@ -58,7 +61,6 @@ def main():
                 aspects.append(180.0)
                 continue
                 
-            # Change in elevation over ~100m total distance
             dz_dx = (ee - ew) / 100.0  
             dz_dy = (en - es) / 100.0  
             
@@ -80,9 +82,6 @@ def main():
     df.to_csv(OUTPUT_CSV, index=False)
     print("\n[SUCCESS] Feature Extraction Complete!")
     print(f"File saved to: {OUTPUT_CSV}")
-    print("\nPreview of columns:")
-    preview_cols = [col for col in ['id', 'event_date', 'latitude', 'longitude', 'elevation', 'slope'] if col in df.columns]
-    print(df[preview_cols].head())
 
 if __name__ == "__main__":
     main()
