@@ -30,4 +30,10 @@ public class GridPoint {
 
     @Column(nullable = false)
     private Double clayPercent;
+
+    @Column
+    private Double rainfall;
+
+    @Column
+    private String riskLevel;
 }
