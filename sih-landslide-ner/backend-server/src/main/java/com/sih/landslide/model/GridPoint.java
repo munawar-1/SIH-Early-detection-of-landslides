@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @Table(name = "grid_points", indexes = {
     @Index(name = "idx_lat_lon", columnList = "latitude, longitude"),
     @Index(name = "idx_district", columnList = "district"),
-    @Index(name = "idx_risk_level", columnList = "riskLevel")
+    @Index(name = "idx_risk_level", columnList = "risk_level")
 })
 @Data
 @NoArgsConstructor
@@ -33,30 +33,30 @@ public class GridPoint {
     @Column
     private Double elevation;
 
-    @Column(nullable = false)
+    @Column(name = "slope", nullable = false)
     private Double slope;
 
-    @Column(nullable = false)
+    @Column(name = "clay_percent", nullable = false)
     private Double clayPercent;
 
     // Next 3 Days Forecast Rainfall (mm)
-    @Column
+    @Column(name = "rain_day1")
     private Double rainDay1 = 0.0;
 
-    @Column
+    @Column(name = "rain_day2")
     private Double rainDay2 = 0.0;
 
-    @Column
+    @Column(name = "rain_day3")
     private Double rainDay3 = 0.0;
 
     // Predicted Early Warning Hazard Risk
-    @Column
+    @Column(name = "probability")
     private Double probability = 0.0;
 
-    @Column
+    @Column(name = "risk_level")
     private String riskLevel = "LOW";
 
-    @Column
+    @Column(name = "last_updated")
     private LocalDateTime lastUpdated;
 }
 

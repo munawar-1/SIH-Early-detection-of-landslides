@@ -62,6 +62,7 @@ public class WeatherService {
                         .build())
                 .retrieve()
                 .bodyToMono(JsonNode.class)
+                .timeout(Duration.ofSeconds(10))
                 .map(response -> {
                     JsonNode precipitationNode = response.path("daily").path("precipitation_sum");
                     double day1 = 0.0, day2 = 0.0, day3 = 0.0;
@@ -77,7 +78,7 @@ public class WeatherService {
                     weather10KmGridCache.put(cacheKey, data);
                     return data;
                 })
-                .delayElement(Duration.ofMillis(100))
+                .delayElement(Duration.ofMillis(50))
                 .onErrorResume(e -> {
                     ForecastRainfall fallback = new ForecastRainfall(0.0, 0.0, 0.0);
                     return Mono.just(fallback);

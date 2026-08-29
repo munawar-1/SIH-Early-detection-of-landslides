@@ -20,16 +20,19 @@ public class DataSeeder implements CommandLineRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(DataSeeder.class);
     private final GridPointRepository repository;
+    private final com.sih.landslide.service.OrchestrationService orchestrationService;
 
-    public DataSeeder(GridPointRepository repository) {
+    public DataSeeder(GridPointRepository repository, com.sih.landslide.service.OrchestrationService orchestrationService) {
         this.repository = repository;
+        this.orchestrationService = orchestrationService;
     }
 
     @Override
     public void run(String... args) {
         long currentCount = repository.count();
         if (currentCount > 0) {
-            logger.info("Database already contains {} grid points. Skipping data seeding.", currentCount);
+            logger.info("Database already contains {} grid points. Triggering background weather and risk assessment...", currentCount);
+            orchestrationService.processDailyPredictions();
             return;
         }
 
@@ -98,6 +101,7 @@ public class DataSeeder implements CommandLineRunner {
             }
 
             logger.info("✅ Successfully seeded {} static grid points for Dima Hasao into database!", totalInserted);
+            orchestrationService.processDailyPredictions();
 
         } catch (Exception e) {
             logger.error("❌ Failed to seed grid points into database", e);

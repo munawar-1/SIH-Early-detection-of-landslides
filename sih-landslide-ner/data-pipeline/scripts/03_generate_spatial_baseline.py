@@ -31,6 +31,7 @@ def generate_grid():
     print(f"[INFO] Grid generated: {len(grid)} discrete coordinate pairs.")
     return pd.DataFrame(grid)
 
+# pyrefly: ignore [missing-import]
 import srtm
 
 # Initialize SRTM locally (will download tiles from AWS on first run and cache them in ~/.srtm)
@@ -99,8 +100,8 @@ def main():
         df.to_csv(CHECKPOINT_CSV, index=False)
         
     # 2. Checkpoint check: Find the exact index where processing should resume
-    # We use any NaN value to detect unprocessed or partially processed rows
-    unprocessed_idx = df[df.isna().any(axis=1)].index
+    # We use 'elevation' being NaN to detect unprocessed rows
+    unprocessed_idx = df[df['elevation'].isna()].index
     if len(unprocessed_idx) == 0:
         print("[INFO] Grid extraction already completed.")
         return
