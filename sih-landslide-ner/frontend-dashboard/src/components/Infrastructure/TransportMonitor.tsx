@@ -1,0 +1,218 @@
+import React, { useState } from 'react';
+import type { TransportSegment } from '../../types/landslide';
+import { 
+  Train, 
+  Navigation, 
+  AlertTriangle, 
+  ShieldAlert, 
+  CheckCircle2, 
+  Gauge, 
+  TrendingUp, 
+  ChevronRight,
+  Download,
+  Flame
+} from 'lucide-react';
+
+interface TransportMonitorProps {
+  railways: TransportSegment[];
+  highways: TransportSegment[];
+  onSelectSegment: (segment: TransportSegment) => void;
+  selectedSegmentId?: string;
+}
+
+export const TransportMonitor: React.FC<TransportMonitorProps> = ({
+  railways,
+  highways,
+  onSelectSegment,
+  selectedSegmentId
+}) => {
+  const [activeTab, setActiveTab] = useState<'all' | 'railways' | 'highways'>('all');
+
+  const getThreatBadge = (level: TransportSegment['threatLevel']) => {
+    switch (level) {
+      case 'CRITICAL':
+        return <span className="threat-badge critical"><Flame size={13} /> CRITICAL DANGER</span>;
+      case 'WARNING':
+        return <span className="threat-badge warning"><AlertTriangle size={13} /> WARNING</span>;
+      case 'WATCH':
+        return <span className="threat-badge watch"><ShieldAlert size={13} /> WATCH</span>;
+      case 'SAFE':
+      default:
+        return <span className="threat-badge safe"><CheckCircle2 size={13} /> SAFE</span>;
+    }
+  };
+
+  const filteredSegments = [
+    ...(activeTab === 'highways' ? [] : railways),
+    ...(activeTab === 'railways' ? [] : highways)
+  ].sort((a, b) => {
+    const order = { CRITICAL: 0, WARNING: 1, WATCH: 2, SAFE: 3 };
+    return order[a.threatLevel] - order[b.threatLevel];
+  });
+
+  const criticalCount = [...railways, ...highways].filter(s => s.threatLevel === 'CRITICAL').length;
+  const warningCount = [...railways, ...highways].filter(s => s.threatLevel === 'WARNING').length;
+
+  const handleExportBulletin = () => {
+    const lines = [
+      '=========================================================================',
+      '  DIMA HASAO DISASTER MANAGEMENT - TRANSPORT CORRIDOR HAZARD BULLETIN',
+      `  Generated: ${new Date().toLocaleString('en-IN')}`,
+      '=========================================================================\n',
+      '-- RAILWAY HILL SECTION (LUMDING - BADARPUR) --'
+    ];
+
+    railways.forEach(r => {
+      lines.push(`[${r.threatLevel}] ${r.name} (${r.code})`);
+      lines.push(`   Max Proximity Risk: ${(r.maxNearbyProbability * 100).toFixed(1)}% | Avg Slope: ${r.averageSlope}°`);
+      lines.push(`   Speed Restriction: ${r.recommendedSpeedKmh} km/h (Normal: ${r.speedLimitKmh} km/h)`);
+      lines.push(`   Advisory: ${r.advisory}\n`);
+    });
+
+    lines.push('-- NATIONAL HIGHWAY & ROADWAYS (NH-27 / SH-20) --');
+    highways.forEach(h => {
+      lines.push(`[${h.threatLevel}] ${h.name} (${h.code})`);
+      lines.push(`   Max Proximity Risk: ${(h.maxNearbyProbability * 100).toFixed(1)}% | High Risk Points Near: ${h.vulnerablePointsCount}`);
+      lines.push(`   Advisory: ${h.advisory}\n`);
+    });
+
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `dima_hasao_transport_hazard_bulletin_${Date.now()}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="transport-monitor-container">
+      <div className="transport-header">
+        <div className="title-row">
+          <div className="icon-badge">
+            <Train size={18} className="text-cyan" />
+          </div>
+          <div>
+            <h3 className="section-title">Critical Corridors Live Monitor</h3>
+            <p className="section-subtitle">Real-time Lumding–Badarpur Railway & NH-27 Hazard Scanner</p>
+          </div>
+        </div>
+
+        <button 
+          className="btn-export-bulletin" 
+          onClick={handleExportBulletin}
+          title="Download operational hazard bulletin for NFR & ASDMA"
+        >
+          <Download size={14} /> Export Bulletin
+        </button>
+      </div>
+
+      {/* Emergency Status Banner */}
+      <div className="emergency-banner">
+        <div className="banner-item danger">
+          <span className="count">{criticalCount}</span>
+          <span className="label">Critical Corridors</span>
+        </div>
+        <div className="banner-item warning">
+          <span className="count">{warningCount}</span>
+          <span className="label">High Watch Routes</span>
+        </div>
+        <div className="banner-item speed">
+          <Gauge size={18} className="speed-icon" />
+          <span className="label">Speed Restricted Zones Active</span>
+        </div>
+      </div>
+
+      {/* Filter Tabs */}
+      <div className="transport-tabs">
+        <button 
+          className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`}
+          onClick={() => setActiveTab('all')}
+        >
+          All Routes ({railways.length + highways.length})
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'railways' ? 'active' : ''}`}
+          onClick={() => setActiveTab('railways')}
+        >
+          <Train size={14} /> Lumding–Badarpur Rail ({railways.length})
+        </button>
+        <button 
+          className={`tab-btn ${activeTab === 'highways' ? 'active' : ''}`}
+          onClick={() => setActiveTab('highways')}
+        >
+          <Navigation size={14} /> NH-27 & Highways ({highways.length})
+        </button>
+      </div>
+
+      {/* Corridor Cards List */}
+      <div className="corridor-list">
+        {filteredSegments.map(seg => {
+          const isSelected = selectedSegmentId === seg.id;
+          const isRail = seg.type === 'railway';
+
+          return (
+            <div 
+              key={seg.id} 
+              className={`corridor-card ${seg.threatLevel.toLowerCase()} ${isSelected ? 'selected' : ''}`}
+              onClick={() => onSelectSegment(seg)}
+            >
+              <div className="card-top">
+                <div className="route-identity">
+                  <span className={`type-tag ${isRail ? 'rail' : 'hwy'}`}>
+                    {isRail ? <Train size={12} /> : <Navigation size={12} />}
+                    {isRail ? 'RAIL' : 'HIGHWAY'}
+                  </span>
+                  <span className="route-code">{seg.code}</span>
+                </div>
+                {getThreatBadge(seg.threatLevel)}
+              </div>
+
+              <h4 className="route-name">{seg.name}</h4>
+              <p className="route-desc">{seg.description}</p>
+
+              {/* Dynamic Metrics Row */}
+              <div className="metrics-grid">
+                <div className="metric-box">
+                  <span className="m-label">Proximity Risk</span>
+                  <span className={`m-val ${seg.maxNearbyProbability >= 0.7 ? 'text-red' : (seg.maxNearbyProbability >= 0.4 ? 'text-amber' : 'text-green')}`}>
+                    {Math.round(seg.maxNearbyProbability * 100)}%
+                  </span>
+                </div>
+                <div className="metric-box">
+                  <span className="m-label">Length</span>
+                  <span className="m-val">{seg.lengthKm} km</span>
+                </div>
+                <div className="metric-box">
+                  <span className="m-label">Max Slope</span>
+                  <span className="m-val text-cyan">{seg.maxSlope}°</span>
+                </div>
+                <div className="metric-box">
+                  <span className="m-label">Speed Limit</span>
+                  <span className="m-val text-purple">
+                    {seg.recommendedSpeedKmh} <span className="unit">/ {seg.speedLimitKmh} km/h</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Action Advisory Box */}
+              <div className="advisory-box">
+                <AlertTriangle size={14} className="adv-icon" />
+                <span className="adv-text">{seg.advisory}</span>
+              </div>
+
+              <div className="card-footer">
+                <span className="threat-points-tag">
+                  <TrendingUp size={12} /> {seg.vulnerablePointsCount} high-risk terrain grid points within 2km
+                </span>
+                <span className="inspect-link">
+                  Inspect <ChevronRight size={14} />
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};

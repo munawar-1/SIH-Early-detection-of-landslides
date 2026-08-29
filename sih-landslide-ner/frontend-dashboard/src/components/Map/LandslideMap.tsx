@@ -1,0 +1,446 @@
+import React, { useEffect, useRef } from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import type { GridPoint, FilterState, TransportSegment, StationNode } from '../../types/landslide';
+import { HISTORICAL_LANDSLIDES } from '../../data/infrastructureData';
+import { DIMA_HASAO_POLYGON, DIMA_HASAO_BOUNDS, DIMA_HASAO_CENTER } from '../../data/dimaHasaoBoundary';
+import { Crosshair, ZoomIn, ZoomOut } from 'lucide-react';
+
+// Fix standard Leaflet icon paths
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
+
+interface LandslideMapProps {
+  gridPoints: GridPoint[];
+  railways: TransportSegment[];
+  highways: TransportSegment[];
+  stations: StationNode[];
+  filters: FilterState;
+  onSelectPoint?: (point: GridPoint) => void;
+  onSelectTransport?: (segment: TransportSegment) => void;
+  onSelectStation?: (station: StationNode) => void;
+}
+
+export const LandslideMap: React.FC<LandslideMapProps> = ({
+  gridPoints,
+  railways,
+  highways,
+  stations,
+  filters,
+  onSelectPoint,
+  onSelectTransport,
+  onSelectStation
+}) => {
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<L.Map | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
+
+  const pointsLayerGroupRef = useRef<L.LayerGroup | null>(null);
+  const infrastructureLayerGroupRef = useRef<L.LayerGroup | null>(null);
+  const boundaryLayerGroupRef = useRef<L.LayerGroup | null>(null);
+
+  // 1. Initialize Map on mount and fit directly to Dima Hasao
+  useEffect(() => {
+    if (!mapContainerRef.current || mapInstanceRef.current) return;
+
+    const map = L.map(mapContainerRef.current, {
+      center: DIMA_HASAO_CENTER,
+      zoom: 10,
+      minZoom: 8,
+      maxZoom: 18,
+      zoomControl: false
+    });
+
+    map.fitBounds(DIMA_HASAO_BOUNDS as L.LatLngBoundsExpression, {
+      padding: [30, 30],
+      maxZoom: 11
+    });
+
+    pointsLayerGroupRef.current = L.layerGroup().addTo(map);
+    boundaryLayerGroupRef.current = L.layerGroup().addTo(map);
+    infrastructureLayerGroupRef.current = L.layerGroup().addTo(map);
+    mapInstanceRef.current = map;
+
+    return () => {
+      map.remove();
+      mapInstanceRef.current = null;
+    };
+  }, []);
+
+  const handleRecenter = () => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.fitBounds(DIMA_HASAO_BOUNDS as L.LatLngBoundsExpression, {
+        padding: [30, 30],
+        maxZoom: 11
+      });
+    }
+  };
+
+  const handleZoomIn = () => mapInstanceRef.current?.zoomIn();
+  const handleZoomOut = () => mapInstanceRef.current?.zoomOut();
+
+  // 2. Basemap Switcher
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    if (tileLayerRef.current) {
+      map.removeLayer(tileLayerRef.current);
+    }
+
+    let url = '';
+    let attribution = '';
+    let maxZoom = 19;
+
+    switch (filters.baseMap) {
+      case 'satellite':
+        url = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+        attribution = '&copy; Esri, Maxar, Earthstar Geographics';
+        break;
+      case 'topo':
+        url = 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png';
+        attribution = 'Map data: &copy; OpenStreetMap, SRTM | Map style: &copy; OpenTopoMap';
+        maxZoom = 17;
+        break;
+      case 'osm':
+        url = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+        attribution = '&copy; OpenStreetMap contributors';
+        break;
+      case 'dark':
+      default:
+        url = 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}';
+        attribution = '&copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors';
+        maxZoom = 16;
+        break;
+    }
+
+    tileLayerRef.current = L.tileLayer(url, { attribution, maxZoom }).addTo(map);
+  }, [filters.baseMap]);
+
+  // 3. Highlight Dima Hasao District with Glowing Border
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    const boundaryGroup = boundaryLayerGroupRef.current;
+    if (!map || !boundaryGroup) return;
+
+    boundaryGroup.clearLayers();
+
+    // Outer glow perimeter
+    const outerGlow = L.polygon(DIMA_HASAO_POLYGON, {
+      color: 'rgba(56, 189, 248, 0.35)',
+      weight: 10,
+      fill: false,
+      opacity: 0.7,
+      lineCap: 'round',
+      lineJoin: 'round'
+    });
+
+    // Sharp glowing neon cyan district line
+    const mainBoundary = L.polygon(DIMA_HASAO_POLYGON, {
+      color: '#38bdf8',
+      weight: 3,
+      fill: false,
+      opacity: 0.95,
+      dashArray: '10, 6'
+    });
+
+    mainBoundary.bindTooltip(`
+      <div class="district-badge-tooltip">
+        <strong>📍 DIMA HASAO DISTRICT BOUNDARY</strong><br/>
+        <span>Area: 4,888 km² | Elevation: 200m - 1,450m</span>
+      </div>
+    `, { sticky: true, className: 'gis-custom-tooltip' });
+
+    boundaryGroup.addLayer(outerGlow);
+    boundaryGroup.addLayer(mainBoundary);
+  }, []);
+
+  // 4. Render Grid Points using Leaflet's built-in Canvas Renderer for 60fps
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    const pointsGroup = pointsLayerGroupRef.current;
+    if (!map || !pointsGroup) return;
+
+    pointsGroup.clearLayers();
+
+    if (!filters.showGridPoints && !filters.showHeatmap) return;
+
+    const filteredPoints = gridPoints.filter(p => {
+      if (filters.minRiskLevel === 'HIGH_ONLY' && p.riskLevel !== 'HIGH') return false;
+      if (filters.minRiskLevel === 'MODERATE_HIGH' && p.riskLevel === 'LOW') return false;
+      if (p.slope < filters.minSlope) return false;
+
+      const rainVal = filters.forecastHorizon === '24h' ? p.rainDay1 :
+                     (filters.forecastHorizon === '48h' ? (p.rainDay1 + p.rainDay2) :
+                     (p.rainDay1 + p.rainDay2 + p.rainDay3));
+      if (rainVal < filters.minRainfall) return false;
+
+      return true;
+    });
+
+    // High performance built-in Canvas renderer
+    const canvasRenderer = L.canvas({ padding: 0.5 });
+
+    filteredPoints.forEach(p => {
+      let fillColor = '#22c55e'; // Green
+      let strokeColor = '#16a34a';
+      let radius = 4;
+      let fillOpacity = 0.55;
+
+      if (p.probability >= 0.70) {
+        fillColor = '#ef4444'; // Red
+        strokeColor = '#ffffff';
+        radius = 7;
+        fillOpacity = 0.9;
+      } else if (p.probability >= 0.40) {
+        fillColor = '#f59e0b'; // Amber
+        strokeColor = '#f59e0b';
+        radius = 5.5;
+        fillOpacity = 0.75;
+      }
+
+      const marker = L.circleMarker([p.latitude, p.longitude], {
+        renderer: canvasRenderer,
+        radius,
+        fillColor,
+        fillOpacity,
+        color: p.probability >= 0.70 ? strokeColor : fillColor,
+        weight: p.probability >= 0.70 ? 1.5 : 0.5
+      });
+
+      marker.on('click', () => {
+        if (onSelectPoint) onSelectPoint(p);
+      });
+
+      marker.bindTooltip(`
+        <div class="gis-tooltip">
+          <strong style="color:${fillColor}">📍 Spatial Cell #${p.id} (${p.riskLevel})</strong><br/>
+          <span>AI Probability: <b>${Math.round(p.probability * 100)}%</b></span><br/>
+          <span>Slope: <b>${p.slope}°</b> | Clay: <b>${p.clayPercent}%</b></span><br/>
+          <span>3-Day Rain: <b>${(p.rainDay1 + p.rainDay2 + p.rainDay3).toFixed(1)} mm</b></span>
+        </div>
+      `, { className: 'gis-custom-tooltip' });
+
+      pointsGroup.addLayer(marker);
+    });
+
+  }, [gridPoints, filters, onSelectPoint]);
+
+  // 5. Render Railway Lines, Highways, Stations, and Incidents
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    const group = infrastructureLayerGroupRef.current;
+    if (!map || !group) return;
+
+    group.clearLayers();
+
+    // A. RAILWAYS (Lumding–Badarpur Hill Section)
+    if (filters.showRailways) {
+      railways.forEach(rail => {
+        let railColor = '#3b82f6';
+        let railGlow = 'rgba(59, 130, 246, 0.3)';
+
+        if (rail.threatLevel === 'CRITICAL') {
+          railColor = '#ef4444';
+          railGlow = 'rgba(239, 68, 68, 0.6)';
+        } else if (rail.threatLevel === 'WARNING') {
+          railColor = '#f59e0b';
+          railGlow = 'rgba(245, 158, 11, 0.5)';
+        } else if (rail.threatLevel === 'WATCH') {
+          railColor = '#eab308';
+          railGlow = 'rgba(234, 179, 8, 0.4)';
+        }
+
+        const glowLine = L.polyline(rail.coordinates, {
+          color: railGlow,
+          weight: rail.threatLevel === 'CRITICAL' ? 12 : 8,
+          opacity: 0.8,
+          lineCap: 'round',
+          lineJoin: 'round'
+        });
+
+        const baseTrack = L.polyline(rail.coordinates, {
+          color: '#0f172a',
+          weight: 6,
+          opacity: 0.95
+        });
+
+        const trackPattern = L.polyline(rail.coordinates, {
+          color: railColor,
+          weight: 4,
+          dashArray: '8, 8',
+          opacity: 1.0
+        });
+
+        trackPattern.on('click', () => {
+          if (onSelectTransport) onSelectTransport(rail);
+        });
+
+        trackPattern.bindTooltip(`
+          <div class="gis-tooltip">
+            <strong style="color:${railColor}">🚂 ${rail.name}</strong><br/>
+            <span>Threat Level: <b>${rail.threatLevel}</b></span><br/>
+            <span>Max Proximity Risk: <b>${Math.round(rail.maxNearbyProbability * 100)}%</b></span>
+          </div>
+        `, { sticky: true, className: 'gis-custom-tooltip' });
+
+        group.addLayer(glowLine);
+        group.addLayer(baseTrack);
+        group.addLayer(trackPattern);
+      });
+    }
+
+    // B. HIGHWAYS (NH-27, SH-20)
+    if (filters.showHighways) {
+      highways.forEach(hwy => {
+        let hwyColor = '#10b981';
+        if (hwy.threatLevel === 'CRITICAL') hwyColor = '#dc2626';
+        else if (hwy.threatLevel === 'WARNING') hwyColor = '#ea580c';
+        else if (hwy.threatLevel === 'WATCH') hwyColor = '#ca8a04';
+
+        const glow = L.polyline(hwy.coordinates, {
+          color: hwyColor,
+          weight: 10,
+          opacity: 0.35
+        });
+
+        const hwyLine = L.polyline(hwy.coordinates, {
+          color: hwyColor,
+          weight: 4.5,
+          opacity: 0.95
+        });
+
+        hwyLine.on('click', () => {
+          if (onSelectTransport) onSelectTransport(hwy);
+        });
+
+        hwyLine.bindTooltip(`
+          <div class="gis-tooltip">
+            <strong style="color:${hwyColor}">🛣️ ${hwy.name}</strong><br/>
+            <span>Threat: <b>${hwy.threatLevel}</b> | Length: <b>${hwy.lengthKm} km</b></span>
+          </div>
+        `, { sticky: true, className: 'gis-custom-tooltip' });
+
+        group.addLayer(glow);
+        group.addLayer(hwyLine);
+      });
+    }
+
+    // C. STATIONS
+    if (filters.showStations) {
+      stations.forEach(st => {
+        const isCritical = st.vulnerabilityStatus === 'CRITICAL';
+        const isHigh = st.vulnerabilityStatus === 'HIGH';
+        const iconBg = isCritical ? '#ef4444' : (isHigh ? '#f59e0b' : '#3b82f6');
+        const iconSymbol = st.type === 'railway_station' ? '🚉' : '🏛️';
+
+        const customIcon = L.divIcon({
+          className: 'custom-gis-station-marker',
+          html: `
+            <div class="station-marker-pin ${isCritical ? 'pulse-danger' : ''}" style="background-color: ${iconBg}">
+              <span class="station-icon">${iconSymbol}</span>
+            </div>
+          `,
+          iconSize: [30, 30],
+          iconAnchor: [15, 15]
+        });
+
+        const marker = L.marker(st.coordinates, { icon: customIcon });
+
+        marker.on('click', () => {
+          if (onSelectStation) onSelectStation(st);
+        });
+
+        marker.bindTooltip(`
+          <div class="gis-tooltip">
+            <strong>${iconSymbol} ${st.name}</strong><br/>
+            <span>Elevation: <b>${st.elevationM} m</b></span><br/>
+            <span>Vulnerability: <b style="color:${iconBg}">${st.vulnerabilityStatus}</b></span>
+          </div>
+        `, { direction: 'top', offset: [0, -10], className: 'gis-custom-tooltip' });
+
+        group.addLayer(marker);
+      });
+    }
+
+    // D. HISTORICAL INCIDENTS
+    if (filters.showHistoricalIncidents) {
+      HISTORICAL_LANDSLIDES.forEach(hist => {
+        const histIcon = L.divIcon({
+          className: 'custom-gis-hist-marker',
+          html: `<div class="hist-marker-pin"><span>⚠️</span></div>`,
+          iconSize: [26, 26],
+          iconAnchor: [13, 13]
+        });
+
+        const marker = L.marker(hist.coordinates, { icon: histIcon });
+
+        marker.bindPopup(`
+          <div class="gis-popup-content">
+            <h4 style="color:#ef4444; margin:0 0 6px 0;">⚠️ ${hist.name} (${hist.year})</h4>
+            <p style="font-size:12px; margin:0 0 6px 0; color:#cbd5e1;">${hist.description}</p>
+            <span class="badge danger" style="font-size:10px;">HISTORICAL DISASTER SITE</span>
+          </div>
+        `);
+
+        group.addLayer(marker);
+      });
+    }
+
+  }, [railways, highways, stations, filters, onSelectTransport, onSelectStation]);
+
+  return (
+    <div className="gis-map-wrapper">
+      <div ref={mapContainerRef} className="gis-map-canvas" />
+
+      {/* Floating Map Navigation Controls */}
+      <div className="map-custom-controls">
+        <button className="map-control-btn" onClick={handleRecenter} title="Recenter Dima Hasao District">
+          <Crosshair size={16} />
+        </button>
+        <button className="map-control-btn" onClick={handleZoomIn} title="Zoom In">
+          <ZoomIn size={16} />
+        </button>
+        <button className="map-control-btn" onClick={handleZoomOut} title="Zoom Out">
+          <ZoomOut size={16} />
+        </button>
+      </div>
+
+      {/* Floating Map HUD Legend */}
+      <div className="gis-map-legend">
+        <div className="legend-header">
+          <span className="legend-title">Dima Hasao Hazard Legend</span>
+        </div>
+        <div className="legend-row">
+          <span className="dot dot-high"></span>
+          <span>High Landslide Risk (&gt;70%)</span>
+        </div>
+        <div className="legend-row">
+          <span className="dot dot-mod"></span>
+          <span>Moderate Risk (40% - 70%)</span>
+        </div>
+        <div className="legend-row">
+          <span className="dot dot-low"></span>
+          <span>Low Hazard (&lt;40%)</span>
+        </div>
+        <div className="legend-divider" />
+        <div className="legend-row">
+          <span className="line-sample line-district"></span>
+          <span>Dima Hasao District Boundary</span>
+        </div>
+        <div className="legend-row">
+          <span className="line-sample line-rail-danger"></span>
+          <span>Lumding–Badarpur Railway Line</span>
+        </div>
+        <div className="legend-row">
+          <span className="line-sample line-hwy-warn"></span>
+          <span>NH-27 Mountain Pass</span>
+        </div>
+      </div>
+    </div>
+  );
+};
