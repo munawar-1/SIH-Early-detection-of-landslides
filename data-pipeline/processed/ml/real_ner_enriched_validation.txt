@@ -1,0 +1,604 @@
+Validation Report
+=================
+Total Input Records: 1481
+Target=1 Records Created: 879
+Target=0 Records Created: 1758
+Total Final Records: 2637
+Total Exclusions Logged: 602
+
+Exclusion Reasons:
+- Missing Clay data for 26.15428,91.79264: 1
+- Missing Clay data for 26.17756,91.76589: 1
+- Missing Clay data for 26.17672,91.76525: 1
+- Missing Clay data for 26.195306,91.765639: 1
+- Missing Clay data for 26.19622,91.76336: 1
+- Missing Clay data for 26.20261,91.14528: 1
+- Missing Clay data for 26.19044,91.77502: 1
+- Missing Clay data for 26.13441667,91.74875: 1
+- Missing Clay data for 26.10711111,91.78916667: 1
+- Missing Clay data for 26.19552778,91.78055556: 1
+- Unparseable date: First incidence: 1998 Reactivated on: 15.05.2016 and 14.05.2022: 1
+- Missing Clay data for 25.15713889,93.01719444: 1
+- Missing Clay data for 25.14525,93.02916667: 1
+- Missing Clay data for 25.23230556,93.03333333: 1
+- Missing Clay data for 25.143408,93.02995: 1
+- Missing Clay data for 25.14879,93.031636: 1
+- Missing Clay data for 25.24597222,93.02827778: 1
+- Missing Clay data for 26.19052,91.77499: 1
+- Missing Clay data for 25.15933333,93.017: 1
+- Missing Clay data for 25.15736111,93.01608333: 1
+- Missing Clay data for 25.13961111,93.01955556: 1
+- Missing Clay data for 26.150124,91.727915: 1
+- Missing Clay data for 26.19244444,91.76422222: 1
+- Missing Clay data for 26.19236111,91.78080556: 1
+- Missing Clay data for 26.19038889,91.80994444: 1
+- Missing Clay data for 26.18866667,91.76694444: 1
+- Unparseable date: 24th to 26th Sept, 2020: 1
+- Missing Clay data for 26.19622222,91.76336111: 1
+- Missing Clay data for 26.1755,91.76175: 1
+- Missing Clay data for 26.17755556,91.76588889: 1
+- Missing Clay data for 26.15427778,91.79263889: 1
+- Missing Clay data for 26.17672222,91.76525: 1
+- Missing Clay data for 26.17672222,91.78672222: 1
+- Missing Clay data for 26.1895,91.78716667: 1
+- Missing Clay data for 26.15477778,91.77411111: 1
+- Missing Clay data for 26.19530556,91.76563889: 1
+- Missing Clay data for 26.19330556,91.77725: 1
+- Missing Clay data for 26.1916,91.80361: 1
+- Missing Clay data for 26.18789,91.79493: 1
+- Missing Clay data for 26.19322,91.77033: 1
+- Missing Clay data for 25.17136,93.01102: 1
+- Missing Clay data for 26.14988889,91.77394444: 1
+- Missing Clay data for 26.10891667,91.74175: 1
+- Missing Clay data for 26.15333333,91.77711111: 1
+- Missing Clay data for 26.16405556,91.72827778: 1
+- Missing Clay data for 26.158193,91.755807: 1
+- Missing Clay data for 25.366255,92.823037: 1
+- Missing Clay data for 26.24698,91.964383: 1
+- Missing Clay data for 25.69814,93.129423: 1
+- Missing Clay data for 26.1445,91.7362: 1
+- Missing Clay data for 27.58741667,91.88694444: 1
+- Unparseable date: 7.09.2007: 1
+- Missing Clay data for 27.099285,93.614766: 1
+- Unparseable date: Initiated on 12-06-18 reactivated on 22- 06018: 1
+- Unparseable date: 28.08.2007: 2
+- Missing Clay data for 24.98611,93.50583: 1
+- Missing Clay data for 24.524125,93.816333: 1
+- Missing Clay data for 24.517056,93.817056: 1
+- Missing Clay data for 24.82022222,94.35255556: 1
+- Missing Clay data for 25.50335,91.28335: 1
+- Missing Clay data for 25.56667,91.90194: 1
+- Unparseable date: 20-23 August, 2014: 1
+- Missing Clay data for 25.5667327,91.9146185: 1
+- Missing Clay data for 25.57711111,91.88141667: 1
+- Missing Clay data for 25.56183333,91.86855556: 1
+- Missing Clay data for 25.56852778,91.89219444: 1
+- Missing Clay data for 25.57188889,91.90127778: 1
+- Missing Clay data for 25.14702778,92.37883333: 1
+- Missing Clay data for 25.56663056,91.91370556: 1
+- Missing Clay data for 25.44233333,92.19447222: 1
+- Missing Clay data for 25.44177778,92.19558333: 1
+- Missing Clay data for 25.43630556,92.19525: 1
+- Missing Clay data for 25.44835,91.59150278: 1
+- Missing Clay data for 25.41384722,91.67856111: 1
+- Missing Clay data for 25.67517222,91.8983: 1
+- Missing Clay data for 25.67546111,91.89726944: 1
+- Unparseable date: 08.09.2007 at night: 1
+- Missing Clay data for 25.566518,91.914509: 1
+- Missing Clay data for 23.722,92.721222: 1
+- Missing Clay data for 23.74066667,92.69336111: 1
+- Missing Clay data for 23.74472222,92.69277778: 1
+- Missing Clay data for 23.73361111,92.69388889: 1
+- Missing Clay data for 23.72276944,92.70665: 1
+- Missing Clay data for 23.72428333,92.70737778: 1
+- Missing Clay data for 23.71523056,92.71529167: 1
+- Missing Clay data for 23.73944444,92.71472222: 1
+- Missing Clay data for 23.74,92.715: 1
+- Missing Clay data for 23.71571389,92.72659722: 1
+- Missing Clay data for 23.71865833,92.72335278: 1
+- Missing Clay data for 23.7175,92.71972222: 1
+- Missing Clay data for 23.70666667,92.71444444: 1
+- Missing Clay data for 23.69972222,92.71694444: 1
+- Missing Clay data for 23.66666667,92.72388889: 1
+- Missing Clay data for 23.56388889,92.70805556: 1
+- Missing Clay data for 23.77361111,92.76111111: 1
+- Missing Clay data for 23.463164,92.854672: 1
+- Unparseable date: 28.05.2024: 3
+- Unparseable date: May 2022 (between 14.05.2022 to 21.05.2022): 1
+- Missing Clay data for 23.70827778,92.71711111: 1
+- Unparseable date: 26.07.2019 (1:02 am): 1
+- Missing Clay data for 23.73053889,92.716019: 1
+- Missing Clay data for 23.05805556,92.67583333: 1
+- Missing Clay data for 23.0475,92.67166667: 1
+- Unparseable date: 10.12.2023: 1
+- Unparseable date: 09.12.2023: 2
+- Unparseable date: 28th May, 2024: 4
+- Unparseable date: 28th May, 2024, 2nd July, 2024: 1
+- Missing Clay data for 23.73888889,92.71472222: 1
+- Missing Clay data for 23.74194444,92.71305556: 1
+- Missing Clay data for 23.64444444,92.72527778: 1
+- Missing Clay data for 23.61361111,92.80777778: 1
+- Missing Clay data for 23.54833333,92.71083333: 1
+- Missing Clay data for 23.545,92.70333333: 1
+- Missing Clay data for 23.54333333,92.66472222: 1
+- Unparseable date: 3 July, 2024: 1
+- Missing Clay data for 23.73833333,92.81333333: 1
+- Missing Clay data for 23.72916667,92.76583333: 1
+- Missing Clay data for 23.71111111,92.87861111: 1
+- Missing Clay data for 24.05808333,93.49808333: 1
+- Unparseable date: 28th Sept, 2024: 1
+- Missing Clay data for 23.32829167,93.12184167: 1
+- Missing Clay data for 23.5356,93.10656944: 1
+- Missing Clay data for 23.35958611,93.04477222: 1
+- Missing Clay data for 23.36556111,93.05125278: 1
+- Missing Clay data for 23.54294167,93.23821667: 1
+- Missing Clay data for 23.01689167,93.283175: 1
+- Missing Clay data for 24.02782222,93.28944444: 1
+- Missing Clay data for 24.04014167,93.2915: 2
+- Missing Clay data for 24.03980278,93.29373889: 1
+- Missing Clay data for 24.05823611,93.28901944: 1
+- Missing Clay data for 24.09210556,93.29866667: 1
+- Missing Clay data for 24.12428889,93.318525: 1
+- Missing Clay data for 24.297775,93.34159722: 1
+- Missing Clay data for 24.35137778,93.34095556: 1
+- Missing Clay data for 23.631219,93.118033: 1
+- Missing Clay data for 23.62418333,93.14208611: 1
+- Missing Clay data for 23.56672222,93.13764444: 1
+- Missing Clay data for 24.56771111,93.14291667: 1
+- Missing Clay data for 24.57151389,93.141725: 1
+- Missing Clay data for 24.5606,93.13071389: 1
+- Missing Clay data for 24.08927222,93.12408611: 1
+- Missing Clay data for 24.10710778,93.11535444: 1
+- Missing Clay data for 24.10015917,93.10461389: 1
+- Missing Clay data for 24.11104722,93.10374167: 1
+- Missing Clay data for 24.10506389,93.09593611: 1
+- Missing Clay data for 24.10743611,93.09532222: 1
+- Missing Clay data for 24.10687222,93.08849722: 1
+- Missing Clay data for 23.24231111,93.17726667: 1
+- Missing Clay data for 23.24454722,93.17027222: 1
+- Unparseable date: 1990, 2015 31.05.2025: 1
+- Missing Clay data for 23.6868033,92.7251987: 1
+- Missing Clay data for 23.729422,92.716596: 1
+- Missing Clay data for 23.75024,92.736662: 1
+- Missing Clay data for 23.71577,92.713172: 1
+- Missing Clay data for 23.755925,92.726753: 1
+- Missing Clay data for 23.74247,92.705587: 1
+- Missing Clay data for 23.605091,92.72184: 1
+- Unparseable date: 06.06.2018 31.05.2025: 1
+- Missing Clay data for 23.022804,92.755698: 1
+- Missing Clay data for 22.973735,92.725975: 1
+- Missing Clay data for 22.702165,92.836523: 1
+- Missing Elevation/Slope for 22.745387,92.841543: 1
+- Missing Elevation/Slope for 22.788323,92.833817: 1
+- Missing Elevation/Slope for 22.793307,92.819831: 1
+- Missing Elevation/Slope for 22.866131,92.772713: 1
+- Missing Elevation/Slope for 22.903567,92.758702: 1
+- Missing Elevation/Slope for 22.903454,92.760096: 1
+- Missing Elevation/Slope for 22.904615,92.75705: 1
+- Missing Elevation/Slope for 22.922528,92.752404: 1
+- Missing Elevation/Slope for 22.895235,92.747812: 1
+- Missing Elevation/Slope for 22.88042,92.821692: 1
+- Missing Elevation/Slope for 22.892426,92.822937: 1
+- Missing Elevation/Slope for 22.902089,92.879909: 1
+- Missing Elevation/Slope for 22.967715,92.925677: 1
+- Missing Elevation/Slope for 22.971217,92.925544: 1
+- Missing Elevation/Slope for 22.969582,92.925917: 1
+- Missing Elevation/Slope for 23.077813,92.89844: 1
+- Missing Elevation/Slope for 23.081023,92.897247: 1
+- Missing Elevation/Slope for 23.084343,92.898597: 1
+- Missing Elevation/Slope for 23.170678,92.899334: 1
+- Missing Elevation/Slope for 23.180345,92.900082: 1
+- Missing Elevation/Slope for 23.187383,92.89826: 1
+- Missing Elevation/Slope for 23.187762,92.898034: 1
+- Missing Elevation/Slope for 23.188273,92.898879: 1
+- Missing Elevation/Slope for 23.193401,92.900218: 1
+- Missing Elevation/Slope for 23.198119,92.899566: 1
+- Missing Elevation/Slope for 23.223594,92.914767: 1
+- Missing Elevation/Slope for 23.225227,92.912496: 1
+- Missing Elevation/Slope for 23.32201,92.85822: 1
+- Missing Elevation/Slope for 23.322039,92.859147: 1
+- Missing Elevation/Slope for 23.319156,92.857722: 1
+- Missing Elevation/Slope for 23.317543,92.858683: 1
+- Missing Elevation/Slope for 23.318568,92.852294: 1
+- Missing Elevation/Slope for 23.323423,92.860926: 1
+- Missing Elevation/Slope for 23.319412,92.855415: 1
+- Missing Elevation/Slope for 23.319184,92.856725: 1
+- Missing Elevation/Slope for 23.309286,92.850807: 1
+- Missing Elevation/Slope for 23.10112,92.852784: 1
+- Missing Elevation/Slope for 23.309914,92.853522: 1
+- Missing Elevation/Slope for 23.315273,92.856524: 1
+- Missing Elevation/Slope for 23.311529,92.85443: 1
+- Missing Elevation/Slope for 23.31637,92.854172: 1
+- Missing Elevation/Slope for 23.310074,92.858498: 1
+- Missing Elevation/Slope for 23.309295,92.860017: 1
+- Missing Elevation/Slope for 23.308629,92.860039: 1
+- Missing Elevation/Slope for 23.308778,92.858357: 1
+- Missing Elevation/Slope for 23.300837,92.855693: 1
+- Missing Elevation/Slope for 23.300787,92.853572: 1
+- Missing Elevation/Slope for 23.305323,92.852358: 1
+- Missing Elevation/Slope for 23.304746,92.862109: 1
+- Missing Elevation/Slope for 23.298928,92.857435: 1
+- Missing Elevation/Slope for 23.310846,92.858915: 1
+- Missing Elevation/Slope for 23.311335,92.858026: 1
+- Missing Elevation/Slope for 23.307089,92.854209: 1
+- Missing Elevation/Slope for 23.3057,92.852802: 1
+- Missing Elevation/Slope for 23.307093,92.856289: 1
+- Missing Elevation/Slope for 23.307524,92.857678: 1
+- Missing Elevation/Slope for 23.305939,92.857538: 1
+- Missing Elevation/Slope for 23.303906,92.853173: 1
+- Unparseable date: 31.05.2025 01.06.2025: 1
+- Missing Elevation/Slope for 23.301381,92.853078: 1
+- Missing Elevation/Slope for 23.299628,92.855609: 1
+- Missing Elevation/Slope for 23.298137,92.857412: 1
+- Unparseable date: 31.05.2025 09.06.2025: 2
+- Missing Elevation/Slope for 23.293453,92.858089: 1
+- Missing Elevation/Slope for 23.298166,92.858694: 1
+- Missing Elevation/Slope for 23.346456,92.851511: 1
+- Missing Elevation/Slope for 23.3466,92.854847: 1
+- Missing Elevation/Slope for 23.301587,92.868485: 1
+- Missing Elevation/Slope for 23.313996,92.863984: 1
+- Missing Elevation/Slope for 23.3228,92.862406: 1
+- Missing Elevation/Slope for 23.286141,92.868152: 1
+- Missing Elevation/Slope for 23.281219,92.869608: 1
+- Missing Elevation/Slope for 23.274148,92.871011: 1
+- Missing Elevation/Slope for 23.272548,92.874296: 1
+- Missing Elevation/Slope for 23.271227,92.874544: 1
+- Missing Elevation/Slope for 23.270548,92.877577: 1
+- Missing Elevation/Slope for 23.67701,92.87895: 1
+- Missing Elevation/Slope for 23.243855,92.905242: 1
+- Missing Elevation/Slope for 23.286735,92.85703: 1
+- Missing Elevation/Slope for 23.284565,92.857096: 1
+- Missing Elevation/Slope for 23.281443,92.840145: 1
+- Missing Elevation/Slope for 23.280947,92.8367: 1
+- Missing Elevation/Slope for 23.288276,92.830821: 1
+- Missing Elevation/Slope for 23.293863,92.741368: 1
+- Missing Elevation/Slope for 23.295774,92.740012: 1
+- Missing Elevation/Slope for 23.30265,92.742945: 1
+- Missing Elevation/Slope for 23.307135,92.707624: 1
+- Missing Elevation/Slope for 23.306409,92.706083: 1
+- Missing Elevation/Slope for 23.306012,92.704212: 1
+- Missing Elevation/Slope for 23.300291,92.69577: 1
+- Missing Elevation/Slope for 23.299806,92.694901: 1
+- Missing Elevation/Slope for 23.299312,92.692614: 1
+- Missing Elevation/Slope for 23.297521,92.689449: 1
+- Missing Elevation/Slope for 23.304123,92.671521: 1
+- Missing Elevation/Slope for 23.30374,92.672816: 1
+- Missing Elevation/Slope for 23.306105,92.671296: 1
+- Missing Elevation/Slope for 23.306338,92.666573: 1
+- Missing Elevation/Slope for 23.32044,92.643229: 1
+- Missing Elevation/Slope for 23.246611,92.655112: 1
+- Missing Elevation/Slope for 23.301901,92.649401: 1
+- Missing Elevation/Slope for 23.2388,92.636923: 1
+- Missing Elevation/Slope for 23.234538,92.637234: 1
+- Missing Elevation/Slope for 23.206413,92.632701: 1
+- Missing Elevation/Slope for 23.197283,92.632661: 1
+- Missing Elevation/Slope for 23.174558,92.612556: 1
+- Missing Elevation/Slope for 23.1739,92.611378: 1
+- Missing Elevation/Slope for 23.173258,92.611929: 1
+- Missing Elevation/Slope for 23.17252,92.611434: 1
+- Missing Elevation/Slope for 23.172659,92.611828: 1
+- Missing Elevation/Slope for 23.198272,92.589291: 1
+- Missing Elevation/Slope for 23.198961,92.590043: 1
+- Missing Elevation/Slope for 23.199095,92.586671: 1
+- Missing Elevation/Slope for 23.199415,92.585883: 1
+- Missing Elevation/Slope for 23.200105,92.584517: 1
+- Missing Elevation/Slope for 23.200655,92.5813: 1
+- Missing Elevation/Slope for 23.201843,92.579666: 1
+- Missing Elevation/Slope for 23.202247,92.57903: 1
+- Missing Elevation/Slope for 23.203107,92.577972: 1
+- Missing Elevation/Slope for 23.203903,92.576807: 1
+- Missing Elevation/Slope for 23.204282,92.576174: 1
+- Missing Elevation/Slope for 23.204481,92.575792: 1
+- Missing Elevation/Slope for 23.205193,92.574684: 1
+- Missing Elevation/Slope for 23.214589,92.572672: 1
+- Missing Elevation/Slope for 23.212919,92.558022: 1
+- Missing Elevation/Slope for 23.207082,92.509726: 1
+- Missing Elevation/Slope for 23.195616,92.546251: 1
+- Missing Elevation/Slope for 23.19796,92.543304: 1
+- Missing Elevation/Slope for 23.190022,92.554302: 1
+- Missing Elevation/Slope for 23.21035,92.539589: 1
+- Missing Elevation/Slope for 23.208921,92.541174: 1
+- Missing Elevation/Slope for 23.208823,92.53749: 1
+- Missing Elevation/Slope for 23.206239,92.491221: 2
+- Missing Elevation/Slope for 23.20549,92.543278: 1
+- Missing Elevation/Slope for 23.219631,92.563324: 1
+- Missing Elevation/Slope for 23.204981,92.534603: 1
+- Missing Elevation/Slope for 23.206253,92.533605: 1
+- Missing Elevation/Slope for 23.209857,92.500587: 1
+- Missing Elevation/Slope for 23.199961,92.488796: 1
+- Missing Elevation/Slope for 23.17824,92.491031: 1
+- Missing Elevation/Slope for 23.180969,92.488193: 1
+- Missing Elevation/Slope for 23.180354,92.486971: 1
+- Missing Elevation/Slope for 23.182466,92.487731: 1
+- Missing Elevation/Slope for 23.204706,92.533825: 1
+- Missing Elevation/Slope for 23.251004,92.63667: 1
+- Missing Elevation/Slope for 23.234898,92.911307: 1
+- Missing Elevation/Slope for 23.225619,92.924909: 1
+- Missing Elevation/Slope for 23.223807,92.944448: 1
+- Missing Elevation/Slope for 23.21795,92.998007: 1
+- Missing Elevation/Slope for 23.217324,92.99812: 1
+- Missing Elevation/Slope for 23.19917,93.000199: 1
+- Missing Elevation/Slope for 23.1915,93.011024: 1
+- Missing Elevation/Slope for 23.183361,93.066742: 1
+- Missing Elevation/Slope for 23.241722,93.098254: 1
+- Missing Elevation/Slope for 23.229765,93.127521: 1
+- Missing Elevation/Slope for 23.2066,93.148665: 1
+- Missing Elevation/Slope for 23.197704,93.163019: 1
+- Missing Elevation/Slope for 23.198136,93.166988: 1
+- Missing Elevation/Slope for 23.177311,93.198157: 1
+- Missing Elevation/Slope for 23.148209,93.321183: 1
+- Missing Elevation/Slope for 23.14788,93.323791: 1
+- Missing Elevation/Slope for 23.486306,93.220639: 1
+- Missing Elevation/Slope for 23.545766,93.147931: 1
+- Missing Elevation/Slope for 23.544052,93.155591: 1
+- Missing Elevation/Slope for 23.5266,93.192968: 1
+- Missing Elevation/Slope for 23.667553,92.89259: 1
+- Missing Elevation/Slope for 23.527592,92.984969: 1
+- Missing Elevation/Slope for 23.700835,92.877449: 1
+- Missing Elevation/Slope for 23.760466,92.848969: 1
+- Missing Elevation/Slope for 23.807952,92.834037: 1
+- Missing Elevation/Slope for 24.285871,92.94599: 1
+- Missing Elevation/Slope for 24.288014,92.946017: 1
+- Unparseable date: 2015, 07 July, 2017: 1
+- Missing Elevation/Slope for 24.354658,92.925511: 1
+- Missing Elevation/Slope for 24.365715,92.930137: 1
+- Missing Elevation/Slope for 22.82104167,92.63873333: 1
+- Missing Elevation/Slope for 23.74035833,92.71311667: 1
+- Unparseable date: 13.06.2021 at 20:30 hrs: 1
+- Unparseable date: 11.06.2021 at 21.23hrs: 1
+- Unparseable date: 09.10.2021 at 01:00 hrs. 1997, 2019: 1
+- Missing Elevation/Slope for 23.72949444,92.77544444: 1
+- Missing Elevation/Slope for 24.80375556,92.733375: 1
+- Missing Elevation/Slope for 24.73197222,92.75988889: 1
+- Missing Elevation/Slope for 23.71688889,92.72083333: 1
+- Missing Elevation/Slope for 23.74150833,92.70785833: 1
+- Missing Elevation/Slope for 23.747519,92.853155: 1
+- Missing Elevation/Slope for 23.88591667,93.20961111: 1
+- Missing Elevation/Slope for 23.70213889,92.71822222: 1
+- Missing Elevation/Slope for 23.60830556,92.85058333: 1
+- Missing Elevation/Slope for 23.61372222,92.85188889: 1
+- Missing Elevation/Slope for 23.47,92.7215: 1
+- Missing Elevation/Slope for 23.4688,92.7208: 1
+- Missing Elevation/Slope for 23.4807,92.7025: 1
+- Missing Elevation/Slope for 23.4855,92.7033: 1
+- Missing Elevation/Slope for 23.4946,92.7044: 1
+- Missing Elevation/Slope for 23.239287,92.74818: 1
+- Missing Elevation/Slope for 23.237356,92.744978: 1
+- Missing Elevation/Slope for 23.230114,92.740067: 1
+- Missing Elevation/Slope for 23.229731,92.73968: 1
+- Missing Elevation/Slope for 23.226843,92.740266: 1
+- Missing Elevation/Slope for 23.225357,92.74039: 1
+- Missing Elevation/Slope for 23.204595,92.73861: 1
+- Missing Elevation/Slope for 23.201335,92.734857: 1
+- Missing Elevation/Slope for 23.201614,92.734453: 1
+- Missing Elevation/Slope for 23.201759,92.734328: 1
+- Missing Elevation/Slope for 23.199924,92.73481: 1
+- Missing Elevation/Slope for 23.197825,92.73502: 1
+- Missing Elevation/Slope for 23.193237,92.734819: 1
+- Missing Elevation/Slope for 23.191775,92.734778: 1
+- Missing Elevation/Slope for 23.191747,92.73459: 1
+- Missing Elevation/Slope for 23.188245,92.734327: 1
+- Missing Elevation/Slope for 23.18675,92.735178: 1
+- Missing Elevation/Slope for 23.186501,92.735632: 1
+- Missing Elevation/Slope for 23.186296,92.7356: 1
+- Missing Elevation/Slope for 23.186133,92.735682: 1
+- Missing Elevation/Slope for 23.184091,92.738895: 1
+- Missing Elevation/Slope for 23.174341,92.740855: 1
+- Missing Elevation/Slope for 23.164812,92.743396: 1
+- Missing Elevation/Slope for 23.152289,92.746243: 1
+- Missing Elevation/Slope for 23.147798,92.749742: 1
+- Missing Elevation/Slope for 23.144687,92.750609: 1
+- Missing Elevation/Slope for 23.141474,92.750577: 1
+- Missing Elevation/Slope for 23.139887,92.751646: 1
+- Missing Elevation/Slope for 23.134961,92.747843: 1
+- Missing Elevation/Slope for 23.131999,92.744413: 1
+- Missing Elevation/Slope for 23.11239,92.745417: 1
+- Missing Elevation/Slope for 23.113126,92.74564: 1
+- Missing Elevation/Slope for 23.108018,92.746279: 1
+- Missing Elevation/Slope for 23.10565,92.745979: 1
+- Missing Elevation/Slope for 23.104623,92.747711: 1
+- Missing Elevation/Slope for 23.100785,92.751508: 1
+- Missing Elevation/Slope for 23.099615,92.752199: 1
+- Missing Elevation/Slope for 23.09459,92.753733: 1
+- Missing Elevation/Slope for 23.092076,92.752286: 1
+- Missing Elevation/Slope for 23.074255,92.76222: 1
+- Missing Elevation/Slope for 23.069585,92.765797: 1
+- Missing Elevation/Slope for 23.067473,92.767201: 1
+- Missing Elevation/Slope for 23.063838,92.769004: 1
+- Missing Elevation/Slope for 23.061745,92.770105: 1
+- Missing Elevation/Slope for 23.725778,91.645694: 1
+- Missing Elevation/Slope for 25.621,94.11806: 1
+- Missing Elevation/Slope for 25.63861,94.115: 1
+- Unparseable date: 20-23 August, 2014.: 1
+- Missing Elevation/Slope for 25.66083,94.10278: 1
+- Missing Elevation/Slope for 25.66667,94.10972: 1
+- Unparseable date: 02.08.2008: 1
+- Missing Elevation/Slope for 25.67222,94.11083: 1
+- Missing Elevation/Slope for 25.66917,94.10722: 1
+- Missing Elevation/Slope for 25.68176111,94.06811944: 2
+- Missing Elevation/Slope for 25.68625,94.043194: 1
+- Missing Elevation/Slope for 25.71611,94.08883: 1
+- Missing Elevation/Slope for 25.74697,93.98167: 1
+- Missing Elevation/Slope for 25.76939,93.80278: 1
+- Missing Elevation/Slope for 25.78417,93.80028: 1
+- Missing Elevation/Slope for 25.88667,94.78639: 1
+- Missing Elevation/Slope for 25.9,94.78917: 1
+- Missing Elevation/Slope for 26.10694722,94.25328889: 2
+- Missing Elevation/Slope for 26.34417,94.83333: 1
+- Missing Elevation/Slope for 26.36083,94.84: 1
+- Missing Elevation/Slope for 26.37639,94.84056: 1
+- Missing Elevation/Slope for 26.38778,94.82583: 2
+- Missing Elevation/Slope for 26.39094,94.94406: 1
+- Missing Elevation/Slope for 26.39936,94.94553: 1
+- Missing Elevation/Slope for 26.40653,94.95814: 1
+- Missing Elevation/Slope for 26.40908,94.96308: 1
+- Missing Elevation/Slope for 26.41931,94.97369: 1
+- Missing Elevation/Slope for 26.70069,94.64383: 1
+- Missing Elevation/Slope for 26.70675,94.70475: 1
+- Missing Elevation/Slope for 26.70744,94.70858: 1
+- Missing Elevation/Slope for 25.7802266,93.936165: 1
+- Missing Elevation/Slope for 25.7746019,93.9148756: 1
+- Missing Elevation/Slope for 26.4231373,94.3822611: 1
+- Missing Elevation/Slope for 25.623067,94.114196: 1
+- Missing Elevation/Slope for 26.4527822,94.375268: 1
+- Unparseable date: 07.07.2024 (around 4.00pm): 1
+- Missing Elevation/Slope for 26.4219453,94.3854377: 1
+- Missing Elevation/Slope for 26.4242282,94.3924136: 1
+- Missing Elevation/Slope for 26.42608,94.398916: 1
+- Missing Elevation/Slope for 25.8816564,94.1902346: 1
+- Missing Elevation/Slope for 25.6125,94.1272: 1
+- Missing Elevation/Slope for 25.7853,93.8014: 1
+- Missing Elevation/Slope for 26.111335,94.257114: 1
+- Missing Elevation/Slope for 26.08945,94.264217: 1
+- Missing Elevation/Slope for 25.71711111,94.08561111: 2
+- Missing Elevation/Slope for 25.712031,94.089791: 1
+- Missing Elevation/Slope for 25.7491204,94.0804548: 1
+- Missing Elevation/Slope for 25.7179491,94.0917724: 1
+- Missing Elevation/Slope for 25.770055,93.937873: 1
+- Missing Elevation/Slope for 25.771451,93.907041: 1
+- Missing Elevation/Slope for 25.770064,93.937891: 1
+- Missing Elevation/Slope for 25.76618333,93.94043611: 1
+- Missing Elevation/Slope for 25.66754722,94.08075278: 1
+- Missing Elevation/Slope for 25.85442778,94.15844444: 1
+- Missing Elevation/Slope for 25.857991,94.159346: 1
+- Missing Elevation/Slope for 25.52036,94.1311201: 1
+- Missing Elevation/Slope for 25.52164,94.13426: 1
+- Missing Elevation/Slope for 25.525094,94.135798: 1
+- Missing Elevation/Slope for 25.538422,94.136039: 1
+- Missing Elevation/Slope for 25.5651,94.1390034: 1
+- Missing Elevation/Slope for 25.6032619,94.1122188: 1
+- Missing Elevation/Slope for 25.62154,94.1122: 1
+- Missing Elevation/Slope for 25.6291966,94.10177: 1
+- Missing Elevation/Slope for 25.6387,94.10979: 1
+- Missing Elevation/Slope for 25.648759,94.10616: 1
+- Missing Elevation/Slope for 25.6609,94.0536: 1
+- Missing Elevation/Slope for 26.45278,94.37526: 1
+- Missing Elevation/Slope for 26.423137,94.382261: 1
+- Missing Elevation/Slope for 26.42186,94.3852: 1
+- Missing Elevation/Slope for 26.425346,94.387013: 1
+- Missing Elevation/Slope for 26.383648,94.440751: 1
+- Missing Elevation/Slope for 26.384347,94.443397: 1
+- Missing Elevation/Slope for 26.387181,94.444132: 1
+- Missing Elevation/Slope for 26.379798,94.450751: 1
+- Missing Elevation/Slope for 25.62083,94.11572: 1
+- Missing Elevation/Slope for 25.88165,94.19023: 1
+- Missing Elevation/Slope for 25.73425,94.00119444: 1
+- Missing Elevation/Slope for 25.68625,94.04297222: 1
+- Missing Elevation/Slope for 25.62509167,94.11405278: 1
+- Missing Elevation/Slope for 25.66772222,94.08908333: 1
+- Missing Elevation/Slope for 25.69172222,94.10319444: 1
+- Missing Elevation/Slope for 26.07256,93.928: 1
+- Missing Elevation/Slope for 25.791802,93.803309: 1
+- Missing Elevation/Slope for 25.68866667,94.09733333: 1
+- Missing Elevation/Slope for 26.00197222,94.18366667: 1
+- Missing Elevation/Slope for 26.22633333,94.81302778: 1
+- Missing Elevation/Slope for 26.22480556,94.81236111: 1
+- Missing Elevation/Slope for 26.26336111,94.81563889: 1
+- Missing Elevation/Slope for 26.18302778,94.81619444: 1
+- Missing Elevation/Slope for 25.68002778,94.07266667: 1
+- Missing Elevation/Slope for 25.67005556,94.113: 1
+- Unparseable date: 2026-06-26: 1
+- Unparseable date: 2026-07-14: 1
+- Missing Elevation/Slope for 25.68436111,94.20497222: 1
+- Missing Elevation/Slope for 25.68133333,94.20877778: 1
+- Missing Elevation/Slope for 25.67275,94.21136111: 1
+- Missing Elevation/Slope for 25.66666667,94.19602778: 1
+- Missing Elevation/Slope for 27.23772,88.51384: 1
+- Missing Elevation/Slope for 27.23924,88.48416: 1
+- Missing Elevation/Slope for 27.24144,88.60681: 1
+- Missing Elevation/Slope for 27.25677,88.55359: 1
+- Missing Elevation/Slope for 27.28408,88.54611: 1
+- Missing Elevation/Slope for 27.31892,88.16222: 1
+- Missing Elevation/Slope for 27.4097,88.54371: 1
+- Missing Elevation/Slope for 27.48603,88.53269: 1
+- Missing Elevation/Slope for 27.5091,88.53848: 1
+- Missing Elevation/Slope for 27.5152,88.56456: 1
+- Missing Elevation/Slope for 27.535333,88.497972: 1
+- Missing Elevation/Slope for 27.179,88.53313889: 1
+- Missing Elevation/Slope for 27.46166,88.52341: 1
+- Missing Elevation/Slope for 27.33208,88.50902: 1
+- Missing Elevation/Slope for 27.53533333,88.49797222: 1
+- Missing Elevation/Slope for 27.31583333,88.60666667: 1
+- Missing Elevation/Slope for 27.39305556,88.63527778: 2
+- Missing Elevation/Slope for 27.36473056,88.23727778: 1
+- Missing Elevation/Slope for 27.33825,88.60911111: 1
+- Missing Elevation/Slope for 27.39866667,88.62358333: 1
+- Missing Elevation/Slope for 27.39838889,88.62566667: 1
+- Missing Elevation/Slope for 27.25352778,88.60377778: 1
+- Missing Elevation/Slope for 27.27458333,88.55002778: 1
+- Missing Elevation/Slope for 27.33941667,88.60990556: 1
+- Missing Elevation/Slope for 27.3699335,88.4859279: 1
+- Missing Elevation/Slope for 27.2533846,88.5489504: 1
+- Missing Elevation/Slope for 27.28666667,88.55347222: 1
+- Missing Elevation/Slope for 27.31663889,88.45861111: 1
+- Missing Elevation/Slope for 27.32663889,88.61016667: 1
+- Missing Elevation/Slope for 27.33972222,88.62055556: 1
+- Missing Elevation/Slope for 27.61936111,88.66131389: 1
+- Missing Elevation/Slope for 27.3250091,88.4704442: 1
+- Missing Elevation/Slope for 27.37055556,88.61611111: 1
+- Missing Elevation/Slope for 27.32888889,88.60777778: 1
+- Missing Elevation/Slope for 27.22122778,88.735475: 1
+- Missing Elevation/Slope for 27.32320833,88.60986944: 1
+- Missing Elevation/Slope for 27.12344167,88.24483889: 1
+- Missing Elevation/Slope for 27.34027222,88.61273333: 1
+- Missing Elevation/Slope for 27.19558889,88.62802778: 1
+- Missing Elevation/Slope for 27.236,88.75722222: 1
+- Missing Elevation/Slope for 27.20258333,88.65547222: 1
+- Missing Elevation/Slope for 27.28577778,88.5535: 1
+- Missing Elevation/Slope for 27.28847,88.30139: 1
+- Missing Elevation/Slope for 27.2535,88.54141667: 1
+- Missing Elevation/Slope for 27.30140833,88.3916: 1
+- Missing Elevation/Slope for 27.37211111,88.61671944: 1
+- Missing Elevation/Slope for 27.14871944,88.28128889: 1
+- Missing Elevation/Slope for 27.28119444,88.58952778: 1
+- Missing Elevation/Slope for 27.24883333,88.60191667: 1
+- Missing Elevation/Slope for 27.21391667,88.60833333: 1
+- Missing Elevation/Slope for 27.39336667,88.52236944: 1
+- Missing Elevation/Slope for 27.25066667,88.53144444: 1
+- Missing Elevation/Slope for 27.24297222,88.47055556: 1
+- Missing Elevation/Slope for 27.19950556,88.32696111: 1
+- Missing Elevation/Slope for 27.17748333,88.52165833: 1
+- Missing Elevation/Slope for 27.40251944,88.51868056: 1
+- Missing Elevation/Slope for 27.27872778,88.12502778: 1
+- Missing Elevation/Slope for 27.2525,88.4606: 1
+- Missing Elevation/Slope for 27.4432,88.6087: 1
+- Missing Elevation/Slope for 27.327977,88.152281: 1
+- Missing Elevation/Slope for 27.372611,88.541022: 1
+- Missing Elevation/Slope for 27.33787,88.609377: 1
+- Missing Elevation/Slope for 27.29166667,88.22: 1
+- Missing Elevation/Slope for 27.28777778,88.23277778: 1
+- Missing Elevation/Slope for 27.26063889,88.71438889: 1
+- Missing Elevation/Slope for 27.26616667,88.72697222: 1
+- Missing Elevation/Slope for 27.26544444,88.72252778: 1
+- Missing Elevation/Slope for 27.37441667,88.54505556: 1
+- Missing Elevation/Slope for 27.36977778,88.54466667: 1
+- Missing Elevation/Slope for 27.59027778,88.65394444: 1
+- Missing Elevation/Slope for 27.57502778,88.65402778: 1
+- Missing Elevation/Slope for 27.56111111,88.65452778: 1
+- Missing Elevation/Slope for 27.52838889,88.59972222: 1
+- Missing Elevation/Slope for 27.56941667,88.65272222: 1
+- Missing Elevation/Slope for 27.51491667,88.56313889: 1
+- Missing Elevation/Slope for 27.51444444,88.56777778: 1
+- Missing Elevation/Slope for 23.793444,91.552056: 1
+- Missing Elevation/Slope for 23.794253,91.553533: 1
+- Missing Elevation/Slope for 23.85417,91.34361: 1
+- Missing Elevation/Slope for 23.980333,91.475278: 1
+- Missing Elevation/Slope for 24.003417,91.45425: 1
+- Missing Elevation/Slope for 24.012306,91.451778: 1
+- Missing Elevation/Slope for 24.325444,94.232583: 1
+- Missing Elevation/Slope for 24.781694,93.776056: 1
+- Missing Elevation/Slope for 24.791306,93.735667: 1
+- Missing Elevation/Slope for 23.9,91.75622222: 1
+- Missing Elevation/Slope for 24.17072222,91.76697222: 1
+- Missing Elevation/Slope for 24.16966667,91.76686111: 1
+- Missing Elevation/Slope for 23.22966667,91.49532222: 1
+- Missing Elevation/Slope for 23.25229444,91.48825: 1
+- Missing Elevation/Slope for 23.802772,91.272189: 1
+
+Data Sources Used:
+1. GSI Landslide Inventory (Input CSV)
+2. Open-Meteo Historical API (ERA5-Land reanalysis for precipitation)
+3. Open-Meteo Elevation API (Copernicus DEM for elevation and slope)
+4. ISRIC SoilGrids REST API (Clay mean at 0-5cm)
+
+No synthetic data, estimation, or random generation was used.

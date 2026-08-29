@@ -1,0 +1,6 @@
+feature_name,source_organization,dataset_name,source_url,spatial_resolution,temporal_resolution,units,retrieval_method,limitations
+landslide_event,GSI,Landslide Inventory (Field Validated),Provided CSV,Point,Daily,N/A,Direct import,Only covers NER India
+elevation_m,Copernicus,Copernicus DEM,https://open-meteo.com/,30m,Static,meters,Open-Meteo API,Satellite-derived DEM
+slope,Copernicus,Copernicus DEM,https://open-meteo.com/,30m,Static,degrees,Computed from adjacent Open-Meteo DEM pixels,Derived from satellite DEM
+clay_percent,ISRIC,SoilGrids v2.0,https://rest.isric.org,250m,Static,percent,ISRIC REST API,Modeled soil property based on observations
+precipitation,ECMWF / Copernicus,ERA5-Land reanalysis,https://open-meteo.com/,11km,Daily,mm,Open-Meteo Archive API,"Reanalysis product, not direct ground station"
