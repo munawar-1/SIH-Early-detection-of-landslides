@@ -5,6 +5,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 import java.util.concurrent.ConcurrentHashMap;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import java.time.Duration;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -12,61 +16,84 @@ import com.fasterxml.jackson.databind.JsonNode;
 @Service
 public class WeatherService {
 
+    public record ForecastRainfall(
+        double rainDay1,
+        double rainDay2,
+        double rainDay3
+    ) {}
+
     private final WebClient webClient;
-    // Cache mapped by rounded lat/lon string to precipitation value
-    private final ConcurrentHashMap<String, Double> precipitationCache = new ConcurrentHashMap<>();
+    // Cache mapped by 10km x 10km grid key (0.1 degree lat/lon) to 3-day ForecastRainfall
+    private final ConcurrentHashMap<String, ForecastRainfall> weather10KmGridCache = new ConcurrentHashMap<>();
 
     public WeatherService(WebClient.Builder webClientBuilder) {
-        // Open-Meteo endpoint
         this.webClient = webClientBuilder.baseUrl("https://api.open-meteo.com/v1").build();
     }
 
     public void clearCache() {
-        precipitationCache.clear();
+        weather10KmGridCache.clear();
     }
 
-    public Mono<Double> getPrecipitation(double lat, double lon) {
-        // Round to 2 decimal places for cache key (approx 1.1km resolution)
-        double roundedLat = roundToTwoDecimals(lat);
-        double roundedLon = roundToTwoDecimals(lon);
-        String cacheKey = roundedLat + "," + roundedLon;
+    public static String get10KmGridKey(double lat, double lon) {
+        BigDecimal bdLat = BigDecimal.valueOf(lat).setScale(1, RoundingMode.HALF_UP);
+        BigDecimal bdLon = BigDecimal.valueOf(lon).setScale(1, RoundingMode.HALF_UP);
+        return String.format(Locale.US, "%.1f,%.1f", bdLat.doubleValue(), bdLon.doubleValue());
+    }
 
-        if (precipitationCache.containsKey(cacheKey)) {
-            return Mono.just(precipitationCache.get(cacheKey));
+    public Mono<ForecastRainfall> get10KmForecastRainfall(double lat, double lon) {
+        String cacheKey = get10KmGridKey(lat, lon);
+
+        if (weather10KmGridCache.containsKey(cacheKey)) {
+            return Mono.just(weather10KmGridCache.get(cacheKey));
         }
 
-        // Delay to prevent hitting open-meteo rate limit too fast for un-cached requests
+        String[] parts = cacheKey.split(",");
+        double gridLat = Double.parseDouble(parts[0]);
+        double gridLon = Double.parseDouble(parts[1]);
+
         return webClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/forecast")
-                        .queryParam("latitude", roundedLat)
-                        .queryParam("longitude", roundedLon)
+                        .queryParam("latitude", gridLat)
+                        .queryParam("longitude", gridLon)
                         .queryParam("daily", "precipitation_sum")
+                        .queryParam("forecast_days", "3")
                         .queryParam("timezone", "auto")
                         .build())
                 .retrieve()
                 .bodyToMono(JsonNode.class)
                 .map(response -> {
-                    JsonNode dailyNode = response.path("daily");
-                    JsonNode precipitationNode = dailyNode.path("precipitation_sum");
-                    // Get today's precipitation (index 0)
-                    double precip = 0.0;
-                    if (precipitationNode.isArray() && !precipitationNode.isEmpty()) {
-                        precip = precipitationNode.get(0).asDouble(0.0);
+                    JsonNode precipitationNode = response.path("daily").path("precipitation_sum");
+                    double day1 = 0.0, day2 = 0.0, day3 = 0.0;
+
+                    if (precipitationNode.isArray()) {
+                        int size = precipitationNode.size();
+                        if (size >= 1) day1 = precipitationNode.get(0).asDouble(0.0);
+                        if (size >= 2) day2 = precipitationNode.get(1).asDouble(0.0);
+                        if (size >= 3) day3 = precipitationNode.get(2).asDouble(0.0);
                     }
-                    precipitationCache.put(cacheKey, precip);
-                    return precip;
+
+                    ForecastRainfall data = new ForecastRainfall(day1, day2, day3);
+                    weather10KmGridCache.put(cacheKey, data);
+                    return data;
                 })
-                .delayElement(Duration.ofMillis(200)) // Artificial delay to avoid rate limit
+                .delayElement(Duration.ofMillis(100))
                 .onErrorResume(e -> {
-                    // Fallback to a default if API fails
-                    return Mono.just(0.0);
+                    ForecastRainfall fallback = new ForecastRainfall(0.0, 0.0, 0.0);
+                    return Mono.just(fallback);
                 });
     }
 
-    private double roundToTwoDecimals(double value) {
-        BigDecimal bd = BigDecimal.valueOf(value);
-        bd = bd.setScale(2, RoundingMode.HALF_UP);
-        return bd.doubleValue();
+    public Mono<Map<String, ForecastRainfall>> fetchAll10KmGridCells(Set<String> uniqueGridKeys) {
+        return Flux.fromIterable(uniqueGridKeys)
+                .flatMap(key -> {
+                    String[] parts = key.split(",");
+                    double gridLat = Double.parseDouble(parts[0]);
+                    double gridLon = Double.parseDouble(parts[1]);
+
+                    return get10KmForecastRainfall(gridLat, gridLon)
+                            .map(rainfall -> Map.entry(key, rainfall));
+                }, 10)
+                .collectMap(Map.Entry::getKey, Map.Entry::getValue);
     }
 }

@@ -1,5 +1,6 @@
 package com.sih.landslide.service;
 
+import com.sih.landslide.model.BatchPredictionResponse;
 import com.sih.landslide.model.GridPoint;
 import com.sih.landslide.model.PredictionRequest;
 import com.sih.landslide.model.PredictionResponse;
@@ -8,12 +9,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,70 +37,94 @@ public class OrchestrationService {
         this.webClient = webClientBuilder.baseUrl(mlServiceUrl).build();
     }
 
-    // Run every day at 6:00 AM
+    // Run automatically every day at 6:00 AM
     @Scheduled(cron = "0 0 6 * * *")
+    public void scheduledDailyPredictions() {
+        logger.info("Executing scheduled 6:00 AM daily prediction job...");
+        processDailyPredictions();
+    }
+
+    // On-demand trigger method
     public void processDailyPredictions() {
-        logger.info("Starting daily prediction background job...");
+        logger.info("Starting high-speed 10km grid landslide early warning assessment...");
         
-        // Clear yesterday's cache
         weatherService.clearCache();
-        
         List<GridPoint> gridPoints = repository.findAll();
         
         if (gridPoints.isEmpty()) {
-            logger.info("No grid points found to process.");
+            logger.info("No grid points found in database to process.");
             return;
         }
 
-        logger.info("Found {} grid points. Fetching weather and calculating predictions...", gridPoints.size());
+        int totalPoints = gridPoints.size();
 
-        // Process reactively to handle async weather fetching
-        Flux.fromIterable(gridPoints)
-            .flatMap(point -> weatherService.getPrecipitation(point.getLatitude(), point.getLongitude())
-                    .map(rainfall -> {
-                        point.setRainfall(rainfall); // Update entity with actual rainfall
-                        return new PredictionRequest(
-                            point.getLatitude(),
-                            point.getLongitude(),
-                            point.getSlope(),
-                            point.getClayPercent(),
-                            rainfall
-                        );
-                    }), 
-            10) // Concurrency limit of 10 to not overwhelm APIs
-            .collectList()
-            .flatMap(requests -> {
-                logger.info("Weather fetched for all points. Sending batch request to ML service...");
-                // Send all requests to FastAPI
+        // 1. Extract the unique 10km x 10km grid keys across the entire region
+        Set<String> unique10KmGridKeys = gridPoints.stream()
+                .map(point -> WeatherService.get10KmGridKey(point.getLatitude(), point.getLongitude()))
+                .collect(Collectors.toSet());
+
+        logger.info("Partitioned {} terrain points into {} unique 10km atmospheric grid cells.", 
+                totalPoints, unique10KmGridKeys.size());
+
+        // 2. Fetch 3-day forecast rainfall only for the unique 10km atmospheric cells concurrently
+        weatherService.fetchAll10KmGridCells(unique10KmGridKeys)
+            .flatMap(weatherMap -> {
+                logger.info("Fetched weather for all {} cells. Performing instant in-memory mapping...", weatherMap.size());
+
+                // 3. Instant O(1) in-memory assignment for all 10,000 points
+                List<PredictionRequest> requests = new ArrayList<>(totalPoints);
+
+                for (GridPoint point : gridPoints) {
+                    String gridKey = WeatherService.get10KmGridKey(point.getLatitude(), point.getLongitude());
+                    WeatherService.ForecastRainfall weather = weatherMap.getOrDefault(
+                        gridKey, new WeatherService.ForecastRainfall(0.0, 0.0, 0.0)
+                    );
+
+                    point.setRainDay1(weather.rainDay1());
+                    point.setRainDay2(weather.rainDay2());
+                    point.setRainDay3(weather.rainDay3());
+                    point.setLastUpdated(LocalDateTime.now());
+
+                    requests.add(new PredictionRequest(
+                        point.getSlope(),
+                        point.getClayPercent(),
+                        weather.rainDay1(),
+                        weather.rainDay2(),
+                        weather.rainDay3()
+                    ));
+                }
+
+                logger.info("Sending batch of {} points to FastAPI ML microservice...", requests.size());
+
+                // 4. Send vectorized batch request to FastAPI
                 return webClient.post()
                         .uri("/predict-batch")
                         .bodyValue(requests)
                         .retrieve()
-                        .bodyToFlux(PredictionResponse.class)
-                        .collectList();
+                        .bodyToMono(BatchPredictionResponse.class);
             })
             .subscribe(
-                responses -> {
-                    logger.info("Received {} responses from ML Service. Updating database...", responses.size());
-                    // Create a lookup for quick updating
-                    var responseMap = responses.stream()
-                        .collect(Collectors.toMap(
-                            r -> r.getLatitude() + "," + r.getLongitude(),
-                            r -> r.getRiskLevel()
-                        ));
+                response -> {
+                    if (response != null && response.getResults() != null) {
+                        List<PredictionResponse> results = response.getResults();
+                        logger.info("Received {} predictions from ML service. Updating database...", results.size());
 
-                    // Update grid points with risk level
-                    for (GridPoint point : gridPoints) {
-                        String key = point.getLatitude() + "," + point.getLongitude();
-                        if (responseMap.containsKey(key)) {
-                            point.setRiskLevel(responseMap.get(key));
+                        for (int i = 0; i < Math.min(totalPoints, results.size()); i++) {
+                            PredictionResponse pred = results.get(i);
+                            GridPoint point = gridPoints.get(i);
+                            point.setProbability(pred.getLandslideProbability());
+                            point.setRiskLevel(pred.getRiskLevel());
                         }
+
+                        repository.saveAll(gridPoints);
+                        logger.info("✅ High-speed 10km grid risk assessment completed and saved successfully!");
                     }
-                    
-                    repository.saveAll(gridPoints);
-                    logger.info("Daily prediction background job completed successfully!");
                 },
-                error -> logger.error("Error during daily prediction job", error)
+                error -> logger.error("❌ Error during landslide risk assessment pipeline", error)
             );
     }
 }
+
+
+
+

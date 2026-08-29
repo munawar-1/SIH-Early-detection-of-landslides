@@ -1,33 +1,39 @@
 package com.sih.landslide.controller;
 
 import com.sih.landslide.model.GridPoint;
-import com.sih.landslide.model.PredictionResponse;
 import com.sih.landslide.repository.GridPointRepository;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.sih.landslide.service.OrchestrationService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/predictions")
+@CrossOrigin(origins = "*")
 public class PredictionController {
 
     private final GridPointRepository repository;
+    private final OrchestrationService orchestrationService;
 
-    public PredictionController(GridPointRepository repository) {
+    public PredictionController(GridPointRepository repository, OrchestrationService orchestrationService) {
         this.repository = repository;
+        this.orchestrationService = orchestrationService;
     }
 
     @GetMapping
-    public List<PredictionResponse> getPredictions() {
-        return repository.findAll().stream()
-                .filter(point -> point.getRiskLevel() != null)
-                .map(point -> new PredictionResponse(
-                        point.getLatitude(),
-                        point.getLongitude(),
-                        point.getRiskLevel()))
-                .collect(Collectors.toList());
+    public List<GridPoint> getPredictions(@RequestParam(required = false, defaultValue = "Dima Hasao") String district) {
+        return repository.findAll();
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<Map<String, String>> triggerAssessment() {
+        orchestrationService.processDailyPredictions();
+        return ResponseEntity.ok(Map.of(
+            "status", "Triggered",
+            "message", "Landslide early warning pipeline assessment initiated in background."
+        ));
     }
 }
+
