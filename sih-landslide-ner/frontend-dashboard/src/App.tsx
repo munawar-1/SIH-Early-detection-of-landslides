@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import type { 
   GridPoint, 
   FilterState, 
@@ -34,7 +34,9 @@ import {
   Radio, 
   RefreshCw, 
   Download, 
-  FileSpreadsheet
+  FileSpreadsheet,
+  CheckCircle2,
+  Info
 } from 'lucide-react';
 import './index.css';
 
@@ -66,18 +68,19 @@ export const App: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [isBackendConnected, setIsBackendConnected] = useState<boolean>(false);
   const [stats, setStats] = useState<SummaryStatsData | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Selected item modal
   const [selectedPoint, setSelectedPoint] = useState<GridPoint | null>(null);
   const [selectedTransport, setSelectedTransport] = useState<TransportSegment | null>(null);
   const [selectedStation, setSelectedStation] = useState<StationNode | null>(null);
 
-  // Initial Load
-  useEffect(() => {
-    loadData();
-  }, []);
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 4500);
+  };
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     const result = await fetchGridPredictions();
     setGridPoints(result.data);
@@ -92,16 +95,45 @@ export const App: React.FC = () => {
     setStats(calculatedStats);
 
     setIsLoading(false);
-  };
+  }, []);
+
+  // Initial Load
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleRefreshPipeline = async () => {
     setIsRefreshing(true);
-    await triggerLivePipeline();
+    const result = await triggerLivePipeline();
+    if (result.isLive) {
+      showToast('🚀 Live ML assessment triggered on Spring Boot backend & FastAPI model.');
+    } else {
+      showToast('ℹ️ Recalculated GIS simulation (ML microservice on :8000 & Spring Boot on :8080 are offline).');
+    }
+
     setTimeout(async () => {
       await loadData();
       setIsRefreshing(false);
-    }, 1800);
+    }, 1200);
   };
+
+  const handleSelectPoint = useCallback((point: GridPoint) => {
+    setSelectedPoint(point);
+    setSelectedTransport(null);
+    setSelectedStation(null);
+  }, []);
+
+  const handleSelectTransport = useCallback((segment: TransportSegment) => {
+    setSelectedTransport(segment);
+    setSelectedPoint(null);
+    setSelectedStation(null);
+  }, []);
+
+  const handleSelectStation = useCallback((station: StationNode) => {
+    setSelectedStation(station);
+    setSelectedPoint(null);
+    setSelectedTransport(null);
+  }, []);
 
   const handleFilterChange = (updated: Partial<FilterState>) => {
     setFilters(prev => ({ ...prev, ...updated }));
@@ -157,6 +189,14 @@ export const App: React.FC = () => {
 
   return (
     <div className="app-container">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="toast-alert">
+          {isBackendConnected ? <CheckCircle2 size={16} className="text-green" /> : <Info size={16} className="text-amber" />}
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* Sleek Top Navigation Header */}
       <header className="app-header">
         <div className="header-brand">
@@ -164,10 +204,17 @@ export const App: React.FC = () => {
             <ShieldAlert size={22} className="text-red" />
           </div>
           <div>
-            <div className="system-title-row">
+            <div className="system-title-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <h1 className="system-title">NER-LANDSLIDE GIS</h1>
               <span className="live-tag">
                 <Radio size={12} className="live-icon text-green" /> DIMA HASAO
+              </span>
+              <span 
+                className={`connection-badge ${isBackendConnected ? 'connected' : 'offline'}`}
+                title={isBackendConnected ? 'Connected to Spring Boot (8080) & FastAPI ML (8000)' : 'Backend offline. Running on high-resolution topographic simulation.'}
+              >
+                <span className={`dot ${isBackendConnected ? 'dot-green' : 'dot-amber'}`} />
+                <span>{isBackendConnected ? 'Live ML Model' : 'Simulation Baseline'}</span>
               </span>
             </div>
             <p className="system-subtitle">
@@ -261,21 +308,9 @@ export const App: React.FC = () => {
                 onRefreshPipeline={handleRefreshPipeline}
                 isRefreshing={isRefreshing}
                 isBackendConnected={isBackendConnected}
-                onSelectPoint={p => {
-                  setSelectedPoint(p);
-                  setSelectedTransport(null);
-                  setSelectedStation(null);
-                }}
-                onSelectTransport={t => {
-                  setSelectedTransport(t);
-                  setSelectedPoint(null);
-                  setSelectedStation(null);
-                }}
-                onSelectStation={s => {
-                  setSelectedStation(s);
-                  setSelectedPoint(null);
-                  setSelectedTransport(null);
-                }}
+                onSelectPoint={handleSelectPoint}
+                onSelectTransport={handleSelectTransport}
+                onSelectStation={handleSelectStation}
               />
             )}
 
@@ -286,11 +321,7 @@ export const App: React.FC = () => {
                 highways={highways}
                 stations={stations}
                 filters={filters}
-                onSelectTransport={t => {
-                  setSelectedTransport(t);
-                  setSelectedPoint(null);
-                  setSelectedStation(null);
-                }}
+                onSelectTransport={handleSelectTransport}
                 selectedTransport={selectedTransport}
               />
             )}

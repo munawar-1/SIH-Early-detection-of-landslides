@@ -43,6 +43,8 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
   const infrastructureLayerGroupRef = useRef<L.LayerGroup | null>(null);
   const boundaryLayerGroupRef = useRef<L.LayerGroup | null>(null);
 
+  const canvasRendererRef = useRef<L.Canvas | null>(null);
+
   // 1. Initialize Map on mount and fit directly to Dima Hasao
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
@@ -60,14 +62,19 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
       maxZoom: 11
     });
 
+    canvasRendererRef.current = L.canvas({ padding: 0.5 });
     pointsLayerGroupRef.current = L.layerGroup().addTo(map);
     boundaryLayerGroupRef.current = L.layerGroup().addTo(map);
     infrastructureLayerGroupRef.current = L.layerGroup().addTo(map);
     mapInstanceRef.current = map;
 
     return () => {
+      pointsLayerGroupRef.current?.clearLayers();
+      boundaryLayerGroupRef.current?.clearLayers();
+      infrastructureLayerGroupRef.current?.clearLayers();
       map.remove();
       mapInstanceRef.current = null;
+      canvasRendererRef.current = null;
     };
   }, []);
 
@@ -165,6 +172,7 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
     const pointsGroup = pointsLayerGroupRef.current;
     if (!map || !pointsGroup) return;
 
+    // Completely clear existing markers before repopulating
     pointsGroup.clearLayers();
 
     if (!filters.showGridPoints && !filters.showHeatmap) return;
@@ -182,25 +190,28 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
       return true;
     });
 
-    // High performance built-in Canvas renderer
-    const canvasRenderer = L.canvas({ padding: 0.5 });
+    // Reuse persistent canvas renderer
+    const canvasRenderer = canvasRendererRef.current || L.canvas({ padding: 0.5 });
 
     filteredPoints.forEach(p => {
       let fillColor = '#22c55e'; // Green
       let strokeColor = '#16a34a';
-      let radius = 4;
-      let fillOpacity = 0.55;
+      let radius = 3.5;
+      let fillOpacity = 0.65;
+      let weight = 0.5;
 
       if (p.probability >= 0.70) {
         fillColor = '#ef4444'; // Red
-        strokeColor = '#ffffff';
-        radius = 7;
-        fillOpacity = 0.9;
+        strokeColor = '#b91c1c';
+        radius = 5.5;
+        fillOpacity = 0.85;
+        weight = 0.8;
       } else if (p.probability >= 0.40) {
         fillColor = '#f59e0b'; // Amber
-        strokeColor = '#f59e0b';
-        radius = 5.5;
+        strokeColor = '#d97706';
+        radius = 4.5;
         fillOpacity = 0.75;
+        weight = 0.6;
       }
 
       const marker = L.circleMarker([p.latitude, p.longitude], {
@@ -208,8 +219,8 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
         radius,
         fillColor,
         fillOpacity,
-        color: p.probability >= 0.70 ? strokeColor : fillColor,
-        weight: p.probability >= 0.70 ? 1.5 : 0.5
+        color: strokeColor,
+        weight
       });
 
       marker.on('click', () => {
