@@ -39,8 +39,7 @@ import {
   CheckCircle2,
   Info,
   Home,
-  Compass,
-  Sparkles
+  Compass
 } from 'lucide-react';
 import './index.css';
 
@@ -213,10 +212,10 @@ export const App: React.FC = () => {
             <ShieldAlert size={22} className="text-red" />
           </div>
           <div className="brand-text-block">
-            <div className="system-title-row">
-              <h1 className="system-title">NER-LANDSLIDE GIS</h1>
+            <h1 className="system-title">NER-LANDSLIDE GIS</h1>
+            <div className="system-title-badges">
               <span className="live-tag">
-                <Radio size={12} className="live-icon text-green" /> NER REGION
+                <Radio size={10} className="live-icon text-green" /> NER REGION
               </span>
               <span
                 className={`connection-badge ${isBackendConnected ? 'connected' : 'offline'}`}
@@ -226,9 +225,6 @@ export const App: React.FC = () => {
                 <span>{isBackendConnected ? 'ML Live' : 'Model 3.0'}</span>
               </span>
             </div>
-            <p className="system-subtitle">
-              AI-Based Early Warning & Landslide Risk Monitoring System in NER
-            </p>
           </div>
         </div>
 
@@ -281,13 +277,8 @@ export const App: React.FC = () => {
           </button>
         </nav>
 
-        {/* Header Right Actions & Team Attribution */}
+        {/* Header Right Actions */}
         <div className="header-actions">
-          <div className="team-attribution-pill" title="Smart India Hackathon Project">
-            <Sparkles size={13} className="text-cyan" />
-            <span>Tech<strong>4</strong>Bharath</span>
-          </div>
-
           {currentPage === 'landing' ? (
             <button
               className="btn-launch-header"
