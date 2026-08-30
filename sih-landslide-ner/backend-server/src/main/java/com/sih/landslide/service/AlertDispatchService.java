@@ -50,9 +50,9 @@ public class AlertDispatchService {
      */
     @Transactional
     public AlertCheckResponseDto checkAndDispatch(UserMobile user, double lat, double lng) {
-        // Buffer settings in meters: CRITICAL = 2000m, HIGH = 500m
-        double highBufferMeters = 500.0;
-        double criticalBufferMeters = 2000.0;
+        // Buffer settings in meters: CRITICAL = 5000m, HIGH = 2500m (covers 1.1km grid spacing without dead zones)
+        double highBufferMeters = 2500.0;
+        double criticalBufferMeters = 5000.0;
 
         List<RiskZone> matchedZones = riskZoneRepository.findHazardMatch(
                 lat, lng, highBufferMeters, criticalBufferMeters);

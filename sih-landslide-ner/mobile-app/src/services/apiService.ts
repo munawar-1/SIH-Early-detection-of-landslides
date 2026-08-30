@@ -69,10 +69,42 @@ export async function updateLocation(lat: number, lng: number, fcmToken?: string
 }
 
 export async function checkAlert(lat: number, lng: number): Promise<AlertCheckResponse> {
-  // Use the advanced geotechnical risk engine directly.
-  // This bypasses the strict PostgreSQL DB points in the backend to ensure full dynamic evaluation
-  // that mathematically mirrors the website GIS heatmaps.
-  return await performOfflineGeofenceCheck(lat, lng);
+  const token = await getAuthToken();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 1500);
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/alerts/check`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ lat, lng }),
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+
+    if (response.ok) {
+      const data = await response.json();
+      return {
+        in_risk_zone: data.inRiskZone ?? data.in_risk_zone ?? false,
+        risk_level: data.riskLevel ?? data.risk_level ?? 'SAFE',
+        district: data.district,
+        distance_meters: data.distanceMeters ?? data.distance_meters,
+        probability: data.probability,
+        advisory: data.advisory,
+        action_required: data.actionRequired ?? data.action_required,
+        alert_dispatched: data.alertDispatched ?? data.alert_dispatched ?? false,
+        checked_at: data.checkedAt ?? data.checked_at ?? new Date().toISOString(),
+        isOfflineFallback: false
+      };
+    }
+    return await performOfflineGeofenceCheck(lat, lng);
+  } catch (error) {
+    clearTimeout(timeout);
+    return await performOfflineGeofenceCheck(lat, lng);
+  }
 }
 
 export async function fetchLiveRiskZones(): Promise<any[]> {

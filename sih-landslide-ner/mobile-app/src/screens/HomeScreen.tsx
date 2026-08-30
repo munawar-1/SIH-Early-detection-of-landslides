@@ -119,7 +119,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onOpenAlertDetail, onOpe
         try {
           const response = await checkAlert(parsed.lat, parsed.lng);
           setAlertStatus(response);
-          setIsOffline(false);
+          setIsOffline(Boolean(response.isOfflineFallback));
         } catch (netErr) {
           setIsOffline(true);
           const offlineResult = await performOfflineGeofenceCheck(parsed.lat, parsed.lng);
@@ -163,7 +163,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onOpenAlertDetail, onOpe
           ...response,
           district: districtName
         });
-        setIsOffline(false);
+        setIsOffline(Boolean(response.isOfflineFallback));
       } catch (netError) {
         setIsOffline(true);
         const offlineResult = await performOfflineGeofenceCheck(lat, lng);
