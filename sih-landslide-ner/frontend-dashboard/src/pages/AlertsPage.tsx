@@ -574,10 +574,10 @@ Disaster Management Cell, Dima Hasao Early Warning System
             </div>
           </div>
 
-          <div className="directives-grid">
+          <div className="directives-grid anim-cards">
             
             {/* Card 1: Railway Directive Card (Cyan/Blue Giant Squid Glow) */}
-            <div className="alert-giant-card railway">
+            <div className="alert-giant-card railway card-spotlight card-sweep" onMouseMove={handleSpotlightMove}>
               <div className="alert-giant-blob cyan" aria-hidden="true" />
               <div className="alert-giant-inner">
                 <div className="card-top">
@@ -604,7 +604,7 @@ Disaster Management Cell, Dima Hasao Early Warning System
             </div>
 
             {/* Card 2: Highway & Road Directive Card (Orange/Amber Giant Squid Glow) */}
-            <div className="alert-giant-card highway">
+            <div className="alert-giant-card highway card-spotlight card-sweep" onMouseMove={handleSpotlightMove}>
               <div className="alert-giant-blob amber" aria-hidden="true" />
               <div className="alert-giant-inner">
                 <div className="card-top">
@@ -631,7 +631,7 @@ Disaster Management Cell, Dima Hasao Early Warning System
             </div>
 
             {/* Card 3: Civil Defence & SDRF Card (Red/Coral Giant Squid Glow) */}
-            <div className="alert-giant-card civil">
+            <div className="alert-giant-card civil card-spotlight card-sweep" onMouseMove={handleSpotlightMove}>
               <div className="alert-giant-blob red" aria-hidden="true" />
               <div className="alert-giant-inner">
                 <div className="card-top">

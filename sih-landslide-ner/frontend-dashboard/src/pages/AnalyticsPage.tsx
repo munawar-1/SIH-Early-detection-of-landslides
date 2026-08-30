@@ -115,8 +115,8 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
                   <span className="live-pulse-dot" /> LIVE RISK TELEMETRY
                 </span>
               </div>
-              <h1 className="analytics-main-title">Dima Hasao Spatial Intelligence &amp; Risk Analytics</h1>
-              <p className="analytics-main-subtitle">
+              <h1 className="analytics-main-title anim-title">Dima Hasao Spatial Intelligence &amp; Risk Analytics</h1>
+              <p className="analytics-main-subtitle anim-subtitle">
                 Comprehensive disaster vulnerability overview for Borail Mountain Range, transport lifelines, and sub-divisions
               </p>
             </div>
@@ -148,10 +148,10 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
             </div>
           </div>
 
-          <div className="analytics-kpi-grid">
+          <div className="analytics-kpi-grid anim-cards">
             
             {/* Card 1: High Risk Hotspots */}
-            <div className="analytics-kpi-card">
+            <div className="analytics-kpi-card card-spotlight card-sweep" onMouseMove={handleSpotlightMove}>
               <div className="kpi-card-inner">
                 <div className="kpi-header-row">
                   <span className="kpi-title-label">High Risk Hotspots</span>
@@ -168,7 +168,7 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
             </div>
 
             {/* Card 2: Endangered Railway */}
-            <div className="analytics-kpi-card">
+            <div className="analytics-kpi-card card-spotlight card-sweep" onMouseMove={handleSpotlightMove}>
               <div className="kpi-card-inner">
                 <div className="kpi-header-row">
                   <span className="kpi-title-label">Endangered Railway</span>
@@ -185,7 +185,7 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
             </div>
 
             {/* Card 3: Threatened Highway */}
-            <div className="analytics-kpi-card">
+            <div className="analytics-kpi-card card-spotlight card-sweep" onMouseMove={handleSpotlightMove}>
               <div className="kpi-card-inner">
                 <div className="kpi-header-row">
                   <span className="kpi-title-label">Threatened Highway</span>
@@ -202,7 +202,7 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
             </div>
 
             {/* Card 4: 3-Day Peak Rainfall */}
-            <div className="analytics-kpi-card">
+            <div className="analytics-kpi-card card-spotlight card-sweep" onMouseMove={handleSpotlightMove}>
               <div className="kpi-card-inner">
                 <div className="kpi-header-row">
                   <span className="kpi-title-label">3-Day Peak Rainfall</span>
@@ -219,7 +219,7 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
             </div>
 
             {/* Card 5: Average Terrain Slope */}
-            <div className="analytics-kpi-card">
+            <div className="analytics-kpi-card card-spotlight card-sweep" onMouseMove={handleSpotlightMove}>
               <div className="kpi-card-inner">
                 <div className="kpi-header-row">
                   <span className="kpi-title-label">Average Terrain Slope</span>
@@ -236,7 +236,7 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
             </div>
 
             {/* Card 6: Total District Area */}
-            <div className="analytics-kpi-card">
+            <div className="analytics-kpi-card card-spotlight card-sweep" onMouseMove={handleSpotlightMove}>
               <div className="kpi-card-inner">
                 <div className="kpi-header-row">
                   <span className="kpi-title-label">Total District Area</span>

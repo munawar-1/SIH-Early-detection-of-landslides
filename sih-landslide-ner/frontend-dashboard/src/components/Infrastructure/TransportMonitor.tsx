@@ -85,6 +85,14 @@ export const TransportMonitor: React.FC<TransportMonitorProps> = ({
     URL.revokeObjectURL(url);
   };
 
+  const handleSpotlightMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    e.currentTarget.style.setProperty('--mouse-x', `${x}px`);
+    e.currentTarget.style.setProperty('--mouse-y', `${y}px`);
+  };
+
   return (
     <div className="transport-monitor-container">
       <div className="transport-header">
@@ -94,14 +102,14 @@ export const TransportMonitor: React.FC<TransportMonitorProps> = ({
           </div>
           <div>
             <h3 className="section-title">Critical Corridors Live Monitor</h3>
-            <p className="section-subtitle">Real-time Lumding–Badarpur Railway & NH-27 Hazard Scanner</p>
+            <p className="section-subtitle">Real-time Lumding–Badarpur Railway &amp; NH-27 Hazard Scanner</p>
           </div>
         </div>
 
         <button 
           className="btn-export-bulletin" 
           onClick={handleExportBulletin}
-          title="Download operational hazard bulletin for NFR & ASDMA"
+          title="Download operational hazard bulletin for NFR &amp; ASDMA"
         >
           <Download size={14} /> Export Bulletin
         </button>
@@ -141,7 +149,7 @@ export const TransportMonitor: React.FC<TransportMonitorProps> = ({
           className={`tab-btn ${activeTab === 'highways' ? 'active' : ''}`}
           onClick={() => setActiveTab('highways')}
         >
-          <Navigation size={14} /> NH-27 & Highways ({highways.length})
+          <Navigation size={14} /> NH-27 &amp; Highways ({highways.length})
         </button>
       </div>
 
@@ -154,8 +162,9 @@ export const TransportMonitor: React.FC<TransportMonitorProps> = ({
           return (
             <div 
               key={seg.id} 
-              className={`corridor-card ${seg.threatLevel.toLowerCase()} ${isSelected ? 'selected' : ''}`}
+              className={`corridor-card card-spotlight ${seg.threatLevel.toLowerCase()} ${isSelected ? 'selected' : ''}`}
               onClick={() => onSelectSegment(seg)}
+              onMouseMove={handleSpotlightMove}
             >
               <div className="card-top">
                 <div className="route-identity">

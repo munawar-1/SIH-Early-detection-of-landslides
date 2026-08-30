@@ -46,6 +46,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({
   const moderateRiskPoints = gridPoints.filter(p => p.riskLevel === 'MODERATE');
   const totalPoints = gridPoints.length || 5076;
 
+  const handleSpotlightMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    e.currentTarget.style.setProperty('--mouse-x', `${x}px`);
+    e.currentTarget.style.setProperty('--mouse-y', `${y}px`);
+  };
+
   return (
     <div className="landing-page-root">
       {/* Dynamic Ambient Background with Geotechnical Contours */}
@@ -71,18 +79,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         {/* 1. HERO SECTION: PROJECT TITLE & VALUE PROPOSITION */}
         {/* ========================================================= */}
         <section className="landing-hero-section">
-          <h1 className="hero-main-title">
+          <h1 className="hero-main-title anim-title">
             AI-Based Early Warning &amp; Landslide Risk Monitoring System in NER
           </h1>
 
-          <p className="hero-tagline">
+          <p className="hero-tagline anim-subtitle">
             High-precision geotechnical hazard intelligence fusing <strong>NASA SRTM 30m Digital Elevation Models</strong>, 
             <strong> 72-hour dynamic Open-Meteo precipitation forecasts</strong>, and <strong>geotechnical soil mechanics</strong> to 
             protect life, strategic mountain transport corridors, and railway networks across the <strong>North-Eastern Region (NER)</strong>.
           </p>
 
           {/* Primary Action Button Area */}
-          <div className="hero-cta-group">
+          <div className="hero-cta-group anim-stats">
             <button className="btn-hero-primary" onClick={() => onNavigate('map')}>
               <div className="btn-icon-pulse">
                 <Compass size={18} />
@@ -109,9 +117,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
 
           {/* Quick Metrics Bar (Hero Telemetry Ribbon with Animated Blob Effect) */}
-          <div className="hero-telemetry-ribbon">
+          <div className="hero-telemetry-ribbon anim-cards">
             
-            <div className="telemetry-card blob-card cyan" onClick={() => onNavigate('map')}>
+            <div className="telemetry-card blob-card cyan card-spotlight card-sweep" onClick={() => onNavigate('map')} onMouseMove={handleSpotlightMove}>
               <div className="telemetry-blob cyan" aria-hidden="true" />
               <div className="telemetry-card-bg">
                 <div className="telemetry-card-inner">
@@ -130,7 +138,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
             </div>
 
-            <div className="telemetry-card blob-card blue" onClick={() => onNavigate('analytics')}>
+            <div className="telemetry-card blob-card blue card-spotlight card-sweep" onClick={() => onNavigate('analytics')} onMouseMove={handleSpotlightMove}>
               <div className="telemetry-blob blue" aria-hidden="true" />
               <div className="telemetry-card-bg">
                 <div className="telemetry-card-inner">
@@ -149,7 +157,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
             </div>
 
-            <div className="telemetry-card blob-card amber" onClick={() => onNavigate('corridors')}>
+            <div className="telemetry-card blob-card amber card-spotlight card-sweep" onClick={() => onNavigate('corridors')} onMouseMove={handleSpotlightMove}>
               <div className="telemetry-blob amber" aria-hidden="true" />
               <div className="telemetry-card-bg">
                 <div className="telemetry-card-inner">
@@ -168,7 +176,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
             </div>
 
-            <div className="telemetry-card blob-card red highlight-danger" onClick={() => onNavigate('alerts')}>
+            <div className="telemetry-card blob-card red highlight-danger card-spotlight card-sweep" onClick={() => onNavigate('alerts')} onMouseMove={handleSpotlightMove}>
               <div className="telemetry-blob red" aria-hidden="true" />
               <div className="telemetry-card-bg">
                 <div className="telemetry-card-inner">
@@ -187,7 +195,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
             </div>
 
-            <div className="telemetry-card blob-card green" onClick={() => onNavigate('map')}>
+            <div className="telemetry-card blob-card green card-spotlight card-sweep" onClick={() => onNavigate('map')} onMouseMove={handleSpotlightMove}>
               <div className="telemetry-blob green" aria-hidden="true" />
               <div className="telemetry-card-bg">
                 <div className="telemetry-card-inner">
@@ -231,7 +239,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
             <div className="pipeline-steps-grid">
               
-              <div className="odd-fly-card pipeline-step-card">
+              <div className="odd-fly-card pipeline-step-card card-spotlight" onMouseMove={handleSpotlightMove}>
                 <div className="odd-fly-inner">
                   <div className="step-card-header">
                     <div className="step-num-pill">
@@ -253,7 +261,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 </div>
               </div>
 
-              <div className="odd-fly-card pipeline-step-card">
+              <div className="odd-fly-card pipeline-step-card card-spotlight" onMouseMove={handleSpotlightMove}>
                 <div className="odd-fly-inner">
                   <div className="step-card-header">
                     <div className="step-num-pill">
@@ -275,7 +283,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 </div>
               </div>
 
-              <div className="odd-fly-card pipeline-step-card">
+              <div className="odd-fly-card pipeline-step-card card-spotlight" onMouseMove={handleSpotlightMove}>
                 <div className="odd-fly-inner">
                   <div className="step-card-header">
                     <div className="step-num-pill">
@@ -297,7 +305,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 </div>
               </div>
 
-              <div className="odd-fly-card pipeline-step-card highlight-step">
+              <div className="odd-fly-card pipeline-step-card highlight-step card-spotlight" onMouseMove={handleSpotlightMove}>
                 <div className="odd-fly-inner">
                   <div className="step-card-header">
                     <div className="step-num-pill alert">
@@ -340,7 +348,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
 
           <div className="platform-modules-grid">
             
-            <div className="odd-fly-card module-card" onClick={() => onNavigate('map')}>
+            <div className="odd-fly-card module-card card-spotlight" onClick={() => onNavigate('map')} onMouseMove={handleSpotlightMove}>
               <div className="odd-fly-inner">
                 <div className="module-card-top">
                   <div className="module-icon-box cyan">
@@ -359,7 +367,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
             </div>
 
-            <div className="odd-fly-card module-card" onClick={() => onNavigate('corridors')}>
+            <div className="odd-fly-card module-card card-spotlight" onClick={() => onNavigate('corridors')} onMouseMove={handleSpotlightMove}>
               <div className="odd-fly-inner">
                 <div className="module-card-top">
                   <div className="module-icon-box amber">
@@ -378,7 +386,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
             </div>
 
-            <div className="odd-fly-card module-card" onClick={() => onNavigate('analytics')}>
+            <div className="odd-fly-card module-card card-spotlight" onClick={() => onNavigate('analytics')} onMouseMove={handleSpotlightMove}>
               <div className="odd-fly-inner">
                 <div className="module-card-top">
                   <div className="module-icon-box green">
@@ -397,7 +405,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               </div>
             </div>
 
-            <div className="odd-fly-card module-card" onClick={() => onNavigate('alerts')}>
+            <div className="odd-fly-card module-card card-spotlight" onClick={() => onNavigate('alerts')} onMouseMove={handleSpotlightMove}>
               <div className="odd-fly-inner">
                 <div className="module-card-top">
                   <div className="module-icon-box red">

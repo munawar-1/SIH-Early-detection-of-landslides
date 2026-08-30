@@ -42,8 +42,8 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
 
-  // Network-first strategy for dynamic API calls, cache-first for static assets
-  if (url.pathname.startsWith('/api/')) {
+  // Network-first strategy for dynamic API calls and backend requests
+  if (url.pathname.startsWith('/api/') || url.origin !== self.location.origin) {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
@@ -53,10 +53,17 @@ self.addEventListener('fetch', (event) => {
           }
           return response;
         })
-        .catch(() => {
-          return caches.match(event.request);
+        .catch(async () => {
+          const cached = await caches.match(event.request);
+          if (cached) return cached;
+          return new Response(JSON.stringify({ error: 'Backend API offline', fallback: true }), {
+            status: 503,
+            statusText: 'Service Unavailable',
+            headers: { 'Content-Type': 'application/json' }
+          });
         })
     );
+    return;
   } else {
     // Cache-first falling back to network
     event.respondWith(
