@@ -4,6 +4,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: 'NER Landslide Citizen Early Warning',
   slug: 'ner-landslide-citizen',
+  owner: 'monu2007',
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/icon.png',
@@ -48,6 +49,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     mlApiBaseUrl: process.env.EXPO_PUBLIC_ML_API_BASE_URL || 'https://sih-early-detection-of-landslides.onrender.com',
     firebaseApiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || '',
     firebaseProjectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || 'ner-landslide-gis',
-    ...(process.env.EAS_PROJECT_ID ? { eas: { projectId: process.env.EAS_PROJECT_ID } } : {})
+    eas: {
+      projectId: '37c14176-e764-4107-9526-fc355c66102d'
+    }
   }
 });

@@ -48,6 +48,16 @@
     },
     "plugins": [
       "expo-secure-store"
-    ]
+    ],
+    "owner": "monu2007",
+    "extra": {
+      "apiBaseUrl": "https://ner-landslide-backend.onrender.com",
+      "mlApiBaseUrl": "https://sih-early-detection-of-landslides.onrender.com",
+      "firebaseApiKey": "",
+      "firebaseProjectId": "ner-landslide-gis",
+      "eas": {
+        "projectId": "37c14176-e764-4107-9526-fc355c66102d"
+      }
+    }
   }
 }
