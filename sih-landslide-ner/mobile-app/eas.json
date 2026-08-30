@@ -1,6 +1,7 @@
 {
   "cli": {
-    "version": ">= 14.0.0"
+    "version": ">= 14.0.0",
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
@@ -13,7 +14,8 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://landslide-backend-production.up.railway.app"
+        "EXPO_PUBLIC_API_BASE_URL": "https://ner-landslide-backend.onrender.com",
+        "EXPO_PUBLIC_ML_API_BASE_URL": "https://sih-early-detection-of-landslides.onrender.com"
       }
     },
     "production": {

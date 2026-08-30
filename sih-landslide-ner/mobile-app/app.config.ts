@@ -44,12 +44,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   plugins: ['expo-secure-store'],
   extra: {
-    apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL || 'http://192.168.1.13:8080',
-    mlApiBaseUrl: process.env.EXPO_PUBLIC_ML_API_BASE_URL || 'http://192.168.1.13:8000',
+    apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL || 'https://ner-landslide-backend.onrender.com',
+    mlApiBaseUrl: process.env.EXPO_PUBLIC_ML_API_BASE_URL || 'https://sih-early-detection-of-landslides.onrender.com',
     firebaseApiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || '',
     firebaseProjectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || 'ner-landslide-gis',
-    eas: {
-      projectId: process.env.EAS_PROJECT_ID || 'ner-landslide-citizen'
-    }
+    ...(process.env.EAS_PROJECT_ID ? { eas: { projectId: process.env.EAS_PROJECT_ID } } : {})
   }
 });
