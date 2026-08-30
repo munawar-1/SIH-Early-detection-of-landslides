@@ -20,6 +20,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import java.util.concurrent.CompletableFuture;
+
 @Component
 public class DataSeeder implements CommandLineRunner {
 
@@ -44,18 +46,24 @@ public class DataSeeder implements CommandLineRunner {
     public void run(String... args) {
         seedAuthorityContactsIfEmpty();
 
-        long currentCount = repository.count();
-        long riskZoneCount = riskZoneRepository.count();
+        CompletableFuture.runAsync(() -> {
+            try {
+                long currentCount = repository.count();
+                long riskZoneCount = riskZoneRepository.count();
 
-        if (currentCount == 5076 && riskZoneCount > 0) {
-            logger.info("Database contains exact 5,076 authentic Dima Hasao grid points & {} risk zones. Triggering live prediction pipeline...", riskZoneCount);
-            orchestrationService.processDailyPredictions();
-            syncRiskZonesFromGridPoints();
-            return;
-        }
+                if (currentCount == 5076 && riskZoneCount > 0) {
+                    logger.info("Database contains exact 5,076 authentic Dima Hasao grid points & {} risk zones. Triggering live prediction pipeline...", riskZoneCount);
+                    orchestrationService.processDailyPredictions();
+                    syncRiskZonesFromGridPoints();
+                    return;
+                }
 
-        logger.info("Database contains {} points (expected 5,076 authentic points). Re-seeding database fresh...", currentCount);
-        reseedDatabase();
+                logger.info("Database contains {} points (expected 5,076 authentic points). Re-seeding database fresh...", currentCount);
+                reseedDatabase();
+            } catch (Exception e) {
+                logger.warn("Background seeding encountered note: {}", e.getMessage());
+            }
+        });
     }
 
     public synchronized void reseedDatabase() {

@@ -29,8 +29,8 @@ COPY --from=builder --chown=spring:spring /build/target/*.jar app.jar
 ENV PORT=8080
 EXPOSE 8080
 
-# Configure container-aware JVM flags
-ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/./urandom"
+# Configure container-aware JVM flags with explicit memory ceilings for 512MB environments
+ENV JAVA_OPTS="-Xms128m -Xmx350m -XX:+UseG1GC -XX:+UseContainerSupport -Djava.security.egd=file:/dev/./urandom"
 
 # Start the Spring Boot application
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar --server.port=${PORT}"]
