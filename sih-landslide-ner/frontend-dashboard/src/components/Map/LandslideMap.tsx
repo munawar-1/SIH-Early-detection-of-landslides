@@ -1,10 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { GridPoint, FilterState, TransportSegment, StationNode } from '../../types/landslide';
 import { HISTORICAL_LANDSLIDES } from '../../data/infrastructureData';
 import { DIMA_HASAO_POLYGON, DIMA_HASAO_BOUNDS, DIMA_HASAO_CENTER } from '../../data/dimaHasaoBoundary';
-import { Crosshair, ZoomIn, ZoomOut } from 'lucide-react';
+import { Crosshair, ZoomIn, ZoomOut, ChevronDown } from 'lucide-react';
 
 // Fix standard Leaflet icon paths
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -45,7 +45,8 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
 
   const canvasRendererRef = useRef<L.Canvas | null>(null);
 
-  const [currentZoom, setCurrentZoom] = React.useState<number>(10);
+  const [currentZoom, setCurrentZoom] = useState<number>(10);
+  const [isLegendOpen, setIsLegendOpen] = useState<boolean>(true);
   const heatmapLayerGroupRef = useRef<L.LayerGroup | null>(null);
 
   // 1. Initialize Map on mount and fit directly to Dima Hasao
@@ -526,34 +527,47 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
       </div>
 
       {/* Floating Map HUD Legend */}
-      <div className="gis-map-legend">
-        <div className="legend-header">
+      <div className={`gis-map-legend ${isLegendOpen ? 'expanded' : 'collapsed'}`}>
+        <button
+          className="legend-header-btn"
+          onClick={() => setIsLegendOpen(prev => !prev)}
+          aria-expanded={isLegendOpen}
+          aria-label="Toggle hazard legend"
+          type="button"
+        >
           <span className="legend-title">Dima Hasao Hazard Legend</span>
-        </div>
-        <div className="legend-row">
-          <span className="dot dot-high"></span>
-          <span>High Landslide Risk (&gt;70%)</span>
-        </div>
-        <div className="legend-row">
-          <span className="dot dot-mod"></span>
-          <span>Moderate Risk (40% - 70%)</span>
-        </div>
-        <div className="legend-row">
-          <span className="dot dot-low"></span>
-          <span>Low Hazard (&lt;40%)</span>
-        </div>
-        <div className="legend-divider" />
-        <div className="legend-row">
-          <span className="line-sample line-district"></span>
-          <span>Dima Hasao District Boundary</span>
-        </div>
-        <div className="legend-row">
-          <span className="line-sample line-rail-danger"></span>
-          <span>Lumding–Badarpur Railway Line</span>
-        </div>
-        <div className="legend-row">
-          <span className="line-sample line-hwy-warn"></span>
-          <span>NH-27 Mountain Pass</span>
+          <ChevronDown 
+            size={15} 
+            className={`legend-chevron-icon ${isLegendOpen ? 'open' : 'closed'}`} 
+          />
+        </button>
+
+        <div className="legend-body-collapse">
+          <div className="legend-row">
+            <span className="dot dot-high"></span>
+            <span>High Landslide Risk (&gt;70%)</span>
+          </div>
+          <div className="legend-row">
+            <span className="dot dot-mod"></span>
+            <span>Moderate Risk (40% - 70%)</span>
+          </div>
+          <div className="legend-row">
+            <span className="dot dot-low"></span>
+            <span>Low Hazard (&lt;40%)</span>
+          </div>
+          <div className="legend-divider" />
+          <div className="legend-row">
+            <span className="line-sample line-district"></span>
+            <span>Dima Hasao District Boundary</span>
+          </div>
+          <div className="legend-row">
+            <span className="line-sample line-rail-danger"></span>
+            <span>Lumding–Badarpur Railway Line</span>
+          </div>
+          <div className="legend-row">
+            <span className="line-sample line-hwy-warn"></span>
+            <span>NH-27 Mountain Pass</span>
+          </div>
         </div>
       </div>
     </div>

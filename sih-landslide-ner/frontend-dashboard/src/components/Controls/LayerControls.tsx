@@ -10,7 +10,8 @@ import {
   Navigation, 
   Landmark, 
   History, 
-  Flame
+  Flame,
+  ChevronLeft
 } from 'lucide-react';
 
 interface LayerControlsProps {
@@ -19,6 +20,7 @@ interface LayerControlsProps {
   onRefreshPipeline: () => void;
   isRefreshing: boolean;
   isBackendConnected: boolean;
+  onClose?: () => void;
 }
 
 export const LayerControls: React.FC<LayerControlsProps> = ({
@@ -26,7 +28,8 @@ export const LayerControls: React.FC<LayerControlsProps> = ({
   onFilterChange,
   onRefreshPipeline,
   isRefreshing,
-  isBackendConnected
+  isBackendConnected,
+  onClose
 }) => {
   const baseMapOptions: { type: BaseMapType; label: string; icon: string }[] = [
     { type: 'dark', label: 'Dark Command', icon: '🌑' },
@@ -46,17 +49,32 @@ export const LayerControls: React.FC<LayerControlsProps> = ({
       <div className="controls-header">
         <div className="title-row">
           <Layers size={18} className="text-cyan" />
-          <h3 className="section-title">GIS Layers & Filters</h3>
+          <h3 className="section-title">GIS Layers &amp; Filters</h3>
         </div>
 
+        {onClose && (
+          <button 
+            className="btn-hide-controls-panel"
+            onClick={onClose}
+            title="Hide GIS Controls Panel"
+            aria-label="Hide Controls"
+            type="button"
+          >
+            <span>Hide Controls</span>
+            <ChevronLeft size={13} />
+          </button>
+        )}
+      </div>
+
+      <div className="pipeline-trigger-row">
         <button 
-          className={`btn-refresh-pipeline ${isRefreshing ? 'loading' : ''}`}
+          className={`btn-refresh-pipeline full-width ${isRefreshing ? 'loading' : ''}`}
           onClick={onRefreshPipeline}
           disabled={isRefreshing}
           title="Fetch latest Open-Meteo rainfall and run ML batch prediction"
         >
           <RefreshCw size={14} className={isRefreshing ? 'spin' : ''} />
-          {isRefreshing ? 'Computing AI Model...' : 'Trigger Live Assessment'}
+          <span>{isRefreshing ? 'Computing AI Model...' : 'Trigger Live Assessment'}</span>
         </button>
       </div>
 

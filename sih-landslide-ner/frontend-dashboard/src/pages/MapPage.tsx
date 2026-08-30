@@ -4,7 +4,6 @@ import { LandslideMap } from '../components/Map/LandslideMap';
 import { LayerControls } from '../components/Controls/LayerControls';
 import { 
   Layers, 
-  ChevronLeft, 
   ChevronRight, 
   MapPin, 
   Clock, 
@@ -59,25 +58,33 @@ export const MapPage: React.FC<MapPageProps> = ({
         />
       </div>
 
-      {/* Collapsible Floating GIS Layer Panel */}
-      <div className={`floating-layer-panel ${isLayerDrawerOpen ? 'open' : 'collapsed'}`}>
-        <div className="panel-toggle-tab" onClick={() => setIsLayerDrawerOpen(!isLayerDrawerOpen)}>
-          <Layers size={16} />
-          <span>{isLayerDrawerOpen ? 'Hide Controls' : 'GIS Controls'}</span>
-          {isLayerDrawerOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
-        </div>
+      {/* Floating Compact Show Controls Button (Visible ONLY when panel is hidden) */}
+      {!isLayerDrawerOpen && (
+        <button 
+          className="gis-show-controls-btn"
+          onClick={() => setIsLayerDrawerOpen(true)}
+          title="Show GIS Controls &amp; Filters"
+          aria-label="Show GIS Controls"
+          type="button"
+        >
+          <Layers size={14} className="text-cyan" />
+          <span>Show Controls</span>
+          <ChevronRight size={14} />
+        </button>
+      )}
 
-        {isLayerDrawerOpen && (
-          <div className="panel-body">
-            <LayerControls
-              filters={filters}
-              onFilterChange={onFilterChange}
-              onRefreshPipeline={onRefreshPipeline}
-              isRefreshing={isRefreshing}
-              isBackendConnected={isBackendConnected}
-            />
-          </div>
-        )}
+      {/* Anchored Left GIS Layer Controls Panel */}
+      <div className={`gis-layers-sidebar ${isLayerDrawerOpen ? 'open' : 'closed'}`}>
+        <div className="gis-layers-panel-card">
+          <LayerControls
+            filters={filters}
+            onFilterChange={onFilterChange}
+            onRefreshPipeline={onRefreshPipeline}
+            isRefreshing={isRefreshing}
+            isBackendConnected={isBackendConnected}
+            onClose={() => setIsLayerDrawerOpen(false)}
+          />
+        </div>
       </div>
 
       {/* Floating Bottom Quick Status */}
