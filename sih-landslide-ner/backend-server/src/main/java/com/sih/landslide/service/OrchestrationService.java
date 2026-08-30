@@ -106,10 +106,17 @@ public class OrchestrationService {
 
                     requests.add(new PredictionRequest(
                         point.getSlope(),
+                        point.getElevation(),
+                        point.getAspect(),
+                        point.getAspectSin(),
+                        point.getAspectCos(),
                         point.getClayPercent(),
-                        weather.rainDay1(),
+                        point.getSandPercent(),
+                        point.getSiltPercent(),
+                        point.getBulkDensity(),
+                        weather.rainDay3(),
                         weather.rainDay2(),
-                        weather.rainDay3()
+                        weather.rainDay1()
                     ));
                 }
 

@@ -39,6 +39,27 @@ public class GridPoint {
     @Column(name = "clay_percent", nullable = false)
     private Double clayPercent;
 
+    @Column(name = "aspect")
+    private Double aspect;
+
+    @Column(name = "aspect_sin")
+    private Double aspectSin;
+
+    @Column(name = "aspect_cos")
+    private Double aspectCos;
+
+    @Column(name = "sand_percent")
+    private Double sandPercent;
+
+    @Column(name = "silt_percent")
+    private Double siltPercent;
+
+    @Column(name = "bulk_density")
+    private Double bulkDensity;
+
+    @Column(name = "shear_stress_factor")
+    private Double shearStressFactor;
+
     // Next 3 Days Forecast Rainfall (mm)
     @Column(name = "rain_day1")
     private Double rainDay1 = 0.0;

@@ -41,6 +41,13 @@ def seed_database():
                 elevation DOUBLE,
                 slope DOUBLE NOT NULL,
                 clay_percent DOUBLE NOT NULL,
+                aspect DOUBLE,
+                aspect_sin DOUBLE,
+                aspect_cos DOUBLE,
+                sand_percent DOUBLE,
+                silt_percent DOUBLE,
+                bulk_density DOUBLE,
+                shear_stress_factor DOUBLE,
                 rain_day1 DOUBLE DEFAULT 0.0,
                 rain_day2 DOUBLE DEFAULT 0.0,
                 rain_day3 DOUBLE DEFAULT 0.0,
@@ -53,15 +60,42 @@ def seed_database():
             ) ENGINE=InnoDB;
         """)
 
-        cursor.execute("SELECT COUNT(*) FROM grid_points;")
-        count = cursor.fetchone()[0]
-        if count > 0:
-            print(f"Table already contains {count} records. Truncating to re-seed fresh...")
-            cursor.execute("TRUNCATE TABLE grid_points;")
+        cursor.execute("DROP TABLE IF EXISTS grid_points;")
+        cursor.execute("""
+            CREATE TABLE grid_points (
+                id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                district VARCHAR(100) NOT NULL DEFAULT 'Dima Hasao',
+                latitude DOUBLE NOT NULL,
+                longitude DOUBLE NOT NULL,
+                elevation DOUBLE,
+                slope DOUBLE NOT NULL,
+                clay_percent DOUBLE NOT NULL,
+                aspect DOUBLE,
+                aspect_sin DOUBLE,
+                aspect_cos DOUBLE,
+                sand_percent DOUBLE,
+                silt_percent DOUBLE,
+                bulk_density DOUBLE,
+                shear_stress_factor DOUBLE,
+                rain_day1 DOUBLE DEFAULT 0.0,
+                rain_day2 DOUBLE DEFAULT 0.0,
+                rain_day3 DOUBLE DEFAULT 0.0,
+                probability DOUBLE DEFAULT 0.0,
+                risk_level VARCHAR(50) DEFAULT 'LOW',
+                last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_lat_lon (latitude, longitude),
+                INDEX idx_district (district),
+                INDEX idx_risk_level (risk_level)
+            ) ENGINE=InnoDB;
+        """)
 
         insert_sql = """
-            INSERT INTO grid_points (district, latitude, longitude, elevation, slope, clay_percent, risk_level)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO grid_points (
+                district, latitude, longitude, elevation, slope, clay_percent,
+                aspect, aspect_sin, aspect_cos, sand_percent, silt_percent, bulk_density, shear_stress_factor,
+                risk_level
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
 
         records = [
@@ -71,7 +105,14 @@ def seed_database():
                 row['longitude'],
                 row['elevation'],
                 row['slope'],
-                row['clay_percentage'],
+                row.get('clay_percent', row.get('clay_percentage', 28.0)),
+                row.get('aspect', 0.0),
+                row.get('aspect_sin', 0.0),
+                row.get('aspect_cos', 1.0),
+                row.get('sand_percent', 32.0),
+                row.get('silt_percent', 40.0),
+                row.get('bulk_density', 1.26),
+                row.get('shear_stress_factor', 0.05),
                 "LOW"
             )
             for _, row in df.iterrows()

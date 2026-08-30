@@ -1,0 +1,18 @@
+{
+  "short_name": "NER Landslide GIS",
+  "name": "NER Landslide Early Warning & Disaster Resilience Platform",
+  "description": "AI-based Landslide Early Warning System with offline sync support for North Eastern Region (Dima Hasao)",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#0a0e17",
+  "theme_color": "#0e1526",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "scope": "/"
+}

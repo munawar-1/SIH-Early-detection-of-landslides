@@ -146,13 +146,13 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
           <div className="chart-box">
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={riskChartData} margin={{ top: 20, right: 20, left: 0, bottom: 5 }}>
-                <XAxis dataKey="name" stroke="#64748b" fontSize={12} />
-                <YAxis stroke="#64748b" fontSize={12} />
+                <XAxis dataKey="name" stroke="#6E8268" fontSize={12} tickLine={false} />
+                <YAxis stroke="#6E8268" fontSize={12} tickLine={false} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', color: '#fff' }}
+                  contentStyle={{ backgroundColor: '#FFFFFF', borderColor: 'rgba(30, 43, 24, 0.1)', borderRadius: '12px', color: '#1E2B18', boxShadow: '0 8px 24px rgba(30, 43, 24, 0.08)' }}
                   formatter={(val: any) => [`${val.toLocaleString()} Grid Points`, 'Count']}
                 />
-                <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                <Bar dataKey="count" radius={[8, 8, 0, 0]}>
                   {riskChartData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
@@ -171,13 +171,13 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
           <div className="chart-box">
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={slopeRanges} margin={{ top: 20, right: 20, left: 0, bottom: 5 }}>
-                <XAxis dataKey="range" stroke="#64748b" fontSize={12} />
-                <YAxis stroke="#64748b" fontSize={12} />
+                <XAxis dataKey="range" stroke="#6E8268" fontSize={12} tickLine={false} />
+                <YAxis stroke="#6E8268" fontSize={12} tickLine={false} />
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', color: '#fff' }}
+                  contentStyle={{ backgroundColor: '#FFFFFF', borderColor: 'rgba(30, 43, 24, 0.1)', borderRadius: '12px', color: '#1E2B18', boxShadow: '0 8px 24px rgba(30, 43, 24, 0.08)' }}
                   formatter={(val: any) => [`${val.toLocaleString()} Grid Points`, 'Count']}
                 />
-                <Bar dataKey="count" radius={[6, 6, 0, 0]}>
+                <Bar dataKey="count" radius={[8, 8, 0, 0]}>
                   {slopeRanges.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}

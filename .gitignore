@@ -1,0 +1,35 @@
+# Node & JS dependencies
+node_modules/
+.npm/
+package-lock.json.bak
+
+# Maven & Java Build artifacts
+target/
+*.jar
+*.war
+*.class
+.mvn/
+
+# Python & Virtual Environments
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Expo & React Native
+.expo/
+.expo-shared/
+dist/
+web-build/
+*.jsbundle
+
+# IDEs & System Files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+*.log

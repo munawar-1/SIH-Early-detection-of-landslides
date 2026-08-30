@@ -1,69 +1,73 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import type { 
-  GridPoint, 
-  FilterState, 
-  TransportSegment, 
-  StationNode, 
-  SummaryStatsData 
+import type {
+  GridPoint,
+  FilterState,
+  TransportSegment,
+  StationNode,
+  SummaryStatsData
 } from './types/landslide';
-import { 
-  RAILWAY_SECTIONS, 
-  HIGHWAY_SECTIONS, 
-  CRITICAL_STATIONS 
+import {
+  RAILWAY_SECTIONS,
+  HIGHWAY_SECTIONS,
+  CRITICAL_STATIONS
 } from './data/infrastructureData';
-import { 
-  fetchGridPredictions, 
-  triggerLivePipeline, 
-  evaluateTransportVulnerability, 
-  computeSummaryStats 
+import {
+  fetchGridPredictions,
+  triggerLivePipeline,
+  evaluateTransportVulnerability,
+  computeSummaryStats
 } from './services/apiService';
 
 // Pages
+import { LandingPage } from './pages/LandingPage';
 import { MapPage } from './pages/MapPage';
 import { CorridorsPage } from './pages/CorridorsPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { AlertsPage } from './pages/AlertsPage';
 import { PointDetailsModal } from './components/Modal/PointDetailsModal';
 
-import { 
-  ShieldAlert, 
-  Map as MapIcon, 
-  Train, 
-  BarChart3, 
-  BellRing, 
-  Radio, 
-  RefreshCw, 
-  Download, 
+import {
+  ShieldAlert,
+  Map as MapIcon,
+  Train,
+  BarChart3,
+  BellRing,
+  Radio,
+  RefreshCw,
+  Download,
   FileSpreadsheet,
   CheckCircle2,
-  Info
+  Info,
+  Home,
+  Compass,
+  Sparkles
 } from 'lucide-react';
 import './index.css';
 
-type ActivePage = 'map' | 'corridors' | 'analytics' | 'alerts';
+type ActivePage = 'landing' | 'map' | 'corridors' | 'analytics' | 'alerts';
 
 const DEFAULT_FILTERS: FilterState = {
   minRiskLevel: 'ALL',
   minSlope: 0,
   minRainfall: 0,
   forecastHorizon: '24h',
-  showHeatmap: true,
+  showHeatmap: false,
   showGridPoints: true,
   showRailways: true,
   showHighways: true,
   showStations: true,
   showHistoricalIncidents: true,
-  baseMap: 'dark'
+  baseMap: 'topo'
 };
 
 export const App: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState<ActivePage>('map');
+  const [currentPage, setCurrentPage] = useState<ActivePage>('landing');
   const [gridPoints, setGridPoints] = useState<GridPoint[]>([]);
   const [railways, setRailways] = useState<TransportSegment[]>(RAILWAY_SECTIONS);
   const [highways, setHighways] = useState<TransportSegment[]>(HIGHWAY_SECTIONS);
   const [stations] = useState<StationNode[]>(CRITICAL_STATIONS);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
-  
+
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [isBackendConnected, setIsBackendConnected] = useState<boolean>(false);
@@ -142,7 +146,7 @@ export const App: React.FC = () => {
   const handleExportCSV = () => {
     if (!gridPoints.length) return;
     const header = 'id,district,latitude,longitude,elevation,slope,clay_percent,rain_day1,rain_day2,rain_day3,probability,risk_level\n';
-    const rows = gridPoints.map(p => 
+    const rows = gridPoints.map(p =>
       `${p.id},${p.district},${p.latitude},${p.longitude},${p.elevation},${p.slope},${p.clayPercent},${p.rainDay1},${p.rainDay2},${p.rainDay3},${p.probability},${p.riskLevel}`
     ).join('\n');
 
@@ -197,91 +201,119 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* Sleek Top Navigation Header */}
+      {/* Sleek Modern Glassmorphic Header */}
       <header className="app-header">
-        <div className="header-brand">
+        <div
+          className="header-brand"
+          onClick={() => setCurrentPage('landing')}
+          style={{ cursor: 'pointer' }}
+          title="Return to Overview / Landing Page"
+        >
           <div className="brand-logo-badge">
             <ShieldAlert size={22} className="text-red" />
           </div>
-          <div>
-            <div className="system-title-row" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="brand-text-block">
+            <div className="system-title-row">
               <h1 className="system-title">NER-LANDSLIDE GIS</h1>
               <span className="live-tag">
-                <Radio size={12} className="live-icon text-green" /> DIMA HASAO
+                <Radio size={12} className="live-icon text-green" /> NER REGION
               </span>
-              <span 
+              <span
                 className={`connection-badge ${isBackendConnected ? 'connected' : 'offline'}`}
-                title={isBackendConnected ? 'Connected to Spring Boot (8080) & FastAPI ML (8000)' : 'Backend offline. Running on high-resolution topographic simulation.'}
+                title={isBackendConnected ? 'Connected to Spring Boot & FastAPI ML Engine' : 'Running on calibrated geotechnical GIS simulation.'}
               >
                 <span className={`dot ${isBackendConnected ? 'dot-green' : 'dot-amber'}`} />
-                <span>{isBackendConnected ? 'Live ML Model' : 'Simulation Baseline'}</span>
+                <span>{isBackendConnected ? 'ML Live' : 'Model 3.0'}</span>
               </span>
             </div>
             <p className="system-subtitle">
-              Early Warning & Transport Corridor Hazard System (Lumding–Badarpur Railway & NH-27)
+              AI-Based Early Warning & Landslide Risk Monitoring System in NER
             </p>
           </div>
         </div>
 
         {/* Multi-Page Navigation Bar */}
         <nav className="header-navbar">
-          <button 
+          <button
+            className={`nav-link-btn ${currentPage === 'landing' ? 'active' : ''}`}
+            onClick={() => setCurrentPage('landing')}
+          >
+            <Home size={15} />
+            <span>Overview</span>
+          </button>
+
+          <button
             className={`nav-link-btn ${currentPage === 'map' ? 'active' : ''}`}
             onClick={() => setCurrentPage('map')}
           >
-            <MapIcon size={16} />
+            <MapIcon size={15} />
             <span>GIS Hazard Map</span>
           </button>
 
-          <button 
+          <button
             className={`nav-link-btn ${currentPage === 'corridors' ? 'active' : ''}`}
             onClick={() => setCurrentPage('corridors')}
           >
-            <Train size={16} />
-            <span>Transport Corridors</span>
+            <Train size={15} />
+            <span>Corridors</span>
             {railways.some(r => r.threatLevel === 'CRITICAL') && (
               <span className="nav-badge-dot" />
             )}
           </button>
 
-          <button 
+          <button
             className={`nav-link-btn ${currentPage === 'analytics' ? 'active' : ''}`}
             onClick={() => setCurrentPage('analytics')}
           >
-            <BarChart3 size={16} />
-            <span>Risk Analytics</span>
+            <BarChart3 size={15} />
+            <span>Analytics</span>
           </button>
 
-          <button 
+          <button
             className={`nav-link-btn ${currentPage === 'alerts' ? 'active' : ''}`}
             onClick={() => setCurrentPage('alerts')}
           >
-            <BellRing size={16} />
-            <span>Early Warning Alerts</span>
+            <BellRing size={15} />
+            <span>Alerts</span>
             {stats && stats.highRiskCount > 0 && (
               <span className="nav-badge-count">{stats.highRiskCount}</span>
             )}
           </button>
         </nav>
 
-        {/* Header Right Actions */}
+        {/* Header Right Actions & Team Attribution */}
         <div className="header-actions">
-          <button 
-            className={`btn-refresh-top ${isRefreshing ? 'spin' : ''}`}
-            onClick={handleRefreshPipeline}
-            disabled={isRefreshing}
-            title="Trigger Live Open-Meteo & ML Assessment"
-          >
-            <RefreshCw size={14} className={isRefreshing ? 'spin-icon' : ''} />
-            <span>{isRefreshing ? 'Assessing...' : 'Live Recalculation'}</span>
-          </button>
+          <div className="team-attribution-pill" title="Smart India Hackathon Project">
+            <Sparkles size={13} className="text-cyan" />
+            <span>Tech<strong>4</strong>Bharath</span>
+          </div>
+
+          {currentPage === 'landing' ? (
+            <button
+              className="btn-launch-header"
+              onClick={() => setCurrentPage('map')}
+            >
+              <Compass size={15} />
+              <span>Launch Map</span>
+            </button>
+          ) : (
+            <button
+              className={`btn-refresh-top ${isRefreshing ? 'spin' : ''}`}
+              onClick={handleRefreshPipeline}
+              disabled={isRefreshing}
+              title="Trigger Live Weather & Geotechnical Assessment"
+            >
+              <RefreshCw size={13} className={isRefreshing ? 'spin-icon' : ''} />
+              <span>{isRefreshing ? 'Assessing...' : 'Live Recalculate'}</span>
+            </button>
+          )}
 
           <div className="btn-export-group">
             <button className="btn-export" onClick={handleExportCSV} title="Export CSV Data">
-              <FileSpreadsheet size={14} /> CSV
+              <FileSpreadsheet size={13} /> CSV
             </button>
             <button className="btn-export" onClick={handleExportGeoJSON} title="Export GeoJSON">
-              <Download size={14} /> GeoJSON
+              <Download size={13} /> GeoJSON
             </button>
           </div>
         </div>
@@ -297,6 +329,22 @@ export const App: React.FC = () => {
           </div>
         ) : (
           <>
+            {currentPage === 'landing' && (
+              <LandingPage
+                gridPoints={gridPoints}
+                railways={railways}
+                highways={highways}
+                stations={stations}
+                stats={stats}
+                onNavigate={(page) => setCurrentPage(page)}
+                onRefreshPipeline={handleRefreshPipeline}
+                isRefreshing={isRefreshing}
+                isBackendConnected={isBackendConnected}
+                onExportCSV={handleExportCSV}
+                onExportGeoJSON={handleExportGeoJSON}
+              />
+            )}
+
             {currentPage === 'map' && (
               <MapPage
                 gridPoints={gridPoints}

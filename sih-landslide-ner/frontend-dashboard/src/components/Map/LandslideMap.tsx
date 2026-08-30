@@ -45,6 +45,9 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
 
   const canvasRendererRef = useRef<L.Canvas | null>(null);
 
+  const [currentZoom, setCurrentZoom] = React.useState<number>(10);
+  const heatmapLayerGroupRef = useRef<L.LayerGroup | null>(null);
+
   // 1. Initialize Map on mount and fit directly to Dima Hasao
   useEffect(() => {
     if (!mapContainerRef.current || mapInstanceRef.current) return;
@@ -63,12 +66,20 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
     });
 
     canvasRendererRef.current = L.canvas({ padding: 0.5 });
+    heatmapLayerGroupRef.current = L.layerGroup().addTo(map);
     pointsLayerGroupRef.current = L.layerGroup().addTo(map);
     boundaryLayerGroupRef.current = L.layerGroup().addTo(map);
     infrastructureLayerGroupRef.current = L.layerGroup().addTo(map);
     mapInstanceRef.current = map;
 
+    const onZoomEnd = () => {
+      setCurrentZoom(map.getZoom());
+    };
+    map.on('zoomend', onZoomEnd);
+
     return () => {
+      map.off('zoomend', onZoomEnd);
+      heatmapLayerGroupRef.current?.clearLayers();
       pointsLayerGroupRef.current?.clearLayers();
       boundaryLayerGroupRef.current?.clearLayers();
       infrastructureLayerGroupRef.current?.clearLayers();
@@ -136,29 +147,29 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
 
     boundaryGroup.clearLayers();
 
-    // Outer glow perimeter
+    // Outer boundary line
     const outerGlow = L.polygon(DIMA_HASAO_POLYGON, {
-      color: 'rgba(56, 189, 248, 0.35)',
-      weight: 10,
+      color: 'rgba(30, 43, 24, 0.2)',
+      weight: 6,
       fill: false,
-      opacity: 0.7,
+      opacity: 0.6,
       lineCap: 'round',
       lineJoin: 'round'
     });
 
-    // Sharp glowing neon cyan district line
+    // Sharp clean district perimeter line
     const mainBoundary = L.polygon(DIMA_HASAO_POLYGON, {
-      color: '#38bdf8',
-      weight: 3,
+      color: '#1E2B18',
+      weight: 2.5,
       fill: false,
-      opacity: 0.95,
-      dashArray: '10, 6'
+      opacity: 0.85,
+      dashArray: '8, 6'
     });
 
     mainBoundary.bindTooltip(`
       <div class="district-badge-tooltip">
         <strong>📍 DIMA HASAO DISTRICT BOUNDARY</strong><br/>
-        <span>Area: 4,888 km² | Elevation: 200m - 1,450m</span>
+        <span>Area: 4,888 km² | Elevation: 180m - 1,450m</span>
       </div>
     `, { sticky: true, className: 'gis-custom-tooltip' });
 
@@ -166,14 +177,16 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
     boundaryGroup.addLayer(mainBoundary);
   }, []);
 
-  // 4. Render Grid Points using Leaflet's built-in Canvas Renderer for 60fps
+  // 4. Render Grid Points & Smooth Heatmap Layer using Canvas Renderer
   useEffect(() => {
     const map = mapInstanceRef.current;
     const pointsGroup = pointsLayerGroupRef.current;
-    if (!map || !pointsGroup) return;
+    const heatmapGroup = heatmapLayerGroupRef.current;
+    if (!map || !pointsGroup || !heatmapGroup) return;
 
     // Completely clear existing markers before repopulating
     pointsGroup.clearLayers();
+    heatmapGroup.clearLayers();
 
     if (!filters.showGridPoints && !filters.showHeatmap) return;
 
@@ -192,54 +205,145 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
 
     // Reuse persistent canvas renderer
     const canvasRenderer = canvasRendererRef.current || L.canvas({ padding: 0.5 });
+    const zoom = currentZoom || map.getZoom() || 10;
 
-    filteredPoints.forEach(p => {
-      let fillColor = '#22c55e'; // Green
-      let strokeColor = '#16a34a';
-      let radius = 3.5;
-      let fillOpacity = 0.65;
-      let weight = 0.5;
+    // Zoom-adaptive sizing calculation for crisp, professional GIS rendering
+    let lowRadius = 2.0;
+    let modRadius = 3.2;
+    let highRadius = 4.8;
+    let lowOpacity = 0.65;
+    let modOpacity = 0.85;
+    let highOpacity = 0.95;
 
-      if (p.probability >= 0.70) {
-        fillColor = '#ef4444'; // Red
-        strokeColor = '#b91c1c';
-        radius = 5.5;
-        fillOpacity = 0.85;
-        weight = 0.8;
-      } else if (p.probability >= 0.40) {
-        fillColor = '#f59e0b'; // Amber
-        strokeColor = '#d97706';
-        radius = 4.5;
-        fillOpacity = 0.75;
-        weight = 0.6;
-      }
+    if (zoom >= 13) {
+      lowRadius = 4.0;
+      modRadius = 5.5;
+      highRadius = 7.0;
+      lowOpacity = 0.80;
+      modOpacity = 0.90;
+      highOpacity = 0.98;
+    } else if (zoom >= 11) {
+      lowRadius = 2.6;
+      modRadius = 4.0;
+      highRadius = 5.2;
+      lowOpacity = 0.70;
+      modOpacity = 0.88;
+      highOpacity = 0.95;
+    }
 
-      const marker = L.circleMarker([p.latitude, p.longitude], {
-        renderer: canvasRenderer,
-        radius,
-        fillColor,
-        fillOpacity,
-        color: strokeColor,
-        weight
+    // A. RENDER HAZARD DENSITY GLOW (Only on Moderate & High Hazard Zones)
+    if (filters.showHeatmap) {
+      const heatRadius = zoom >= 12 ? 22 : (zoom >= 10 ? 14 : 9);
+      filteredPoints.forEach(p => {
+        // Only render soft glow for actual hazard zones to avoid blocking the map
+        if (p.probability < 0.40) return;
+
+        let glowColor = 'rgba(245, 158, 11, 0.22)'; // Amber warning glow
+        if (p.probability >= 0.70) {
+          glowColor = 'rgba(239, 68, 68, 0.35)'; // Crimson alert glow
+        }
+
+        const heatDot = L.circleMarker([p.latitude, p.longitude], {
+          renderer: canvasRenderer,
+          radius: heatRadius,
+          fillColor: glowColor,
+          fillOpacity: 1.0,
+          stroke: false,
+          interactive: false
+        });
+        heatmapGroup.addLayer(heatDot);
       });
+    }
 
-      marker.on('click', () => {
-        if (onSelectPoint) onSelectPoint(p);
+    // B. RENDER INTERACTIVE MICRO-GRID NODES (if enabled)
+    if (filters.showGridPoints) {
+      filteredPoints.forEach(p => {
+        let fillColor = '#10b981'; // Emerald Green (Clean & Safe)
+        let strokeColor = '#059669';
+        let radius = lowRadius;
+        let fillOpacity = lowOpacity;
+        let weight = 0.4;
+
+        if (p.probability >= 0.70) {
+          fillColor = '#ef4444'; // Bright Red / Crimson Hazard
+          strokeColor = '#ffffff';
+          radius = highRadius;
+          fillOpacity = highOpacity;
+          weight = 1.2;
+        } else if (p.probability >= 0.40) {
+          fillColor = '#f59e0b'; // Amber Warning
+          strokeColor = '#ffffff';
+          radius = modRadius;
+          fillOpacity = modOpacity;
+          weight = 0.8;
+        }
+
+        const marker = L.circleMarker([p.latitude, p.longitude], {
+          renderer: canvasRenderer,
+          radius,
+          fillColor,
+          fillOpacity,
+          color: strokeColor,
+          weight
+        });
+
+        marker.on('click', () => {
+          if (onSelectPoint) onSelectPoint(p);
+        });
+
+        const rainSum = (p.rainDay1 + p.rainDay2 + p.rainDay3).toFixed(1);
+        const slopeFmt = typeof p.slope === 'number' ? p.slope.toFixed(1) : p.slope;
+        const elevFmt = typeof p.elevation === 'number' ? Math.round(p.elevation) : p.elevation;
+        const probPct = Math.round(p.probability * 100);
+
+        marker.bindTooltip(`
+          <div class="gis-interactive-tooltip">
+            <div class="tooltip-header">
+              <span class="tooltip-badge ${p.riskLevel.toLowerCase()}">
+                ${p.riskLevel === 'HIGH' ? '🔴 HIGH HAZARD' : (p.riskLevel === 'MODERATE' ? '🟡 MODERATE' : '🟢 SAFE SLOPE')}
+              </span>
+              <span class="tooltip-id">#${p.id}</span>
+            </div>
+            
+            <div class="tooltip-meter-row">
+              <div class="meter-bar-track">
+                <div class="meter-bar-fill ${p.riskLevel.toLowerCase()}" style="width: ${probPct}%"></div>
+              </div>
+              <span class="meter-pct">${probPct}% AI Risk</span>
+            </div>
+
+            <div class="tooltip-metrics-grid">
+              <div class="tooltip-metric">
+                <span class="metric-lbl">Slope</span>
+                <span class="metric-val"><b>${slopeFmt}°</b></span>
+              </div>
+              <div class="tooltip-metric">
+                <span class="metric-lbl">Elevation</span>
+                <span class="metric-val"><b>${elevFmt}m</b></span>
+              </div>
+              <div class="tooltip-metric">
+                <span class="metric-lbl">Clay</span>
+                <span class="metric-val"><b>${p.clayPercent.toFixed(1)}%</b></span>
+              </div>
+              <div class="tooltip-metric">
+                <span class="metric-lbl">3-Day Rain</span>
+                <span class="metric-val"><b>${rainSum} mm</b></span>
+              </div>
+            </div>
+            <div class="tooltip-hint">Click node for deep geotechnical diagnostics</div>
+          </div>
+        `, { 
+          className: 'gis-custom-tooltip-card',
+          direction: 'top',
+          offset: [0, -6],
+          opacity: 1.0
+        });
+
+        pointsGroup.addLayer(marker);
       });
+    }
 
-      marker.bindTooltip(`
-        <div class="gis-tooltip">
-          <strong style="color:${fillColor}">📍 Spatial Cell #${p.id} (${p.riskLevel})</strong><br/>
-          <span>AI Probability: <b>${Math.round(p.probability * 100)}%</b></span><br/>
-          <span>Slope: <b>${p.slope}°</b> | Clay: <b>${p.clayPercent}%</b></span><br/>
-          <span>3-Day Rain: <b>${(p.rainDay1 + p.rainDay2 + p.rainDay3).toFixed(1)} mm</b></span>
-        </div>
-      `, { className: 'gis-custom-tooltip' });
-
-      pointsGroup.addLayer(marker);
-    });
-
-  }, [gridPoints, filters, onSelectPoint]);
+  }, [gridPoints, filters, currentZoom, onSelectPoint]);
 
   // 5. Render Railway Lines, Highways, Stations, and Incidents
   useEffect(() => {
@@ -275,7 +379,7 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
         });
 
         const baseTrack = L.polyline(rail.coordinates, {
-          color: '#0f172a',
+          color: '#1E2B18',
           weight: 6,
           opacity: 0.95
         });
@@ -392,9 +496,9 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
 
         marker.bindPopup(`
           <div class="gis-popup-content">
-            <h4 style="color:#ef4444; margin:0 0 6px 0;">⚠️ ${hist.name} (${hist.year})</h4>
-            <p style="font-size:12px; margin:0 0 6px 0; color:#cbd5e1;">${hist.description}</p>
-            <span class="badge danger" style="font-size:10px;">HISTORICAL DISASTER SITE</span>
+            <h4 style="color:#dc2626; margin:0 0 6px 0;">⚠️ ${hist.name} (${hist.year})</h4>
+            <p style="font-size:12px; margin:0 0 6px 0; color:#455A3F;">${hist.description}</p>
+            <span class="badge danger" style="font-size:10px; background:#fee2e2; color:#dc2626; padding:2px 8px; border-radius:9999px;">HISTORICAL DISASTER SITE</span>
           </div>
         `);
 

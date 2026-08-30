@@ -1,7 +1,12 @@
 package com.sih.landslide.config;
 
+import com.sih.landslide.model.AuthorityContact;
 import com.sih.landslide.model.GridPoint;
+import com.sih.landslide.model.RiskZone;
+import com.sih.landslide.repository.AuthorityContactRepository;
 import com.sih.landslide.repository.GridPointRepository;
+import com.sih.landslide.repository.RiskZoneRepository;
+import com.sih.landslide.service.OrchestrationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -19,24 +24,42 @@ import java.util.List;
 public class DataSeeder implements CommandLineRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(DataSeeder.class);
-    private final GridPointRepository repository;
-    private final com.sih.landslide.service.OrchestrationService orchestrationService;
 
-    public DataSeeder(GridPointRepository repository, com.sih.landslide.service.OrchestrationService orchestrationService) {
+    private final GridPointRepository repository;
+    private final RiskZoneRepository riskZoneRepository;
+    private final AuthorityContactRepository authorityContactRepository;
+    private final OrchestrationService orchestrationService;
+
+    public DataSeeder(GridPointRepository repository,
+                      RiskZoneRepository riskZoneRepository,
+                      AuthorityContactRepository authorityContactRepository,
+                      OrchestrationService orchestrationService) {
         this.repository = repository;
+        this.riskZoneRepository = riskZoneRepository;
+        this.authorityContactRepository = authorityContactRepository;
         this.orchestrationService = orchestrationService;
     }
 
     @Override
     public void run(String... args) {
+        seedAuthorityContactsIfEmpty();
+
         long currentCount = repository.count();
-        if (currentCount > 0) {
-            logger.info("Database already contains {} grid points. Triggering background weather and risk assessment...", currentCount);
+        long riskZoneCount = riskZoneRepository.count();
+
+        if (currentCount == 5076 && riskZoneCount > 0) {
+            logger.info("Database contains exact 5,076 authentic Dima Hasao grid points & {} risk zones. Triggering live prediction pipeline...", riskZoneCount);
             orchestrationService.processDailyPredictions();
+            syncRiskZonesFromGridPoints();
             return;
         }
 
-        logger.info("Initializing database: Seeding Dima Hasao static geospatial grid points...");
+        logger.info("Database contains {} points (expected 5,076 authentic points). Re-seeding database fresh...", currentCount);
+        reseedDatabase();
+    }
+
+    public synchronized void reseedDatabase() {
+        logger.info("Initializing database: Seeding Dima Hasao static geospatial grid points from classpath...");
         String csvResourcePath = "data/Dima-Hasao_grid.csv";
 
         try {
@@ -46,11 +69,15 @@ public class DataSeeder implements CommandLineRunner {
                 return;
             }
 
+            repository.deleteAllInBatch();
+            riskZoneRepository.deleteAllInBatch();
+
             List<GridPoint> batch = new ArrayList<>(1000);
+            List<RiskZone> rzBatch = new ArrayList<>(1000);
             int totalInserted = 0;
 
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8))) {
-                String headerLine = reader.readLine(); // skip header: latitude,longitude,elevation,slope,clay_percentage
+                String headerLine = reader.readLine(); // skip header
                 String line;
 
                 while ((line = reader.readLine()) != null) {
@@ -72,6 +99,17 @@ public class DataSeeder implements CommandLineRunner {
                             point.setElevation(elevation);
                             point.setSlope(slope);
                             point.setClayPercent(clayPercent);
+
+                            if (tokens.length >= 13) {
+                                point.setAspect(Double.parseDouble(tokens[5].trim()));
+                                point.setAspectSin(Double.parseDouble(tokens[6].trim()));
+                                point.setAspectCos(Double.parseDouble(tokens[7].trim()));
+                                point.setSandPercent(Double.parseDouble(tokens[9].trim()));
+                                point.setSiltPercent(Double.parseDouble(tokens[10].trim()));
+                                point.setBulkDensity(Double.parseDouble(tokens[11].trim()));
+                                point.setShearStressFactor(Double.parseDouble(tokens[12].trim()));
+                            }
+
                             point.setRainDay1(0.0);
                             point.setRainDay2(0.0);
                             point.setRainDay3(0.0);
@@ -81,11 +119,29 @@ public class DataSeeder implements CommandLineRunner {
 
                             batch.add(point);
 
+                            RiskZone rz = RiskZone.builder()
+                                    .district("Dima Hasao")
+                                    .latitude(lat)
+                                    .longitude(lon)
+                                    .elevation(elevation)
+                                    .slope(slope)
+                                    .clayPercent(clayPercent)
+                                    .rainDay1(0.0)
+                                    .rainDay2(0.0)
+                                    .rainDay3(0.0)
+                                    .probability(0.0)
+                                    .riskLevel("LOW")
+                                    .lastUpdated(LocalDateTime.now())
+                                    .build();
+                            rzBatch.add(rz);
+
                             if (batch.size() >= 1000) {
                                 repository.saveAll(batch);
+                                riskZoneRepository.saveAll(rzBatch);
                                 totalInserted += batch.size();
-                                logger.info("Seeded {} grid points into database...", totalInserted);
+                                logger.info("Seeded {} grid points & risk zones into database...", totalInserted);
                                 batch.clear();
+                                rzBatch.clear();
                             }
                         } catch (NumberFormatException nfe) {
                             logger.warn("Skipping invalid row: {}", line);
@@ -95,16 +151,94 @@ public class DataSeeder implements CommandLineRunner {
 
                 if (!batch.isEmpty()) {
                     repository.saveAll(batch);
+                    riskZoneRepository.saveAll(rzBatch);
                     totalInserted += batch.size();
                     batch.clear();
+                    rzBatch.clear();
                 }
             }
 
-            logger.info("✅ Successfully seeded {} static grid points for Dima Hasao into database!", totalInserted);
+            logger.info("✅ Successfully seeded {} static grid points & risk zones for Dima Hasao into database!", totalInserted);
             orchestrationService.processDailyPredictions();
+            syncRiskZonesFromGridPoints();
 
         } catch (Exception e) {
             logger.error("❌ Failed to seed grid points into database", e);
+        }
+    }
+
+    public synchronized void syncRiskZonesFromGridPoints() {
+        List<GridPoint> points = repository.findAll();
+        if (points.isEmpty()) return;
+
+        List<RiskZone> existingZones = riskZoneRepository.findAll();
+        if (existingZones.isEmpty()) {
+            List<RiskZone> newZones = points.stream().map(p -> RiskZone.builder()
+                    .id(p.getId())
+                    .district(p.getDistrict())
+                    .latitude(p.getLatitude())
+                    .longitude(p.getLongitude())
+                    .elevation(p.getElevation())
+                    .slope(p.getSlope())
+                    .clayPercent(p.getClayPercent())
+                    .rainDay1(p.getRainDay1())
+                    .rainDay2(p.getRainDay2())
+                    .rainDay3(p.getRainDay3())
+                    .probability(p.getProbability())
+                    .riskLevel(p.getRiskLevel())
+                    .lastUpdated(p.getLastUpdated())
+                    .build()).toList();
+            riskZoneRepository.saveAll(newZones);
+        } else {
+            // Ensure high risk points exist in risk_zones
+            for (GridPoint p : points) {
+                if ("HIGH".equalsIgnoreCase(p.getRiskLevel()) || "CRITICAL".equalsIgnoreCase(p.getRiskLevel())) {
+                    RiskZone rz = riskZoneRepository.findById(p.getId()).orElseGet(() -> 
+                        RiskZone.builder()
+                            .district(p.getDistrict())
+                            .latitude(p.getLatitude())
+                            .longitude(p.getLongitude())
+                            .elevation(p.getElevation())
+                            .slope(p.getSlope())
+                            .clayPercent(p.getClayPercent())
+                            .build()
+                    );
+                    rz.setProbability(p.getProbability());
+                    rz.setRiskLevel(p.getRiskLevel());
+                    rz.setLastUpdated(LocalDateTime.now());
+                    riskZoneRepository.save(rz);
+                }
+            }
+        }
+    }
+
+    private void seedAuthorityContactsIfEmpty() {
+        if (authorityContactRepository.count() == 0) {
+            List<AuthorityContact> contacts = List.of(
+                AuthorityContact.builder()
+                    .district("Dima Hasao")
+                    .role("District Disaster Management Officer (DDMO)")
+                    .phoneNumber("+919435001122")
+                    .email("ddmo.dimahasao@assam.gov.in")
+                    .createdAt(LocalDateTime.now())
+                    .build(),
+                AuthorityContact.builder()
+                    .district("Dima Hasao")
+                    .role("Field Officer, ASDMA Haflong")
+                    .phoneNumber("+919435003344")
+                    .email("asdma.haflong@assam.gov.in")
+                    .createdAt(LocalDateTime.now())
+                    .build(),
+                AuthorityContact.builder()
+                    .district("Dima Hasao")
+                    .role("NFR Railway Safety Superintendent")
+                    .phoneNumber("+919435005566")
+                    .email("nfr.safety.haflong@nfr.railnet.gov.in")
+                    .createdAt(LocalDateTime.now())
+                    .build()
+            );
+            authorityContactRepository.saveAll(contacts);
+            logger.info("✅ Seeded pilot authority contacts for Dima Hasao district.");
         }
     }
 }

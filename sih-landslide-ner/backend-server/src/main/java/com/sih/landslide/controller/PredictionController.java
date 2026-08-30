@@ -16,10 +16,14 @@ public class PredictionController {
 
     private final GridPointRepository repository;
     private final OrchestrationService orchestrationService;
+    private final com.sih.landslide.config.DataSeeder dataSeeder;
 
-    public PredictionController(GridPointRepository repository, OrchestrationService orchestrationService) {
+    public PredictionController(GridPointRepository repository, 
+                                OrchestrationService orchestrationService,
+                                com.sih.landslide.config.DataSeeder dataSeeder) {
         this.repository = repository;
         this.orchestrationService = orchestrationService;
+        this.dataSeeder = dataSeeder;
     }
 
     @GetMapping
@@ -33,6 +37,15 @@ public class PredictionController {
         return ResponseEntity.ok(Map.of(
             "status", "Triggered",
             "message", "Landslide early warning pipeline assessment initiated in background."
+        ));
+    }
+
+    @PostMapping("/reseed")
+    public ResponseEntity<Map<String, String>> reseedGrid() {
+        dataSeeder.reseedDatabase();
+        return ResponseEntity.ok(Map.of(
+            "status", "Success",
+            "message", "Database successfully reseeded with authentic polygon grid points."
         ));
     }
 }

@@ -34,7 +34,7 @@ export const SummaryStats: React.FC<SummaryStatsProps> = ({ stats }) => {
     <div className="summary-stats-container">
       {/* KPI Cards Grid */}
       <div className="stats-kpi-grid">
-        <div className="kpi-card danger-glow">
+        <div className="kpi-card danger">
           <div className="kpi-header">
             <span className="kpi-title">High Risk Zones</span>
             <ShieldAlert size={18} className="text-red" />
@@ -43,7 +43,7 @@ export const SummaryStats: React.FC<SummaryStatsProps> = ({ stats }) => {
           <div className="kpi-subtext">Immediate disaster warning active</div>
         </div>
 
-        <div className="kpi-card warning-glow">
+        <div className="kpi-card warning">
           <div className="kpi-header">
             <span className="kpi-title">Critical Railway</span>
             <Train size={18} className="text-amber" />
@@ -52,7 +52,7 @@ export const SummaryStats: React.FC<SummaryStatsProps> = ({ stats }) => {
           <div className="kpi-subtext">Lumding–Badarpur Hill Section</div>
         </div>
 
-        <div className="kpi-card info-glow">
+        <div className="kpi-card info">
           <div className="kpi-header">
             <span className="kpi-title">Threatened Highway</span>
             <Navigation size={18} className="text-cyan" />
@@ -61,7 +61,7 @@ export const SummaryStats: React.FC<SummaryStatsProps> = ({ stats }) => {
           <div className="kpi-subtext">NH-27 Mountain Corridor</div>
         </div>
 
-        <div className="kpi-card rain-glow">
+        <div className="kpi-card rain">
           <div className="kpi-header">
             <span className="kpi-title">3-Day Peak Rain</span>
             <CloudRain size={18} className="text-blue" />
@@ -98,13 +98,13 @@ export const SummaryStats: React.FC<SummaryStatsProps> = ({ stats }) => {
         <div className="chart-wrapper">
           <ResponsiveContainer width="100%" height={110}>
             <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <XAxis dataKey="name" stroke="#64748b" fontSize={11} tickLine={false} />
-              <YAxis stroke="#64748b" fontSize={10} tickLine={false} />
+              <XAxis dataKey="name" stroke="#6E8268" fontSize={11} tickLine={false} />
+              <YAxis stroke="#6E8268" fontSize={10} tickLine={false} />
               <Tooltip 
-                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', color: '#fff', fontSize: '12px' }} 
+                contentStyle={{ backgroundColor: '#FFFFFF', borderColor: 'rgba(30, 43, 24, 0.1)', borderRadius: '12px', color: '#1E2B18', fontSize: '12px', boxShadow: '0 8px 24px rgba(30, 43, 24, 0.08)' }} 
                 formatter={(val: any) => [`${val.toLocaleString()} Points`, 'Total Count']}
               />
-              <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+              <Bar dataKey="count" radius={[6, 6, 0, 0]}>
                 {chartData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}
