@@ -28,9 +28,10 @@ spring:
           order_updates: true
           batch_versioned_data: true
 
-# Server port (dynamically set by Railway or default 8080)
+# Server port and binding address (dynamically set by Render/Railway or default 8080)
 server:
   port: ${PORT:8080}
+  address: 0.0.0.0
 
 # ML Microservice integration URL
 ml:
