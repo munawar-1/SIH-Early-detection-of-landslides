@@ -1,7 +1,8 @@
 import type { GridPoint, SummaryStatsData, TransportSegment } from '../types/landslide';
 import { isPointInDimaHasao } from '../data/dimaHasaoBoundary';
 
-const API_BASE_URL = 'http://localhost:8080/api/predictions';
+const BACKEND_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
+const API_BASE_URL = `${BACKEND_BASE}/api/predictions`;
 
 /**
  * Generates synthetic Dima Hasao grid dataset strictly clipped within the authentic district boundary polygon.

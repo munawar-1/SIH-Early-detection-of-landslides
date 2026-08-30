@@ -1,0 +1,76 @@
+spring:
+  application:
+    name: landslide-backend
+
+  datasource:
+    # Supabase / PostgreSQL datasource URL (defaults to local PostgreSQL / PostGIS)
+    url: ${SPRING_DATASOURCE_URL:${DATABASE_URL:jdbc:postgresql://localhost:5432/landslide_db?sslmode=prefer}}
+    username: ${SPRING_DATASOURCE_USERNAME:${DATABASE_USERNAME:postgres}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${DATABASE_PASSWORD:password}}
+    driver-class-name: ${SPRING_DATASOURCE_DRIVER_CLASS_NAME:org.postgresql.Driver}
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 10
+      minimum-idle: 2
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  jpa:
+    hibernate:
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:update}
+    show-sql: ${SPRING_JPA_SHOW_SQL:false}
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          batch_size: 1000
+          order_inserts: true
+          order_updates: true
+          batch_versioned_data: true
+
+# Server port (dynamically set by Railway or default 8080)
+server:
+  port: ${PORT:8080}
+
+# ML Microservice integration URL
+ml:
+  service:
+    url: ${ML_SERVICE_URL:http://localhost:8000}
+
+# JWT Authentication
+jwt:
+  secret: ${JWT_SECRET:NERLandslideEarlyWarningSystemSecretKeySIH2026NorthEastIndiaSecurityToken987654321}
+  expiration-ms: 2592000000 # 30 days
+
+# CORS Allowed Origins (Comma-separated for web dashboards and local dev)
+cors:
+  allowed-origins: ${ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173}
+
+# SMS & Emergency Alert Provider Configuration
+sms:
+  provider: ${SMS_PROVIDER:TWILIO_MSG91_SIMULATED}
+  twilio:
+    account-sid: ${TWILIO_ACCOUNT_SID:}
+    auth-token: ${TWILIO_AUTH_TOKEN:}
+    phone-number: ${TWILIO_PHONE_NUMBER:}
+  msg91:
+    auth-key: ${MSG91_AUTH_KEY:}
+    sender-id: ${MSG91_SENDER_ID:NERSIH}
+
+# Firebase Admin Service Account Configuration
+firebase:
+  credentials-json: ${FIREBASE_CREDENTIALS_JSON:}
+  service-account-path: ${FIREBASE_SERVICE_ACCOUNT_PATH:}
+
+# Spring Boot Actuator Configuration for Railway Health Checks
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true

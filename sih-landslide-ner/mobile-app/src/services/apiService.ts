@@ -1,8 +1,16 @@
 import { getAuthToken } from './storageService';
 import { performOfflineGeofenceCheck } from './offlineRiskEngine';
 
-// Backend URL configurable for emulator / device / local development
-export const API_BASE_URL = 'http://192.168.1.13:8080';
+// Backend URL configurable via Expo environment variables (defaults to local network dev server)
+export const API_BASE_URL = (
+  process.env.EXPO_PUBLIC_API_BASE_URL ||
+  'http://192.168.1.13:8080'
+).replace(/\/$/, '');
+
+export const ML_API_BASE_URL = (
+  process.env.EXPO_PUBLIC_ML_API_BASE_URL ||
+  'http://192.168.1.13:8000'
+).replace(/\/$/, '');
 
 export interface AlertCheckResponse {
   in_risk_zone: boolean;
@@ -122,8 +130,8 @@ export async function fetchLiveRiskZones(): Promise<any[]> {
 
 export async function fetchActiveBroadcast(): Promise<any | null> {
   const urls = [
-    'http://192.168.1.13:8000/api/alerts/active-broadcast',
-    'http://192.168.1.13:8080/api/alerts/active-broadcast'
+    `${ML_API_BASE_URL}/api/alerts/active-broadcast`,
+    `${API_BASE_URL}/api/alerts/active-broadcast`
   ];
 
   const fetchPromises = urls.map(async (url) => {
@@ -158,8 +166,8 @@ export async function fetchActiveBroadcast(): Promise<any | null> {
 
 export async function dismissActiveBroadcast(): Promise<void> {
   const urls = [
-    'http://192.168.1.13:8000/api/alerts/dismiss-broadcast',
-    'http://192.168.1.13:8080/api/alerts/dismiss-broadcast'
+    `${ML_API_BASE_URL}/api/alerts/dismiss-broadcast`,
+    `${API_BASE_URL}/api/alerts/dismiss-broadcast`
   ];
 
   await Promise.allSettled(

@@ -171,13 +171,24 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
       timestamp: new Date().toISOString()
     });
 
+    const backendBase = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
+    const mlBase = (import.meta.env.VITE_ML_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '');
+
     try {
-      await Promise.allSettled([
-        fetch('http://localhost:8080/api/alerts/broadcast', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: broadcastPayload }),
-        fetch('http://localhost:8000/api/alerts/broadcast', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: broadcastPayload }),
-        fetch('http://192.168.1.13:8080/api/alerts/broadcast', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: broadcastPayload }),
-        fetch('http://192.168.1.13:8000/api/alerts/broadcast', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: broadcastPayload }),
-      ]);
+      const broadcastEndpoints = [
+        `${backendBase}/api/alerts/broadcast`,
+        `${mlBase}/api/alerts/broadcast`
+      ];
+
+      await Promise.allSettled(
+        broadcastEndpoints.map(url =>
+          fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: broadcastPayload
+          })
+        )
+      );
     } catch (apiErr) {
       console.warn('Backend broadcast dispatch note:', apiErr);
     }

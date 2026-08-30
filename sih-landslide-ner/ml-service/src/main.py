@@ -3,7 +3,7 @@ import joblib
 import pandas as pd
 import numpy as np
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response, status
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
@@ -12,18 +12,36 @@ from fastapi.middleware.cors import CORSMiddleware
 # Initialize FastAPI app
 app = FastAPI(title="Landslide Early Warning API - High-Precision Geotechnical Engine", version="3.0")
 
+# Externalize CORS Origins
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "*")
+if allowed_origins_env == "*":
+    origins = ["*"]
+else:
+    origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Setup path to the calibrated model artifact
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-MODEL_PATH = os.path.join(BASE_DIR, "ml-service", "models", "xgb_landslide_model.pkl")
-LEGACY_MODEL_PATH = os.path.join(BASE_DIR, "ml-service", "models", "rf_landslide_model.pkl")
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_MODEL_DIR = os.path.abspath(os.path.join(CURRENT_DIR, "..", "models"))
+FALLBACK_WORKSPACE_DIR = os.path.abspath(os.path.join(CURRENT_DIR, "..", "..", "ml-service", "models"))
+
+ENV_MODEL_PATH = os.getenv("MODEL_PATH")
+if ENV_MODEL_PATH and os.path.exists(ENV_MODEL_PATH):
+    MODEL_PATH = ENV_MODEL_PATH
+elif os.path.exists(os.path.join(DEFAULT_MODEL_DIR, "xgb_landslide_model.pkl")):
+    MODEL_PATH = os.path.join(DEFAULT_MODEL_DIR, "xgb_landslide_model.pkl")
+else:
+    MODEL_PATH = os.path.join(FALLBACK_WORKSPACE_DIR, "xgb_landslide_model.pkl")
+
+LEGACY_MODEL_PATH = os.path.join(DEFAULT_MODEL_DIR, "rf_landslide_model.pkl")
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8080")
 
 model = None
 features_list = None
@@ -47,6 +65,8 @@ def load_artifact():
                 'pore_pressure_index'
             ]
         print(f"✅ Loaded calibrated ML model with {len(features_list) if features_list else 0} features from {target_path}")
+    else:
+        print(f"⚠️ Model artifact not found at {target_path}")
 
 load_artifact()
 
@@ -133,14 +153,30 @@ def transform_feature_dict(data: dict) -> dict:
     }
 
 @app.get("/")
-def health_check():
+def root_info():
     return {
         "status": "Active",
-        "engine": "High-Precision Geotechnical Gradient Boosting Engine",
+        "service": "NER Landslide ML Geotechnical Engine",
         "version": "3.0",
         "model_loaded": model is not None,
         "features_expected": features_list,
         "validation_metrics": metrics_info
+    }
+
+@app.get("/health")
+def health_endpoint(response: Response):
+    if model is None:
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+        return {
+            "status": "UNHEALTHY",
+            "model_loaded": False,
+            "error": "ML model artifact not loaded"
+        }
+    return {
+        "status": "HEALTHY",
+        "model_loaded": True,
+        "features_count": len(features_list) if features_list else 0,
+        "version": "3.0"
     }
 
 @app.post("/reload-model")
