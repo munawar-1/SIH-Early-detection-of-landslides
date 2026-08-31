@@ -6,11 +6,13 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  Alert
+  Alert,
+  Platform
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { checkAlert } from '../services/apiService';
 import { performOfflineGeofenceCheck } from '../services/offlineRiskEngine';
+import { APP_COLORS } from '../constants/theme';
 
 export interface SavedCoordinate {
   id: string;
@@ -69,7 +71,7 @@ export const PitchSimulationScreen: React.FC<PitchSimulationScreenProps> = ({ on
     setLoading(true);
 
     try {
-      // 1. Evaluate risk level of this exact coordinate
+      // 1. Evaluate risk level of this coordinate
       let riskResult;
       try {
         riskResult = await checkAlert(lat, lng);
@@ -95,8 +97,8 @@ export const PitchSimulationScreen: React.FC<PitchSimulationScreenProps> = ({ on
         '💾 Coordinates Saved!',
         `Location: ${name}\nCoordinates: ${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E\nAI Risk Status: ${riskResult.risk_level} ${isRisk ? '🚨' : '✅'}\n\n${
           isRisk
-            ? 'This is a HIGH-RISK area. When higher authorities broadcast an alert on the website, this phone WILL receive the emergency warning popup.'
-            : 'This is a SAFE area. When higher authorities broadcast an alert for risk zones, this phone will NOT receive unnecessary alert popups.'
+            ? 'This coordinate is in a HIGH-RISK HAZARD ZONE. The app will receive simulated emergency alert SMS dispatches and banner advisories.'
+            : 'This coordinate is in a SAFE ZONE. Alert banners will remain quiet under normal conditions.'
         }`,
         [
           {
@@ -117,9 +119,27 @@ export const PitchSimulationScreen: React.FC<PitchSimulationScreenProps> = ({ on
     setLatInput('');
     setLngInput('');
     setLocNameInput('');
-    Alert.alert('Cleared', 'Simulated coordinates removed. App will now use your phone\'s real GPS location.', [
+    Alert.alert('Cleared', 'Simulated coordinates removed. App will now use physical phone GPS.', [
       { text: 'OK', onPress: onBackToHome }
     ]);
+  };
+
+  const setPresetJatinga = () => {
+    setLocNameInput('Jatinga Ridge (NH-27 Pass)');
+    setLatInput('25.180');
+    setLngInput('92.760');
+  };
+
+  const setPresetHaflong = () => {
+    setLocNameInput('Haflong Ghat Road Corridor');
+    setLatInput('25.080');
+    setLngInput('92.840');
+  };
+
+  const setPresetSafe = () => {
+    setLocNameInput('Silchar Plain Sector (Safe)');
+    setLatInput('24.833');
+    setLngInput('92.778');
   };
 
   return (
@@ -127,32 +147,48 @@ export const PitchSimulationScreen: React.FC<PitchSimulationScreenProps> = ({ on
       {/* Header Bar */}
       <View style={styles.headerBar}>
         <TouchableOpacity style={styles.backBtn} onPress={onBackToHome}>
-          <Text style={styles.backBtnText}>⬅ Back</Text>
+          <Text style={styles.backBtnText}>⬅ Back to Monitor</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>🎯 Set Simulation Coordinates</Text>
-        <View style={{ width: 50 }} />
+        <Text style={styles.headerTitle}>Pitch Simulation Studio</Text>
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Instruction Banner */}
         <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>📍 Enter Any Coordinates to Test</Text>
+          <Text style={styles.infoTitle}>📍 Real-Time Coordinate Sandbox</Text>
           <Text style={styles.infoSub}>
-            Enter any Latitude & Longitude below and save. When an authority broadcasts an emergency warning from the website:
-            {'\n'}• If your coordinate is in a <Text style={{ color: '#ef4444', fontWeight: '800' }}>HIGH-RISK AREA</Text>, the alert will pop up on this phone.
-            {'\n'}• If your coordinate is in a <Text style={{ color: '#10b981', fontWeight: '800' }}>SAFE AREA</Text>, NO alert will pop up.
+            Set simulated coordinates to demonstrate how the geofence engine triggers incoming SMS dispatches and banner alerts when entering danger zones.
           </Text>
+        </View>
+
+        {/* Quick Presets */}
+        <View style={styles.formCard}>
+          <Text style={styles.formTitle}>Quick Pilot Corridor Presets</Text>
+          <View style={styles.presetRow}>
+            <TouchableOpacity style={[styles.presetBtn, styles.presetBtnRed]} onPress={setPresetJatinga}>
+              <Text style={styles.presetBtnText}>🚨 Jatinga (Critical)</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.presetBtn, styles.presetBtnOrange]} onPress={setPresetHaflong}>
+              <Text style={styles.presetBtnText}>⚠️ Haflong (High)</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={[styles.presetBtn, styles.presetBtnGreen]} onPress={setPresetSafe}>
+              <Text style={styles.presetBtnText}>✅ Silchar (Safe)</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Coordinate Input Form */}
         <View style={styles.formCard}>
-          <Text style={styles.formTitle}>Enter Location Details</Text>
+          <Text style={styles.formTitle}>Enter Custom Location Coordinates</Text>
 
-          <Text style={styles.inputLabel}>Location Name / Description (Optional)</Text>
+          <Text style={styles.inputLabel}>Location Name / Description</Text>
           <TextInput
             style={styles.textInput}
             placeholder="e.g. Selected Point from GIS Map"
-            placeholderTextColor="#64748b"
+            placeholderTextColor="#8FA48A"
             value={locNameInput}
             onChangeText={setLocNameInput}
           />
@@ -163,7 +199,7 @@ export const PitchSimulationScreen: React.FC<PitchSimulationScreenProps> = ({ on
               <TextInput
                 style={styles.textInput}
                 placeholder="e.g. 25.180"
-                placeholderTextColor="#64748b"
+                placeholderTextColor="#8FA48A"
                 keyboardType="numeric"
                 value={latInput}
                 onChangeText={setLatInput}
@@ -174,7 +210,7 @@ export const PitchSimulationScreen: React.FC<PitchSimulationScreenProps> = ({ on
               <TextInput
                 style={styles.textInput}
                 placeholder="e.g. 92.760"
-                placeholderTextColor="#64748b"
+                placeholderTextColor="#8FA48A"
                 keyboardType="numeric"
                 value={lngInput}
                 onChangeText={setLngInput}
@@ -188,7 +224,7 @@ export const PitchSimulationScreen: React.FC<PitchSimulationScreenProps> = ({ on
             disabled={loading}
           >
             <Text style={styles.primarySaveBtnText}>
-              {loading ? 'Evaluating Risk...' : '💾 Save Coordinates'}
+              {loading ? 'Evaluating Spatial Risk...' : '💾 Save Simulated Coordinates'}
             </Text>
           </TouchableOpacity>
 
@@ -196,7 +232,7 @@ export const PitchSimulationScreen: React.FC<PitchSimulationScreenProps> = ({ on
             style={styles.clearBtn}
             onPress={handleClearCoordinate}
           >
-            <Text style={styles.clearBtnText}>🗑️ Clear & Revert to Real Phone GPS</Text>
+            <Text style={styles.clearBtnText}>🗑️ Clear & Revert to Physical GPS</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -207,32 +243,34 @@ export const PitchSimulationScreen: React.FC<PitchSimulationScreenProps> = ({ on
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a'
+    backgroundColor: APP_COLORS.bgSurface
   },
   headerBar: {
-    paddingTop: 48,
+    paddingTop: Platform.OS === 'ios' ? 52 : 36,
     paddingHorizontal: 16,
     paddingBottom: 14,
-    backgroundColor: '#1e293b',
+    backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomWidth: 1,
-    borderBottomColor: '#334155'
+    borderBottomColor: APP_COLORS.borderDefault
   },
   backBtn: {
     paddingVertical: 6,
     paddingHorizontal: 12,
-    backgroundColor: '#334155',
-    borderRadius: 8
+    backgroundColor: APP_COLORS.bgCardSubtle,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: APP_COLORS.borderDefault
   },
   backBtnText: {
-    color: '#38bdf8',
-    fontSize: 14,
+    color: APP_COLORS.textPrimary,
+    fontSize: 13,
     fontWeight: '700'
   },
   headerTitle: {
-    color: '#f8fafc',
+    color: APP_COLORS.textPrimary,
     fontSize: 16,
     fontWeight: '800'
   },
@@ -240,53 +278,87 @@ const styles = StyleSheet.create({
     padding: 16
   },
   infoCard: {
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
+    backgroundColor: '#DCFCE7',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#86EFAC'
+  },
+  infoTitle: {
+    color: '#166534',
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 4
+  },
+  infoSub: {
+    color: '#14532D',
+    fontSize: 12,
+    lineHeight: 18
+  },
+  formCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#0284c7'
-  },
-  infoTitle: {
-    color: '#38bdf8',
-    fontSize: 15,
-    fontWeight: '800',
-    marginBottom: 6
-  },
-  infoSub: {
-    color: '#cbd5e1',
-    fontSize: 13,
-    lineHeight: 20
-  },
-  formCard: {
-    backgroundColor: '#1e293b',
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#334155'
+    borderColor: APP_COLORS.borderDefault,
+    shadowColor: '#1E2B18',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2
   },
   formTitle: {
-    color: '#f8fafc',
-    fontSize: 15,
-    fontWeight: '700',
-    marginBottom: 14
+    color: APP_COLORS.textPrimary,
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 12
+  },
+  presetRow: {
+    flexDirection: 'row',
+    gap: 8
+  },
+  presetBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1
+  },
+  presetBtnRed: {
+    backgroundColor: '#FEE2E2',
+    borderColor: '#FCA5A5'
+  },
+  presetBtnOrange: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#FCD34D'
+  },
+  presetBtnGreen: {
+    backgroundColor: '#DCFCE7',
+    borderColor: '#86EFAC'
+  },
+  presetBtnText: {
+    color: APP_COLORS.textPrimary,
+    fontSize: 11,
+    fontWeight: '800'
   },
   inputLabel: {
-    color: '#94a3b8',
-    fontSize: 12,
-    fontWeight: '600',
-    marginBottom: 6
+    color: APP_COLORS.textSecondary,
+    fontSize: 11,
+    fontWeight: '700',
+    marginBottom: 6,
+    textTransform: 'uppercase'
   },
   textInput: {
-    backgroundColor: '#0f172a',
+    backgroundColor: APP_COLORS.bgCardSubtle,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    color: '#ffffff',
+    color: APP_COLORS.textPrimary,
     fontSize: 14,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: APP_COLORS.borderDefault,
     marginBottom: 12
   },
   coordRow: {
@@ -294,31 +366,31 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between'
   },
   primarySaveBtn: {
-    backgroundColor: '#0284c7',
+    backgroundColor: APP_COLORS.buttonPrimaryBg,
     height: 48,
-    borderRadius: 10,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 6,
     marginBottom: 10
   },
   primarySaveBtnText: {
-    color: '#ffffff',
-    fontSize: 15,
+    color: '#FFFFFF',
+    fontSize: 14,
     fontWeight: '800'
   },
   clearBtn: {
-    backgroundColor: '#334155',
+    backgroundColor: APP_COLORS.bgCardSubtle,
     height: 42,
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#475569'
+    borderColor: APP_COLORS.borderDefault
   },
   clearBtnText: {
-    color: '#94a3b8',
-    fontSize: 13,
-    fontWeight: '600'
+    color: APP_COLORS.textSecondary,
+    fontSize: 12,
+    fontWeight: '700'
   }
 });

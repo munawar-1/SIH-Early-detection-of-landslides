@@ -80,5 +80,3 @@ public class GridPoint {
     @Column(name = "last_updated")
     private LocalDateTime lastUpdated;
 }
-
-

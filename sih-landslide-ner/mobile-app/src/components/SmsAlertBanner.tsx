@@ -1,0 +1,288 @@
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+  Animated,
+  PanResponder,
+  Platform,
+  AccessibilityInfo
+} from 'react-native';
+import { EmergencySmsAlert, smsService } from '../services/smsService';
+import { getThreatTheme, APP_COLORS } from '../constants/theme';
+import { ThreatBadge } from './ThreatBadge';
+
+interface SmsAlertBannerProps {
+  onViewSms: (alert: EmergencySmsAlert) => void;
+  onOpenFirstAid?: () => void;
+}
+
+export const SmsAlertBanner: React.FC<SmsAlertBannerProps> = ({ onViewSms, onOpenFirstAid }) => {
+  const [currentAlert, setCurrentAlert] = useState<EmergencySmsAlert | null>(null);
+  const [visible, setVisible] = useState<boolean>(false);
+  const [reduceMotion, setReduceMotion] = useState<boolean>(false);
+
+  const translateY = useRef(new Animated.Value(-180)).current;
+  const dismissTimer = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    AccessibilityInfo.isReduceMotionEnabled?.().then((enabled) => {
+      setReduceMotion(Boolean(enabled));
+    }).catch(() => {});
+
+    const unsubscribe = smsService.subscribeBanner((alert) => {
+      showAlert(alert);
+    });
+
+    return () => {
+      unsubscribe();
+      if (dismissTimer.current) clearTimeout(dismissTimer.current);
+    };
+  }, [reduceMotion]);
+
+  const showAlert = (alert: EmergencySmsAlert) => {
+    if (dismissTimer.current) clearTimeout(dismissTimer.current);
+
+    setCurrentAlert(alert);
+    setVisible(true);
+
+    if (reduceMotion) {
+      translateY.setValue(0);
+    } else {
+      translateY.setValue(-180);
+      Animated.spring(translateY, {
+        toValue: 0,
+        useNativeDriver: true,
+        bounciness: 4,
+        speed: 14
+      }).start();
+    }
+
+    // Auto-dismiss after 8 seconds
+    dismissTimer.current = setTimeout(() => {
+      hideAlert();
+    }, 8000);
+  };
+
+  const hideAlert = () => {
+    if (dismissTimer.current) clearTimeout(dismissTimer.current);
+
+    if (reduceMotion) {
+      setVisible(false);
+      setCurrentAlert(null);
+      translateY.setValue(-180);
+    } else {
+      Animated.timing(translateY, {
+        toValue: -180,
+        duration: 250,
+        useNativeDriver: true
+      }).start(() => {
+        setVisible(false);
+        setCurrentAlert(null);
+      });
+    }
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) => gestureState.dy < -10,
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy < -20) {
+          hideAlert();
+        }
+      }
+    })
+  ).current;
+
+  if (!visible || !currentAlert) return null;
+
+  const theme = getThreatTheme(currentAlert.threatLevel);
+
+  return (
+    <Animated.View
+      style={[
+        styles.bannerContainer,
+        {
+          transform: [{ translateY }],
+          borderColor: theme.badgeBorder,
+          backgroundColor: theme.cardBg
+        }
+      ]}
+      {...panResponder.panHandlers}
+      accessibilityRole="alert"
+      accessibilityLabel={`Emergency SMS Alert from ${currentAlert.senderTag}: ${currentAlert.bodyEnglish}`}
+    >
+      <View style={styles.contentRow}>
+        {/* Left Accent Strip */}
+        <View style={[styles.accentBar, { backgroundColor: theme.accent }]} />
+
+        <View style={styles.mainContent}>
+          {/* Header Row: Sender + Badge + Time */}
+          <View style={styles.headerRow}>
+            <View style={styles.titleGroup}>
+              <Text style={styles.senderText} numberOfLines={1}>
+                {currentAlert.senderTag}
+              </Text>
+              <Text style={styles.smsTag}>• ALERT SMS</Text>
+            </View>
+            <ThreatBadge level={currentAlert.threatLevel} size="small" />
+          </View>
+
+          {/* Alert Message Snippet */}
+          <Text style={styles.messageText} numberOfLines={2}>
+            {currentAlert.bodyEnglish}
+          </Text>
+
+          {/* Footer Action Row */}
+          <View style={styles.footerRow}>
+            <Text style={styles.timeText}>Just now</Text>
+
+            <View style={styles.actionButtons}>
+              {onOpenFirstAid && (
+                <TouchableOpacity
+                  style={styles.firstAidBtn}
+                  onPress={() => {
+                    hideAlert();
+                    onOpenFirstAid();
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Open First-Aid & Helplines"
+                >
+                  <Text style={styles.firstAidBtnText}>🩹 First-Aid</Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                style={styles.dismissBtn}
+                onPress={hideAlert}
+                accessibilityRole="button"
+                accessibilityLabel="Dismiss SMS Banner"
+              >
+                <Text style={styles.dismissBtnText}>Dismiss</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.viewSmsBtn, { backgroundColor: theme.accent }]}
+                onPress={() => {
+                  hideAlert();
+                  onViewSms(currentAlert);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="View SMS in Alerts Inbox"
+              >
+                <Text style={styles.viewSmsBtnText}>View SMS</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </View>
+    </Animated.View>
+  );
+};
+
+const styles = StyleSheet.create({
+  bannerContainer: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 50 : 36,
+    left: 14,
+    right: 14,
+    zIndex: 9999,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    shadowColor: '#1E2B18',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 10,
+    overflow: 'hidden'
+  },
+  contentRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch'
+  },
+  accentBar: {
+    width: 6
+  },
+  mainContent: {
+    flex: 1,
+    padding: 12
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4
+  },
+  titleGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 8
+  },
+  senderText: {
+    color: APP_COLORS.textPrimary,
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  smsTag: {
+    color: APP_COLORS.textMuted,
+    fontSize: 10,
+    fontWeight: '700',
+    marginLeft: 4
+  },
+  messageText: {
+    color: APP_COLORS.textSecondary,
+    fontSize: 12,
+    lineHeight: 17,
+    marginVertical: 4
+  },
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 6
+  },
+  timeText: {
+    color: APP_COLORS.textMuted,
+    fontSize: 11,
+    fontWeight: '600'
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6
+  },
+  firstAidBtn: {
+    backgroundColor: '#DCFCE7',
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#86EFAC'
+  },
+  firstAidBtnText: {
+    color: '#166534',
+    fontSize: 11,
+    fontWeight: '800'
+  },
+  dismissBtn: {
+    paddingVertical: 5,
+    paddingHorizontal: 8
+  },
+  dismissBtnText: {
+    color: APP_COLORS.textMuted,
+    fontSize: 11,
+    fontWeight: '600'
+  },
+  viewSmsBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8
+  },
+  viewSmsBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800'
+  }
+});

@@ -7,45 +7,55 @@ import {
   ScrollView,
   ActivityIndicator,
   RefreshControl,
-  Alert
+  Alert,
+  Platform
 } from 'react-native';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { checkAlert, updateLocation, fetchActiveBroadcast, dismissActiveBroadcast, AlertCheckResponse } from '../services/apiService';
-import { performOfflineGeofenceCheck, syncRiskZonesToCache, flushOfflineQueueToBackend } from '../services/offlineRiskEngine';
-import { EmergencyAlertModal } from '../components/EmergencyAlertModal';
+import { performOfflineGeofenceCheck, syncRiskZonesToCache } from '../services/offlineRiskEngine';
+import { smsService, EmergencySmsAlert } from '../services/smsService';
 import { ACTIVE_COORD_KEY, SavedCoordinate } from './PitchSimulationScreen';
+import { getThreatTheme, APP_COLORS } from '../constants/theme';
+import { ThreatBadge } from '../components/ThreatBadge';
+import { InjuryFirstAidModal, VALID_HELPLINES } from '../components/InjuryFirstAidModal';
 
 interface HomeScreenProps {
-  onOpenAlertDetail: (alert: AlertCheckResponse) => void;
+  onOpenSmsInbox: () => void;
+  onOpenSos: () => void;
   onOpenSettings: () => void;
   onOpenPitchSimulation: () => void;
 }
 
-function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * (Math.PI / 180);
-  const dLon = (lon2 - lon1) * (Math.PI / 180);
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
-export const HomeScreen: React.FC<HomeScreenProps> = ({ onOpenAlertDetail, onOpenSettings, onOpenPitchSimulation }) => {
+export const HomeScreen: React.FC<HomeScreenProps> = ({
+  onOpenSmsInbox,
+  onOpenSos,
+  onOpenSettings,
+  onOpenPitchSimulation
+}) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [alertStatus, setAlertStatus] = useState<AlertCheckResponse | null>(null);
-  const [showAlertModal, setShowAlertModal] = useState<boolean>(false);
   const [activePitchCoord, setActivePitchCoord] = useState<SavedCoordinate | null>(null);
   const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number; districtName: string } | null>(null);
   const [isOffline, setIsOffline] = useState<boolean>(false);
   const [cachedCount, setCachedCount] = useState<number>(0);
   const [lastAckBroadcastId, setLastAckBroadcastId] = useState<number>(0);
+  const [latestSms, setLatestSms] = useState<EmergencySmsAlert | null>(null);
+  const [unreadSmsCount, setUnreadSmsCount] = useState<number>(0);
+  const [firstAidModalVisible, setFirstAidModalVisible] = useState<boolean>(false);
 
   useEffect(() => {
     initApp();
+
+    const unsubscribe = smsService.subscribe((alerts, unread) => {
+      if (alerts.length > 0) {
+        setLatestSms(alerts[0]);
+      }
+      setUnreadSmsCount(unread);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   // Poll for higher authority emergency broadcast triggers from web dashboard
@@ -76,7 +86,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onOpenAlertDetail, onOpe
           const isInsideRiskZone = dynamicCheck.risk_level === 'CRITICAL' || dynamicCheck.risk_level === 'HIGH' || dynamicCheck.in_risk_zone;
 
           if (isInsideRiskZone) {
-            console.log(`🚨 [DANGER POINT MATCHED] Coord (${currLat}, ${currLng}) evaluated as ${dynamicCheck.risk_level}. Triggering popup alert.`);
+            console.log(`🚨 [DANGER POINT MATCHED] Coord (${currLat}, ${currLng}) evaluated as ${dynamicCheck.risk_level}. Adding SMS alert.`);
             setLastAckBroadcastId(broadcast.broadcast_id);
             setAlertStatus({
               in_risk_zone: true,
@@ -88,9 +98,18 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onOpenAlertDetail, onOpe
               alert_dispatched: true,
               checked_at: new Date().toISOString()
             });
-            setShowAlertModal(true);
+
+            // Dispatch to SMS Inbox and trigger non-blocking banner
+            await smsService.addIncomingAlert({
+              threatLevel: dynamicCheck.risk_level,
+              senderTag: 'DDMA DIMA HASAO',
+              locationName: currDistrict,
+              bodyEnglish: broadcast.body || `EMERGENCY ALERT: Severe landslide hazard detected near ${currDistrict}. Evacuate vulnerable slopes immediately.`
+            });
+
+            dismissActiveBroadcast();
           } else {
-            console.log(`🛡️ [SAFE POINT MATCHED] Coord (${currLat}, ${currLng}) evaluated as SAFE. Broadcast popup strictly suppressed.`);
+            console.log(`🛡️ [SAFE POINT MATCHED] Coord (${currLat}, ${currLng}) evaluated as SAFE.`);
           }
         }
       } catch (err) {}
@@ -102,6 +121,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onOpenAlertDetail, onOpe
   const initApp = async () => {
     const count = await syncRiskZonesToCache();
     setCachedCount(count);
+    const stored = await smsService.getStoredAlerts();
+    if (stored.length > 0) setLatestSms(stored[0]);
+    const unread = await smsService.getUnreadAlertCount();
+    setUnreadSmsCount(unread);
     await runLocationCheck();
   };
 
@@ -128,9 +151,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onOpenAlertDetail, onOpe
         return;
       }
 
-      // 2. Otherwise use user's REAL physical GPS location (e.g. Hyderabad)
+      // 2. Otherwise use physical device GPS
       setActivePitchCoord(null);
-      let lat = 17.385; // Default Hyderabad fallback if permission denied
+      let lat = 17.385;
       let lng = 78.486;
       let districtName = 'Hyderabad, Telangana';
 
@@ -185,36 +208,36 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onOpenAlertDetail, onOpe
     Alert.alert('GPS Reset', 'Monitoring switched back to your real physical GPS location.');
   };
 
-  const getRiskTheme = (level?: string) => {
-    switch (level?.toUpperCase()) {
-      case 'CRITICAL':
-        return { bg: '#991b1b', border: '#ef4444', text: '#fef2f2', label: 'CRITICAL DANGER AREA', icon: '🚨' };
-      case 'HIGH':
-        return { bg: '#c2410c', border: '#f97316', text: '#fff7ed', label: 'HIGH RISK AREA', icon: '⚠️' };
-      case 'MODERATE':
-        return { bg: '#854d0e', border: '#eab308', text: '#fefce8', label: 'MODERATE RISK AREA', icon: '⚡' };
-      default:
-        return { bg: '#065f46', border: '#10b981', text: '#ecfdf5', label: 'SAFE AREA', icon: '✅' };
-    }
-  };
-
-  const theme = getRiskTheme(alertStatus?.risk_level);
+  const theme = getThreatTheme(alertStatus?.risk_level);
 
   return (
     <View style={styles.container}>
-      {/* App Navigation Bar */}
+      {/* Top Website-Matched Mint Navbar */}
       <View style={styles.navBar}>
         <View>
-          <Text style={styles.navTitle}>NER Landslide Warning</Text>
-          <Text style={styles.navSub}>Citizen Safety Monitor • SIH 2026</Text>
+          <View style={styles.brandRow}>
+            <View style={styles.brandDot} />
+            <Text style={styles.navTitle}>NER Landslide Warning</Text>
+          </View>
+          <Text style={styles.navSub}>Dima Hasao Early Warning System • SIH 2026</Text>
         </View>
 
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <TouchableOpacity style={styles.pitchModeHeaderBtn} onPress={onOpenPitchSimulation}>
+          <TouchableOpacity
+            style={styles.pitchModeHeaderBtn}
+            onPress={onOpenPitchSimulation}
+            accessibilityRole="button"
+            accessibilityLabel="Open Pitch Simulation Studio"
+          >
             <Text style={styles.pitchModeHeaderBtnText}>🎯 Pitch Studio</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingsBtn} onPress={onOpenSettings}>
+          <TouchableOpacity
+            style={styles.settingsBtn}
+            onPress={onOpenSettings}
+            accessibilityRole="button"
+            accessibilityLabel="Sign out or App Settings"
+          >
             <Text style={styles.settingsIcon}>⚙️</Text>
           </TouchableOpacity>
         </View>
@@ -223,9 +246,40 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onOpenAlertDetail, onOpe
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); runLocationCheck(); }} tintColor="#38bdf8" />
+          <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); runLocationCheck(); }} tintColor="#1E2B18" />
         }
       >
+        {/* Latest Incoming Alert SMS Ticker Strip */}
+        {latestSms && (
+          <TouchableOpacity
+            style={styles.smsTickerBar}
+            onPress={onOpenSmsInbox}
+            accessibilityRole="button"
+            accessibilityLabel={`Latest SMS Alert from ${latestSms.senderTag}. Tap to open SMS Alerts Inbox.`}
+          >
+            <View style={styles.tickerHeaderRow}>
+              <View style={styles.tickerBadgeCol}>
+                <Text style={styles.tickerTag}>📩 OFFICIAL ALERT SMS</Text>
+                <Text style={styles.tickerSender}>{latestSms.senderTag}</Text>
+              </View>
+              <ThreatBadge level={latestSms.threatLevel} size="small" />
+            </View>
+
+            <Text style={styles.tickerBody} numberOfLines={2}>
+              {latestSms.bodyEnglish}
+            </Text>
+
+            <View style={styles.tickerFooterRow}>
+              <Text style={styles.tickerLinkText}>Open Emergency SMS Inbox ➔</Text>
+              {unreadSmsCount > 0 && (
+                <View style={styles.tickerUnreadChip}>
+                  <Text style={styles.tickerUnreadText}>{unreadSmsCount} new</Text>
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
+        )}
+
         {/* Active Pitch Mode Banner if simulated */}
         {activePitchCoord && (
           <View style={styles.pitchActiveBanner}>
@@ -243,115 +297,156 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onOpenAlertDetail, onOpe
         {isOffline && (
           <View style={styles.offlineBadge}>
             <Text style={styles.offlineBadgeText}>
-              📡 Network Offline • Operating on Turf.js Client Geofence Cache ({cachedCount} zones)
+              📡 Network Offline • Operating on Client Geofence Cache ({cachedCount} zones)
             </Text>
           </View>
         )}
 
-        {/* Main Risk Status Card */}
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={[styles.statusCard, { backgroundColor: theme.bg, borderColor: theme.border }]}
-          onPress={() => {
-            if (alertStatus?.risk_level === 'CRITICAL' || alertStatus?.risk_level === 'HIGH' || alertStatus?.in_risk_zone) {
-              setShowAlertModal(true);
-            } else {
-              Alert.alert(
-                '🛡️ Safe Zone Verified',
-                `Your current location (${currentCoords?.districtName || 'Safe Region'}) is safe.\n\nNo landslide risk detected at (${currentCoords?.lat.toFixed(3)}°N, ${currentCoords?.lng.toFixed(3)}°E).`
-              );
-            }
-          }}
-        >
+        {/* Main Risk Status Card (Website Styled Container) */}
+        <View style={[styles.statusCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
           <View style={styles.cardHeaderRow}>
-            <Text style={styles.riskIcon}>{theme.icon}</Text>
-            <View style={styles.riskBadge}>
-              <Text style={styles.riskBadgeText}>{alertStatus?.risk_level || 'SAFE'}</Text>
+            <View style={{ flex: 1, marginRight: 8 }}>
+              <Text style={[styles.statusHeading, { color: theme.text }]}>
+                {alertStatus?.risk_level === 'CRITICAL' ? 'CRITICAL DANGER ZONE' :
+                 alertStatus?.risk_level === 'HIGH' ? 'HIGH RISK HAZARD ZONE' :
+                 alertStatus?.risk_level === 'MODERATE' ? 'MODERATE RISK ZONE' : 'SAFE ZONE VERIFIED'}
+              </Text>
+              <Text style={styles.statusSubLabel}>
+                {alertStatus?.risk_level === 'SAFE'
+                  ? 'No imminent landslide threat detected at your current coordinates'
+                  : 'AI risk model detected high soil saturation & severe slope instability'}
+              </Text>
             </View>
+            <ThreatBadge level={alertStatus?.risk_level || 'SAFE'} size="medium" />
           </View>
 
-          <Text style={styles.statusHeading}>
-            You are currently in a {alertStatus?.risk_level === 'SAFE' ? 'SAFE' : alertStatus?.risk_level + ' RISK'} area
-          </Text>
-
-          <Text style={[styles.advisorySummary, { color: theme.text }]}>
-            {alertStatus?.advisory || 'Monitoring slope stability across district boundaries...'}
+          <Text style={styles.advisorySummary}>
+            {alertStatus?.advisory || 'Continuous slope stability & rainfall monitoring active...'}
           </Text>
 
           <View style={styles.divider} />
 
           <View style={styles.metaRow}>
             <View>
-              <Text style={styles.metaLabel}>District & Location</Text>
+              <Text style={styles.metaLabel}>Monitored Sector</Text>
               <Text style={styles.metaValue}>
-                {currentCoords?.districtName || alertStatus?.district || 'Hyderabad, Telangana'} ({currentCoords?.lat.toFixed(3)}°, {currentCoords?.lng.toFixed(3)}°)
+                {currentCoords?.districtName || alertStatus?.district || 'Dima Hasao Sector'} ({currentCoords?.lat.toFixed(3)}°, {currentCoords?.lng.toFixed(3)}°)
               </Text>
             </View>
             <View style={{ alignItems: 'flex-end' }}>
-              <Text style={styles.metaLabel}>Last Checked</Text>
+              <Text style={styles.metaLabel}>Last Assessment</Text>
               <Text style={styles.metaValue}>
                 {alertStatus?.checked_at ? new Date(alertStatus.checked_at).toLocaleTimeString() : 'Just now'}
               </Text>
             </View>
           </View>
+        </View>
 
-          <View style={styles.tapPrompt}>
-            <Text style={styles.tapPromptText}>Tap card for recommended safety actions & helpline ➔</Text>
+        {/* Emergency First-Aid & Helplines Hero CTA */}
+        <TouchableOpacity
+          style={styles.firstAidHeroBanner}
+          onPress={() => setFirstAidModalVisible(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Open Landslide Injury Triage & Valid Helplines"
+        >
+          <View style={styles.firstAidHeroLeft}>
+            <Text style={styles.firstAidHeroIcon}>🩹</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.firstAidHeroTitle}>Landslide Injury & Triage Protocol</Text>
+              <Text style={styles.firstAidHeroSub}>
+                Sequential First-Aid steps for crush injuries + Direct dial 1070 / 1077 / 108
+              </Text>
+            </View>
+          </View>
+          <View style={styles.firstAidArrowBtn}>
+            <Text style={styles.firstAidArrowText}>View ➔</Text>
           </View>
         </TouchableOpacity>
 
-        {/* Action Controls */}
+        {/* Quick Access Dual Hub Cards */}
+        <View style={styles.quickAccessGrid}>
+          {/* SMS Alerts Inbox Card */}
+          <TouchableOpacity
+            style={styles.quickCard}
+            onPress={onOpenSmsInbox}
+            accessibilityRole="button"
+            accessibilityLabel="Open Emergency SMS Alerts Inbox"
+          >
+            <View style={styles.quickCardHeader}>
+              <Text style={styles.quickCardIcon}>📩</Text>
+              {unreadSmsCount > 0 && (
+                <View style={styles.badgePill}>
+                  <Text style={styles.badgePillText}>{unreadSmsCount} new</Text>
+                </View>
+              )}
+            </View>
+            <Text style={styles.quickCardTitle}>Emergency SMS Inbox</Text>
+            <Text style={styles.quickCardSub}>Official multilingual broadcasts & advisory</Text>
+          </TouchableOpacity>
+
+          {/* SOS SMS Composer Card */}
+          <TouchableOpacity
+            style={[styles.quickCard, styles.quickCardSos]}
+            onPress={onOpenSos}
+            accessibilityRole="button"
+            accessibilityLabel="Open Emergency SOS SMS Composer"
+          >
+            <View style={styles.quickCardHeader}>
+              <Text style={styles.quickCardIcon}>🆘</Text>
+              <View style={styles.badgePillRed}>
+                <Text style={styles.badgePillText}>Offline</Text>
+              </View>
+            </View>
+            <Text style={styles.quickCardTitle}>Offline SOS Composer</Text>
+            <Text style={styles.quickCardSub}>Pre-fill rescue SMS with exact GPS</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Check Location Button */}
         <View style={styles.actionContainer}>
           <TouchableOpacity
             style={styles.checkButton}
             onPress={() => runLocationCheck()}
             disabled={loading}
+            accessibilityRole="button"
+            accessibilityLabel="Re-check risk at current location"
           >
             {loading ? (
-              <ActivityIndicator color="#ffffff" />
+              <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.checkButtonText}>📍 Use My Real GPS Location</Text>
+              <Text style={styles.checkButtonText}>📍 Re-Assess Location Hazard</Text>
             )}
           </TouchableOpacity>
 
           <View style={styles.infoBox}>
-            <Text style={styles.infoTitle}>⛰️ Spatial Landslide Hazard Buffer</Text>
+            <Text style={styles.infoTitle}>⛰️ Spatial Landslide Hazard Buffers</Text>
             <Text style={styles.infoText}>
-              • CRITICAL hazard zone buffer: 2,000 meters{"\n"}
-              • HIGH hazard zone buffer: 500 meters{"\n"}
-              • Cooldown protection: Prevents repetitive alerts for 6 hours
+              • CRITICAL hazard buffer: 2,000 meters{"\n"}
+              • HIGH hazard buffer: 500 meters{"\n"}
+              • Real-time broadcast alerts delivered via SMS message center
             </Text>
           </View>
         </View>
 
-        {/* Local Emergency Helpline Card */}
+        {/* Valid Emergency Helplines Card */}
         <View style={styles.helplineCard}>
-          <Text style={styles.helplineTitle}>📞 Emergency Helplines</Text>
-          <Text style={styles.helplineRow}>• ASDMA State Emergency: <Text style={styles.bold}>1070 / 1077</Text></Text>
-          <Text style={styles.helplineRow}>• DDMO Dima Hasao Office: <Text style={styles.bold}>+91 94350 01122</Text></Text>
-          <Text style={styles.helplineRow}>• NFR Rail Emergency: <Text style={styles.bold}>139</Text></Text>
+          <View style={styles.helplineCardHeader}>
+            <Text style={styles.helplineTitle}>📞 Official Emergency Helplines</Text>
+            <TouchableOpacity onPress={() => setFirstAidModalVisible(true)}>
+              <Text style={styles.viewAllHelpText}>View All ➔</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.helplineRow}>• State Disaster (ASDMA): <Text style={styles.bold}>1070</Text></Text>
+          <Text style={styles.helplineRow}>• District Disaster (DDMA): <Text style={styles.bold}>1077</Text></Text>
+          <Text style={styles.helplineRow}>• Medical Trauma Ambulance: <Text style={styles.bold}>108</Text></Text>
+          <Text style={styles.helplineRow}>• All-in-One National Helpline: <Text style={styles.bold}>112</Text></Text>
         </View>
       </ScrollView>
 
-      {/* Multilingual Emergency Alert Modal */}
-      <EmergencyAlertModal
-        visible={showAlertModal}
-        onClose={() => {
-          setShowAlertModal(false);
-          setLastAckBroadcastId(Date.now());
-          dismissActiveBroadcast();
-        }}
-        district={activePitchCoord?.name || currentCoords?.districtName || alertStatus?.district || 'Dima Hasao'}
-        riskLevel={alertStatus?.risk_level || 'CRITICAL'}
-        locationName={
-          activePitchCoord?.name
-            ? activePitchCoord.name
-            : currentCoords?.lat === 25.18
-            ? 'Jatinga Ridge Corridor (NH-27)'
-            : currentCoords?.lat === 25.08
-            ? 'Haflong Ghat Slope Section'
-            : 'Dima Hasao Hill Sector'
-        }
+      {/* Injury First-Aid Protocol & Valid Helplines Modal */}
+      <InjuryFirstAidModal
+        visible={firstAidModalVisible}
+        onClose={() => setFirstAidModalVisible(false)}
       />
     </View>
   );
@@ -360,220 +455,402 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ onOpenAlertDetail, onOpe
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a'
+    backgroundColor: APP_COLORS.bgSurface
   },
   navBar: {
-    paddingTop: 48,
-    paddingHorizontal: 20,
-    paddingBottom: 16,
-    backgroundColor: '#1e293b',
+    paddingTop: Platform.OS === 'ios' ? 12 : 16,
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+    backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#334155'
+    borderBottomColor: APP_COLORS.borderDefault
   },
-  pitchModeHeaderBtn: {
-    backgroundColor: '#0284c7',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#38bdf8'
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6
   },
-  pitchModeHeaderBtnText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '800'
+  brandDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#10B981'
   },
   navTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: '#f8fafc'
+    color: APP_COLORS.textPrimary
   },
   navSub: {
-    fontSize: 12,
-    color: '#38bdf8',
+    fontSize: 11,
+    color: APP_COLORS.textMuted,
     marginTop: 2
   },
+  pitchModeHeaderBtn: {
+    backgroundColor: APP_COLORS.bgAccentMintSoft,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#86EFAC',
+    minHeight: 36,
+    justifyContent: 'center'
+  },
+  pitchModeHeaderBtnText: {
+    color: '#166534',
+    fontSize: 12,
+    fontWeight: '800'
+  },
   settingsBtn: {
-    padding: 8
+    padding: 8,
+    minHeight: 40,
+    justifyContent: 'center'
   },
   settingsIcon: {
-    fontSize: 22
+    fontSize: 20
   },
   scrollContent: {
-    padding: 20
+    padding: 16
+  },
+  smsTickerBar: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: APP_COLORS.borderDefault,
+    borderLeftWidth: 4,
+    borderLeftColor: '#059669',
+    shadowColor: '#1E2B18',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2
+  },
+  tickerHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4
+  },
+  tickerBadgeCol: {
+    flex: 1
+  },
+  tickerTag: {
+    color: '#059669',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5
+  },
+  tickerSender: {
+    color: APP_COLORS.textPrimary,
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  tickerBody: {
+    color: APP_COLORS.textSecondary,
+    fontSize: 12,
+    lineHeight: 17,
+    marginVertical: 4
+  },
+  tickerFooterRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 4
+  },
+  tickerLinkText: {
+    color: '#166534',
+    fontSize: 11,
+    fontWeight: '700'
+  },
+  tickerUnreadChip: {
+    backgroundColor: '#DC2626',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10
+  },
+  tickerUnreadText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800'
   },
   offlineBadge: {
-    backgroundColor: '#7c2d12',
+    backgroundColor: '#FEF3C7',
     padding: 10,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FCD34D',
     marginBottom: 16
   },
   offlineBadgeText: {
-    color: '#ffedd5',
+    color: '#92400E',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
     textAlign: 'center'
   },
   statusCard: {
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 2,
-    marginBottom: 20,
-    elevation: 6
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1.5,
+    marginBottom: 16,
+    shadowColor: '#1E2B18',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2
   },
   cardHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12
-  },
-  riskIcon: {
-    fontSize: 32
-  },
-  riskBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 12
-  },
-  riskBadgeText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '800'
-  },
-  statusHeading: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#ffffff',
+    alignItems: 'flex-start',
     marginBottom: 10
   },
+  statusHeading: {
+    fontSize: 17,
+    fontWeight: '800',
+    marginBottom: 2
+  },
+  statusSubLabel: {
+    color: APP_COLORS.textSecondary,
+    fontSize: 11,
+    lineHeight: 15
+  },
   advisorySummary: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 16,
+    color: APP_COLORS.textPrimary,
+    fontSize: 13,
+    lineHeight: 19,
+    marginBottom: 12,
     fontWeight: '500'
   },
   divider: {
     height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    marginBottom: 14
+    backgroundColor: 'rgba(30, 43, 24, 0.08)',
+    marginBottom: 12
   },
   metaRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12
+    justifyContent: 'space-between'
   },
   metaLabel: {
-    fontSize: 11,
-    color: 'rgba(255, 255, 255, 0.7)',
-    textTransform: 'uppercase'
-  },
-  metaValue: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#ffffff',
-    marginTop: 2
-  },
-  tapPrompt: {
-    alignItems: 'center',
-    paddingTop: 8
-  },
-  tapPromptText: {
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontSize: 12,
+    fontSize: 10,
+    color: APP_COLORS.textMuted,
+    textTransform: 'uppercase',
     fontWeight: '700'
   },
+  metaValue: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: APP_COLORS.textPrimary,
+    marginTop: 2
+  },
+  firstAidHeroBanner: {
+    backgroundColor: '#DCFCE7',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#86EFAC',
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between'
+  },
+  firstAidHeroLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 10
+  },
+  firstAidHeroIcon: {
+    fontSize: 26,
+    marginRight: 12
+  },
+  firstAidHeroTitle: {
+    color: '#166534',
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  firstAidHeroSub: {
+    color: '#14532D',
+    fontSize: 11,
+    lineHeight: 15,
+    marginTop: 2
+  },
+  firstAidArrowBtn: {
+    backgroundColor: '#166534',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8
+  },
+  firstAidArrowText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800'
+  },
+  quickAccessGrid: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16
+  },
+  quickCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: APP_COLORS.borderDefault,
+    shadowColor: '#1E2B18',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2
+  },
+  quickCardSos: {
+    borderColor: '#FCA5A5'
+  },
+  quickCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8
+  },
+  quickCardIcon: {
+    fontSize: 22
+  },
+  badgePill: {
+    backgroundColor: '#166534',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6
+  },
+  badgePillRed: {
+    backgroundColor: '#DC2626',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6
+  },
+  badgePillText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800'
+  },
+  quickCardTitle: {
+    color: APP_COLORS.textPrimary,
+    fontSize: 13,
+    fontWeight: '800',
+    marginBottom: 2
+  },
+  quickCardSub: {
+    color: APP_COLORS.textSecondary,
+    fontSize: 11,
+    lineHeight: 15
+  },
   actionContainer: {
-    marginBottom: 20
+    marginBottom: 16
   },
   checkButton: {
-    backgroundColor: '#0284c7',
-    height: 50,
+    backgroundColor: APP_COLORS.buttonPrimaryBg,
+    height: 48,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16
+    marginBottom: 12,
+    shadowColor: '#1E2B18',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 2
   },
   checkButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '700'
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800'
   },
   infoBox: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    padding: 16,
+    padding: 12,
     borderWidth: 1,
-    borderColor: '#334155'
+    borderColor: APP_COLORS.borderDefault
   },
   infoTitle: {
-    color: '#f8fafc',
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 8
+    color: APP_COLORS.textPrimary,
+    fontSize: 12,
+    fontWeight: '800',
+    marginBottom: 4
   },
   infoText: {
-    color: '#94a3b8',
-    fontSize: 13,
-    lineHeight: 18
+    color: APP_COLORS.textSecondary,
+    fontSize: 11,
+    lineHeight: 16
   },
   helplineCard: {
-    backgroundColor: '#1e293b',
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 14,
     borderWidth: 1,
-    borderColor: '#334155'
+    borderColor: APP_COLORS.borderDefault,
+    marginBottom: 20
+  },
+  helplineCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8
   },
   helplineTitle: {
-    color: '#38bdf8',
-    fontSize: 15,
-    fontWeight: '700',
-    marginBottom: 10
+    color: APP_COLORS.textPrimary,
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  viewAllHelpText: {
+    color: '#059669',
+    fontSize: 11,
+    fontWeight: '800'
   },
   helplineRow: {
-    color: '#cbd5e1',
-    fontSize: 13,
-    marginBottom: 6
+    color: APP_COLORS.textSecondary,
+    fontSize: 12,
+    marginBottom: 4
   },
   bold: {
     fontWeight: '800',
-    color: '#ffffff'
+    color: APP_COLORS.textPrimary
   },
   pitchActiveBanner: {
-    backgroundColor: '#1e293b',
+    backgroundColor: APP_COLORS.bgAccentMintSoft,
     borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
-    borderWidth: 1.5,
-    borderColor: '#0284c7',
+    padding: 12,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#86EFAC',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between'
   },
   pitchActiveTitle: {
-    color: '#38bdf8',
-    fontSize: 14,
-    fontWeight: '800',
-    marginBottom: 2
+    color: '#166534',
+    fontSize: 13,
+    fontWeight: '800'
   },
   pitchActiveSub: {
-    color: '#94a3b8',
-    fontSize: 12
+    color: '#14532D',
+    fontSize: 11
   },
   resetGpsBtn: {
-    backgroundColor: '#334155',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    borderRadius: 6,
     borderWidth: 1,
-    borderColor: '#64748b'
+    borderColor: '#86EFAC'
   },
   resetGpsBtnText: {
-    color: '#38bdf8',
-    fontSize: 12,
+    color: '#166534',
+    fontSize: 11,
     fontWeight: '700'
   }
 });

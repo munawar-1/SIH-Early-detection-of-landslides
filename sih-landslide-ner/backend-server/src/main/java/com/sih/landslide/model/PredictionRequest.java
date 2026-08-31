@@ -48,4 +48,3 @@ public class PredictionRequest {
         this.rainDayMinus1Mm = r1;
     }
 }
-

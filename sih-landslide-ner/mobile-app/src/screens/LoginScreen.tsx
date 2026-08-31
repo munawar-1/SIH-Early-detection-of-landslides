@@ -11,8 +11,8 @@ import {
   Platform,
   ScrollView
 } from 'react-native';
-import { requestOtp, verifyOtp } from '../services/apiService';
 import { saveAuthToken, saveUserData } from '../services/storageService';
+import { APP_COLORS } from '../constants/theme';
 
 interface LoginScreenProps {
   onLoginSuccess: () => void;
@@ -23,57 +23,42 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const [otp, setOtp] = useState<string>('123456');
   const [step, setStep] = useState<'MOBILE' | 'OTP'>('MOBILE');
   const [loading, setLoading] = useState<boolean>(false);
-  const [infoMsg, setInfoMsg] = useState<string | null>(null);
+  const [infoMsg, setInfoMsg] = useState<string | null>('Demo Test Mode: Any 10-digit phone accepted. Code: 123456');
 
   const handleRequestOtp = async () => {
-    if (!mobileNumber || mobileNumber.length < 10) {
+    const cleaned = mobileNumber.replace(/[^0-9]/g, '');
+    if (!cleaned || cleaned.length < 10) {
       Alert.alert('Invalid Number', 'Please enter a valid 10-digit mobile number.');
       return;
     }
 
     setLoading(true);
-    setInfoMsg(null);
-    try {
-      const res = await requestOtp(mobileNumber);
-      setStep('OTP');
-      setInfoMsg(res.message || 'OTP sent successfully. Enter 123456 for testing.');
-    } catch (err: any) {
-      // Fallback for offline or local dev
-      setStep('OTP');
-      setInfoMsg('Test mode active: Enter OTP 123456 to log in.');
-    } finally {
+    setTimeout(() => {
       setLoading(false);
-    }
+      setStep('OTP');
+      setInfoMsg(`Verification code sent to +91 ${cleaned}. Enter 123456 to continue.`);
+    }, 300);
   };
 
   const handleVerifyOtp = async () => {
-    if (!otp || otp.length < 4) {
-      Alert.alert('Invalid OTP', 'Please enter the verification code.');
+    if (!otp || otp.trim().length < 4) {
+      Alert.alert('Invalid OTP', 'Please enter the 6-digit test code (123456).');
       return;
     }
 
     setLoading(true);
-    try {
-      const res = await verifyOtp(mobileNumber, otp);
-      if (res && res.token) {
-        await saveAuthToken(res.token);
-        await saveUserData(res);
-        onLoginSuccess();
-      } else {
-        throw new Error('No token returned from server');
-      }
-    } catch (err: any) {
-      if (otp === '123456' || otp === '1234') {
-        const dummyToken = 'mock_jwt_token_' + Date.now();
-        await saveAuthToken(dummyToken);
-        await saveUserData({ mobile_number: mobileNumber, name: 'Citizen Demo User', role: 'CITIZEN' });
-        onLoginSuccess();
-        return;
-      }
-      Alert.alert('Verification Failed', err.message || 'Verification failed. Try OTP 123456.');
-    } finally {
+    setTimeout(async () => {
       setLoading(false);
-    }
+      const dummyToken = 'demo_jwt_token_' + Date.now();
+      await saveAuthToken(dummyToken);
+      await saveUserData({
+        mobile_number: '+91' + mobileNumber.replace(/[^0-9]/g, ''),
+        name: 'Citizen Demo User',
+        role: 'ROLE_CITIZEN',
+        district: 'Dima Hasao'
+      });
+      onLoginSuccess();
+    }, 300);
   };
 
   return (
@@ -85,23 +70,23 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         {/* App Logo & Header */}
         <View style={styles.headerContainer}>
           <View style={styles.badgeIcon}>
-            <Text style={styles.badgeText}>⛰️ GIS</Text>
+            <Text style={styles.badgeText}>⛰️ GIS LANDSLIDE MONITOR</Text>
           </View>
           <Text style={styles.title}>NER Landslide Warning</Text>
           <Text style={styles.subtitle}>
-            North Eastern Region Early Warning Platform • SIH 2026
+            North Eastern Region Early Warning Platform • Dima Hasao Pilot
           </Text>
         </View>
 
         {/* Auth Form Card */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>
-            {step === 'MOBILE' ? 'Citizen Mobile Verification' : 'Enter Verification Code'}
+            {step === 'MOBILE' ? 'Citizen Mobile Sign-In' : 'Enter Verification Code'}
           </Text>
           <Text style={styles.cardDescription}>
             {step === 'MOBILE'
-              ? 'Receive immediate landslide warnings for your district in Assam & North East.'
-              : `Code sent to +91 ${mobileNumber}`}
+              ? 'Receive cellular emergency alert SMS and live landslide risk assessments.'
+              : `Verification code sent to +91 ${mobileNumber}`}
           </Text>
 
           {infoMsg && (
@@ -118,7 +103,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                 <TextInput
                   style={styles.input}
                   placeholder="Enter 10-digit number"
-                  placeholderTextColor="#64748b"
+                  placeholderTextColor="#8FA48A"
                   keyboardType="phone-pad"
                   maxLength={10}
                   value={mobileNumber}
@@ -128,16 +113,17 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             </View>
           ) : (
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>OTP Verification Code</Text>
+              <Text style={styles.label}>Verification Code</Text>
               <TextInput
                 style={[styles.input, styles.otpInput]}
                 placeholder="123456"
-                placeholderTextColor="#64748b"
+                placeholderTextColor="#8FA48A"
                 keyboardType="number-pad"
                 maxLength={6}
                 value={otp}
                 onChangeText={setOtp}
               />
+              <Text style={styles.otpHint}>Demo test code: 123456</Text>
             </View>
           )}
 
@@ -145,18 +131,25 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             style={styles.button}
             onPress={step === 'MOBILE' ? handleRequestOtp : handleVerifyOtp}
             disabled={loading}
+            accessibilityRole="button"
+            accessibilityLabel={step === 'MOBILE' ? 'Request OTP' : 'Verify & Continue'}
           >
             {loading ? (
-              <ActivityIndicator color="#ffffff" />
+              <ActivityIndicator color="#FFFFFF" />
             ) : (
               <Text style={styles.buttonText}>
-                {step === 'MOBILE' ? 'Request OTP' : 'Verify & Continue'}
+                {step === 'MOBILE' ? 'Get Verification Code ➔' : 'Verify & Access Monitor ✅'}
               </Text>
             )}
           </TouchableOpacity>
 
           {step === 'OTP' && (
-            <TouchableOpacity style={styles.secondaryButton} onPress={() => setStep('MOBILE')}>
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={() => setStep('MOBILE')}
+              accessibilityRole="button"
+              accessibilityLabel="Change mobile number"
+            >
               <Text style={styles.secondaryButtonText}>← Change Mobile Number</Text>
             </TouchableOpacity>
           )}
@@ -173,145 +166,160 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0f172a'
+    backgroundColor: APP_COLORS.bgSurface
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 24
+    padding: 20
   },
   headerContainer: {
     alignItems: 'center',
-    marginBottom: 32
+    marginBottom: 24
   },
   badgeIcon: {
-    backgroundColor: '#1e293b',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
+    backgroundColor: APP_COLORS.bgAccentMintSoft,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#334155',
-    marginBottom: 16
+    borderColor: '#86EFAC',
+    marginBottom: 12
   },
   badgeText: {
-    color: '#38bdf8',
-    fontSize: 14,
-    fontWeight: '700'
+    color: '#166534',
+    fontSize: 12,
+    fontWeight: '800'
   },
   title: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: '800',
-    color: '#f8fafc',
+    color: APP_COLORS.textPrimary,
     textAlign: 'center'
   },
   subtitle: {
-    fontSize: 13,
-    color: '#94a3b8',
+    fontSize: 12,
+    color: APP_COLORS.textSecondary,
     textAlign: 'center',
-    marginTop: 6
+    marginTop: 4
   },
   card: {
-    backgroundColor: '#1e293b',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 24,
+    padding: 20,
     borderWidth: 1,
-    borderColor: '#334155',
-    shadowColor: '#000',
+    borderColor: APP_COLORS.borderDefault,
+    shadowColor: '#1E2B18',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3
   },
   cardTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#f8fafc',
-    marginBottom: 6
+    fontSize: 17,
+    fontWeight: '800',
+    color: APP_COLORS.textPrimary,
+    marginBottom: 4
   },
   cardDescription: {
-    fontSize: 13,
-    color: '#94a3b8',
-    marginBottom: 20
-  },
-  infoBanner: {
-    backgroundColor: '#0369a1',
-    borderRadius: 8,
-    padding: 12,
+    fontSize: 12,
+    color: APP_COLORS.textSecondary,
     marginBottom: 16
   },
+  infoBanner: {
+    backgroundColor: '#DCFCE7',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#86EFAC'
+  },
   infoBannerText: {
-    color: '#e0f2fe',
-    fontSize: 13,
-    fontWeight: '500'
+    color: '#166534',
+    fontSize: 12,
+    fontWeight: '700'
   },
   inputGroup: {
-    marginBottom: 20
+    marginBottom: 16
   },
   label: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#cbd5e1',
-    marginBottom: 8,
+    fontSize: 11,
+    fontWeight: '700',
+    color: APP_COLORS.textSecondary,
+    marginBottom: 6,
     textTransform: 'uppercase'
   },
   phoneInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0f172a',
+    backgroundColor: APP_COLORS.bgCardSubtle,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#475569',
+    borderColor: APP_COLORS.borderDefault,
     paddingHorizontal: 14
   },
   countryCode: {
-    color: '#38bdf8',
+    color: '#166534',
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '800',
     marginRight: 10
   },
   input: {
     flex: 1,
     height: 48,
-    color: '#f8fafc',
+    color: APP_COLORS.textPrimary,
     fontSize: 16
   },
   otpInput: {
-    backgroundColor: '#0f172a',
+    backgroundColor: APP_COLORS.bgCardSubtle,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#475569',
+    borderColor: APP_COLORS.borderDefault,
     paddingHorizontal: 16,
-    letterSpacing: 8,
-    fontSize: 20,
+    letterSpacing: 6,
+    fontSize: 18,
+    fontWeight: '800',
+    textAlign: 'center'
+  },
+  otpHint: {
+    color: '#059669',
+    fontSize: 11,
     fontWeight: '700',
+    marginTop: 6,
     textAlign: 'center'
   },
   button: {
-    backgroundColor: '#0284c7',
+    backgroundColor: APP_COLORS.buttonPrimaryBg,
     height: 48,
-    borderRadius: 10,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 4
+    marginTop: 4,
+    shadowColor: '#1E2B18',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2
   },
   buttonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '700'
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800'
   },
   secondaryButton: {
-    marginTop: 16,
-    alignItems: 'center'
+    marginTop: 14,
+    alignItems: 'center',
+    paddingVertical: 6
   },
   secondaryButtonText: {
-    color: '#38bdf8',
-    fontSize: 14,
-    fontWeight: '600'
+    color: '#059669',
+    fontSize: 13,
+    fontWeight: '700'
   },
   footerNote: {
-    color: '#64748b',
-    fontSize: 12,
+    color: APP_COLORS.textMuted,
+    fontSize: 11,
     textAlign: 'center',
-    marginTop: 32
+    marginTop: 24
   }
 });
