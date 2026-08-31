@@ -151,8 +151,8 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
           <div className="analytics-kpi-grid anim-cards">
             
             {/* Card 1: High Risk Hotspots */}
-            <div className="analytics-kpi-card card-spotlight card-sweep" onMouseMove={handleSpotlightMove}>
-              <div className="kpi-card-inner">
+            <div className="rotating-border-card risk card-spotlight card-sweep" onMouseMove={handleSpotlightMove}>
+              <div className="rotating-border-inner kpi-card-inner">
                 <div className="kpi-header-row">
                   <span className="kpi-title-label">High Risk Hotspots</span>
                   <div className="kpi-icon-container red">
@@ -168,8 +168,8 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
             </div>
 
             {/* Card 2: Endangered Railway */}
-            <div className="analytics-kpi-card card-spotlight card-sweep" onMouseMove={handleSpotlightMove}>
-              <div className="kpi-card-inner">
+            <div className="rotating-border-card transport card-spotlight card-sweep" onMouseMove={handleSpotlightMove}>
+              <div className="rotating-border-inner kpi-card-inner">
                 <div className="kpi-header-row">
                   <span className="kpi-title-label">Endangered Railway</span>
                   <div className="kpi-icon-container amber">
@@ -185,8 +185,8 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
             </div>
 
             {/* Card 3: Threatened Highway */}
-            <div className="analytics-kpi-card card-spotlight card-sweep" onMouseMove={handleSpotlightMove}>
-              <div className="kpi-card-inner">
+            <div className="rotating-border-card gis card-spotlight card-sweep" onMouseMove={handleSpotlightMove}>
+              <div className="rotating-border-inner kpi-card-inner">
                 <div className="kpi-header-row">
                   <span className="kpi-title-label">Threatened Highway</span>
                   <div className="kpi-icon-container blue">
@@ -202,8 +202,8 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
             </div>
 
             {/* Card 4: 3-Day Peak Rainfall */}
-            <div className="analytics-kpi-card card-spotlight card-sweep" onMouseMove={handleSpotlightMove}>
-              <div className="kpi-card-inner">
+            <div className="rotating-border-card gis card-spotlight card-sweep" onMouseMove={handleSpotlightMove}>
+              <div className="rotating-border-inner kpi-card-inner">
                 <div className="kpi-header-row">
                   <span className="kpi-title-label">3-Day Peak Rainfall</span>
                   <div className="kpi-icon-container cyan">
@@ -219,8 +219,8 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
             </div>
 
             {/* Card 5: Average Terrain Slope */}
-            <div className="analytics-kpi-card card-spotlight card-sweep" onMouseMove={handleSpotlightMove}>
-              <div className="kpi-card-inner">
+            <div className="rotating-border-card analytics card-spotlight card-sweep" onMouseMove={handleSpotlightMove}>
+              <div className="rotating-border-inner kpi-card-inner">
                 <div className="kpi-header-row">
                   <span className="kpi-title-label">Average Terrain Slope</span>
                   <div className="kpi-icon-container purple">
@@ -236,8 +236,8 @@ export const AnalyticsPage: React.FC<AnalyticsPageProps> = ({
             </div>
 
             {/* Card 6: Total District Area */}
-            <div className="analytics-kpi-card card-spotlight card-sweep" onMouseMove={handleSpotlightMove}>
-              <div className="kpi-card-inner">
+            <div className="rotating-border-card ai card-spotlight card-sweep" onMouseMove={handleSpotlightMove}>
+              <div className="rotating-border-inner kpi-card-inner">
                 <div className="kpi-header-row">
                   <span className="kpi-title-label">Total District Area</span>
                   <div className="kpi-icon-container green">
