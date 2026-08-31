@@ -127,16 +127,17 @@ public class OrchestrationService {
                 return requests;
             })
             .flatMap(requests -> {
-                logger.info("Sending batch of {} points to FastAPI ML microservice...", requests.size());
+                logger.info("Sending batch of {} points to FastAPI ML microservice ({}/predict-batch)...", requests.size(), mlServiceUrl);
 
-                // 4. Send vectorized batch request to FastAPI
+                // 4. Send vectorized batch request to FastAPI with extended timeout for Render cold starts
                 return webClient.post()
                         .uri("/predict-batch")
                         .bodyValue(requests)
                         .retrieve()
                         .bodyToMono(BatchPredictionResponse.class)
+                        .timeout(Duration.ofSeconds(60))
                         .onErrorResume(e -> {
-                            logger.warn("⚠️ FastAPI ML microservice offline or returned {}. Applying in-engine geotechnical ML model...", e.getMessage());
+                            logger.warn("⚠️ FastAPI ML microservice ({}) error: {}. Applying in-engine geotechnical ML model...", mlServiceUrl, e.getMessage());
                             List<PredictionResponse> fallbackResults = new ArrayList<>();
                             for (GridPoint p : gridPoints) {
                                 double slopeRad = Math.toRadians(p.getSlope());
