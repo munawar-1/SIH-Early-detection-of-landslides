@@ -466,7 +466,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           <div className="footer-top-row">
             <div className="footer-brand">
               <div className="brand-logo-badge small">
-                <ShieldAlert size={18} className="text-red" />
+                <img 
+                  src="/ner-landslide-logo.png" 
+                  alt="NER-LANDSLIDE GIS Logo" 
+                  className="brand-logo-img" 
+                />
               </div>
               <div>
                 <h4 className="footer-brand-title">NER-LANDSLIDE GIS</h4>

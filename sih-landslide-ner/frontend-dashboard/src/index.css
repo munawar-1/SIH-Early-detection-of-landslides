@@ -475,15 +475,29 @@ body {
   width: 40px;
   height: 40px;
   border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, #DCFCE7 0%, #E0F2FE 100%);
-  border: 1px solid rgba(34, 197, 94, 0.35);
+  background: #ffffff;
+  border: 1.5px solid rgba(34, 197, 94, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-primary);
-  box-shadow: 0 3px 10px rgba(34, 197, 94, 0.2);
+  box-shadow: 0 3px 12px rgba(34, 197, 94, 0.2);
   position: relative;
   overflow: hidden;
+  padding: 2px;
+  flex-shrink: 0;
+}
+
+.brand-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: calc(var(--radius-lg) - 2px);
+  display: block;
+  transition: transform 0.2s ease;
+}
+
+.header-brand:hover .brand-logo-img {
+  transform: scale(1.05);
 }
 
 .brand-text-block {

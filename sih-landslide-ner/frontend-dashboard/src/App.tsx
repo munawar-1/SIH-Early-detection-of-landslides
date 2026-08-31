@@ -27,7 +27,6 @@ import { AlertsPage } from './pages/AlertsPage';
 import { PointDetailsModal } from './components/Modal/PointDetailsModal';
 
 import {
-  ShieldAlert,
   Map as MapIcon,
   Train,
   BarChart3,
@@ -209,7 +208,11 @@ export const App: React.FC = () => {
           title="Return to Overview / Landing Page"
         >
           <div className="brand-logo-badge">
-            <ShieldAlert size={22} className="text-red" />
+            <img 
+              src="/ner-landslide-logo.png" 
+              alt="NER-LANDSLIDE GIS Logo" 
+              className="brand-logo-img" 
+            />
           </div>
           <div className="brand-text-block">
             <h1 className="system-title">NER-LANDSLIDE GIS</h1>
