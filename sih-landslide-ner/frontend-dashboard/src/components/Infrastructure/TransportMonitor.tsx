@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { TransportSegment } from '../../types/landslide';
+import { FoldText } from '../Text/FoldText';
 import { 
   Train, 
   Navigation, 
@@ -101,7 +102,19 @@ export const TransportMonitor: React.FC<TransportMonitorProps> = ({
             <Train size={18} className="text-cyan" />
           </div>
           <div>
-            <h3 className="section-title">Critical Corridors Live Monitor</h3>
+            <FoldText
+              text="Critical Corridors Live Monitor"
+              as="h3"
+              className="section-title"
+              splitBy="char"
+              hinge="top"
+              trigger="mount"
+              duration={0.65}
+              stagger={0.045}
+              ease="power3.out"
+              perspective={700}
+              creaseShading={0.55}
+            />
             <p className="section-subtitle">Real-time Lumding–Badarpur Railway &amp; NH-27 Hazard Scanner</p>
           </div>
         </div>
