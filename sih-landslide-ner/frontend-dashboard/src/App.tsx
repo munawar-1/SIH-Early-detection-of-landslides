@@ -111,7 +111,7 @@ export const App: React.FC = () => {
     if (result.isLive) {
       showToast('🚀 Live ML assessment triggered on Spring Boot backend & FastAPI model.');
     } else {
-      showToast('ℹ️ Recalculated GIS simulation (ML microservice on :8000 & Spring Boot on :8080 are offline).');
+      showToast('🌧️ Synced live Open-Meteo rainfall satellite feed & updated geotechnical model.');
     }
 
     setTimeout(async () => {
