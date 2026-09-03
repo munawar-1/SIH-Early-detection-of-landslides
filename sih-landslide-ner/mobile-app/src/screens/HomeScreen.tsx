@@ -458,9 +458,8 @@ const styles = StyleSheet.create({
     backgroundColor: APP_COLORS.bgSurface
   },
   navBar: {
-    paddingTop: Platform.OS === 'ios' ? 12 : 16,
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    paddingBottom: 14,
     backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     justifyContent: 'space-between',

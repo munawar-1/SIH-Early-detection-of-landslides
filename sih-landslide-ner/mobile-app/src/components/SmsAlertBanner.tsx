@@ -12,6 +12,7 @@ import {
 import { EmergencySmsAlert, smsService } from '../services/smsService';
 import { getThreatTheme, APP_COLORS } from '../constants/theme';
 import { ThreatBadge } from './ThreatBadge';
+import { getSafeAreaInsets } from '../constants/layout';
 
 interface SmsAlertBannerProps {
   onViewSms: (alert: EmergencySmsAlert) => void;
@@ -23,7 +24,9 @@ export const SmsAlertBanner: React.FC<SmsAlertBannerProps> = ({ onViewSms, onOpe
   const [visible, setVisible] = useState<boolean>(false);
   const [reduceMotion, setReduceMotion] = useState<boolean>(false);
 
-  const translateY = useRef(new Animated.Value(-180)).current;
+  const insets = getSafeAreaInsets();
+  const OFFSCREEN_Y = -250;
+  const translateY = useRef(new Animated.Value(OFFSCREEN_Y)).current;
   const dismissTimer = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -50,7 +53,7 @@ export const SmsAlertBanner: React.FC<SmsAlertBannerProps> = ({ onViewSms, onOpe
     if (reduceMotion) {
       translateY.setValue(0);
     } else {
-      translateY.setValue(-180);
+      translateY.setValue(OFFSCREEN_Y);
       Animated.spring(translateY, {
         toValue: 0,
         useNativeDriver: true,
@@ -71,10 +74,10 @@ export const SmsAlertBanner: React.FC<SmsAlertBannerProps> = ({ onViewSms, onOpe
     if (reduceMotion) {
       setVisible(false);
       setCurrentAlert(null);
-      translateY.setValue(-180);
+      translateY.setValue(OFFSCREEN_Y);
     } else {
       Animated.timing(translateY, {
-        toValue: -180,
+        toValue: OFFSCREEN_Y,
         duration: 250,
         useNativeDriver: true
       }).start(() => {
@@ -98,12 +101,14 @@ export const SmsAlertBanner: React.FC<SmsAlertBannerProps> = ({ onViewSms, onOpe
   if (!visible || !currentAlert) return null;
 
   const theme = getThreatTheme(currentAlert.threatLevel);
+  const dynamicTop = Platform.OS === 'android' ? insets.top + 8 : (Platform.OS === 'ios' ? Math.max(insets.top, 12) : 12);
 
   return (
     <Animated.View
       style={[
         styles.bannerContainer,
         {
+          top: dynamicTop,
           transform: [{ translateY }],
           borderColor: theme.badgeBorder,
           backgroundColor: theme.cardBg
@@ -184,7 +189,6 @@ export const SmsAlertBanner: React.FC<SmsAlertBannerProps> = ({ onViewSms, onOpe
 const styles = StyleSheet.create({
   bannerContainer: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 50 : 36,
     left: 14,
     right: 14,
     zIndex: 9999,

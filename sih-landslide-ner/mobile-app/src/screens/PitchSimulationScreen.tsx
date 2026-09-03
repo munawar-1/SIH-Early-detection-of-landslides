@@ -246,9 +246,8 @@ const styles = StyleSheet.create({
     backgroundColor: APP_COLORS.bgSurface
   },
   headerBar: {
-    paddingTop: Platform.OS === 'ios' ? 52 : 36,
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    paddingBottom: 14,
     backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     alignItems: 'center',

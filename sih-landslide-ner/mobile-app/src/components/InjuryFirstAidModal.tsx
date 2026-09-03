@@ -11,6 +11,7 @@ import {
   Alert
 } from 'react-native';
 import { APP_COLORS } from '../constants/theme';
+import { getSafeAreaInsets } from '../constants/layout';
 
 export interface InjuryFirstAidModalProps {
   visible: boolean;
@@ -102,6 +103,8 @@ export const INJURY_FIRST_AID_STEPS = [
 ];
 
 export const InjuryFirstAidModal: React.FC<InjuryFirstAidModalProps> = ({ visible, onClose }) => {
+  const insets = getSafeAreaInsets();
+
   const handleDial = (number: string, title: string) => {
     Alert.alert(
       `Call Emergency Helpline`,
@@ -121,11 +124,14 @@ export const InjuryFirstAidModal: React.FC<InjuryFirstAidModalProps> = ({ visibl
     );
   };
 
+  const topPadding = (Platform.OS === 'android' ? insets.top : (Platform.OS === 'ios' ? insets.statusBarHeight : 12)) + 10;
+  const bottomPadding = Math.max(insets.bottom, 12);
+
   return (
     <Modal visible={visible} animationType="slide" transparent={false}>
-      <View style={styles.container}>
+      <View style={[styles.container, insets.isWeb && styles.webContainer]}>
         {/* Top Header */}
-        <View style={styles.topHeader}>
+        <View style={[styles.topHeader, { paddingTop: topPadding }]}>
           <View style={styles.headerTitleRow}>
             <View>
               <Text style={styles.headerBadge}>🏥 EMERGENCY PROTOCOL & HELPLINES</Text>
@@ -137,7 +143,7 @@ export const InjuryFirstAidModal: React.FC<InjuryFirstAidModalProps> = ({ visibl
           </View>
         </View>
 
-        <ScrollView contentContainerStyle={styles.scrollContent}>
+        <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
           {/* Quick Notice */}
           <View style={styles.bannerNotice}>
             <Text style={styles.bannerNoticeTitle}>⚡ Critical Response Instructions</Text>
@@ -201,8 +207,8 @@ export const InjuryFirstAidModal: React.FC<InjuryFirstAidModalProps> = ({ visibl
           </View>
         </ScrollView>
 
-        {/* Bottom Bar */}
-        <View style={styles.footerBar}>
+        {/* Bottom Bar with Safe Inset */}
+        <View style={[styles.footerBar, { paddingBottom: bottomPadding }]}>
           <TouchableOpacity style={styles.acknowledgeBtn} onPress={onClose}>
             <Text style={styles.acknowledgeBtnText}>✅ I Understand & Stand By</Text>
           </TouchableOpacity>
@@ -217,8 +223,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: APP_COLORS.bgSurface
   },
+  webContainer: {
+    maxWidth: 480,
+    width: '100%',
+    alignSelf: 'center'
+  },
   topHeader: {
-    paddingTop: Platform.OS === 'ios' ? 52 : 36,
     paddingBottom: 14,
     paddingHorizontal: 20,
     backgroundColor: '#FFFFFF',

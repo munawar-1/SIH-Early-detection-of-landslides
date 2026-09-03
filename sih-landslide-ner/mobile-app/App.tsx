@@ -20,6 +20,7 @@ import { InjuryFirstAidModal } from './src/components/InjuryFirstAidModal';
 import { smsService } from './src/services/smsService';
 import { getAuthToken, removeAuthToken } from './src/services/storageService';
 import { APP_COLORS } from './src/constants/theme';
+import { getSafeAreaInsets, WEB_CONTAINER_STYLE } from './src/constants/layout';
 
 type AppTab = 'MONITOR' | 'SMS_INBOX' | 'SOS';
 
@@ -31,6 +32,8 @@ export default function App() {
   const [loading, setLoading] = useState<boolean>(true);
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [firstAidModalVisible, setFirstAidModalVisible] = useState<boolean>(false);
+
+  const insets = getSafeAreaInsets();
 
   useEffect(() => {
     checkAuth();
@@ -64,123 +67,151 @@ export default function App() {
 
   if (loading) {
     return (
-      <View style={[styles.container, styles.center]}>
+      <View style={[styles.rootWrapper, styles.center]}>
         <ActivityIndicator size="large" color="#1E2B18" />
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar style="dark" />
+    <View style={[styles.rootWrapper, insets.isWeb && styles.webOuter]}>
+      <SafeAreaView
+        style={[
+          styles.container,
+          insets.isWeb && styles.webContainer,
+          { paddingTop: Platform.OS === 'android' ? insets.top : 0 }
+        ]}
+      >
+        <StatusBar style="dark" translucent={Platform.OS === 'android'} backgroundColor="transparent" />
 
-      {/* Global Non-Blocking Incoming SMS Banner */}
-      <SmsAlertBanner
-        onViewSms={() => {
-          setIsPitchStudioOpen(false);
-          setActiveTab('SMS_INBOX');
-        }}
-        onOpenFirstAid={() => setFirstAidModalVisible(true)}
-      />
-
-      {!isAuthenticated ? (
-        <LoginScreen onLoginSuccess={() => setIsAuthenticated(true)} />
-      ) : !hasLocationPermission ? (
-        <LocationPermissionScreen
-          onPermissionComplete={() => setHasLocationPermission(true)}
+        {/* Global Non-Blocking Incoming SMS Banner */}
+        <SmsAlertBanner
+          onViewSms={() => {
+            setIsPitchStudioOpen(false);
+            setActiveTab('SMS_INBOX');
+          }}
+          onOpenFirstAid={() => setFirstAidModalVisible(true)}
         />
-      ) : isPitchStudioOpen ? (
-        <PitchSimulationScreen onBackToHome={() => setIsPitchStudioOpen(false)} />
-      ) : (
-        <View style={styles.mainLayout}>
-          {/* Active Screen Tab View */}
-          <View style={styles.tabContent}>
-            {activeTab === 'MONITOR' && (
-              <HomeScreen
-                onOpenSmsInbox={() => setActiveTab('SMS_INBOX')}
-                onOpenSos={() => setActiveTab('SOS')}
-                onOpenSettings={handleLogout}
-                onOpenPitchSimulation={() => setIsPitchStudioOpen(true)}
-              />
-            )}
 
-            {activeTab === 'SMS_INBOX' && (
-              <SmsInboxScreen onOpenSos={() => setActiveTab('SOS')} />
-            )}
+        {!isAuthenticated ? (
+          <LoginScreen onLoginSuccess={() => setIsAuthenticated(true)} />
+        ) : !hasLocationPermission ? (
+          <LocationPermissionScreen
+            onPermissionComplete={() => setHasLocationPermission(true)}
+          />
+        ) : isPitchStudioOpen ? (
+          <PitchSimulationScreen onBackToHome={() => setIsPitchStudioOpen(false)} />
+        ) : (
+          <View style={styles.mainLayout}>
+            {/* Active Screen Tab View */}
+            <View style={styles.tabContent}>
+              {activeTab === 'MONITOR' && (
+                <HomeScreen
+                  onOpenSmsInbox={() => setActiveTab('SMS_INBOX')}
+                  onOpenSos={() => setActiveTab('SOS')}
+                  onOpenSettings={handleLogout}
+                  onOpenPitchSimulation={() => setIsPitchStudioOpen(true)}
+                />
+              )}
 
-            {activeTab === 'SOS' && <SosSmsScreen />}
-          </View>
+              {activeTab === 'SMS_INBOX' && (
+                <SmsInboxScreen onOpenSos={() => setActiveTab('SOS')} />
+              )}
 
-          {/* Bottom 3-Tab Navigation Bar (Website-Matched Clean White & Deep Forest Green) */}
-          <View style={styles.bottomNav}>
-            {/* Tab 1: Monitor */}
-            <TouchableOpacity
-              style={[styles.navItem, activeTab === 'MONITOR' && styles.navItemActive]}
-              onPress={() => setActiveTab('MONITOR')}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: activeTab === 'MONITOR' }}
-              accessibilityLabel="Monitor Tab: Hazard assessment"
+              {activeTab === 'SOS' && <SosSmsScreen />}
+            </View>
+
+            {/* Bottom 3-Tab Navigation Bar with Safe Area Bottom Inset */}
+            <View
+              style={[
+                styles.bottomNav,
+                {
+                  paddingBottom: Math.max(insets.bottom, 6),
+                  height: (Platform.OS === 'ios' ? 56 : 58) + Math.max(insets.bottom, 6)
+                }
+              ]}
             >
-              <Text style={[styles.navIconText, activeTab === 'MONITOR' && styles.navIconTextActive]}>
-                🛰️
-              </Text>
-              <Text style={[styles.navLabel, activeTab === 'MONITOR' && styles.navLabelActive]}>
-                Monitor
-              </Text>
-            </TouchableOpacity>
-
-            {/* Tab 2: SMS Alerts */}
-            <TouchableOpacity
-              style={[styles.navItem, activeTab === 'SMS_INBOX' && styles.navItemActive]}
-              onPress={() => setActiveTab('SMS_INBOX')}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: activeTab === 'SMS_INBOX' }}
-              accessibilityLabel={`SMS Alerts Tab: ${unreadCount} unread emergency messages`}
-            >
-              <View style={styles.navIconBadgeWrapper}>
-                <Text style={[styles.navIconText, activeTab === 'SMS_INBOX' && styles.navIconTextActive]}>
-                  📩
+              {/* Tab 1: Monitor */}
+              <TouchableOpacity
+                style={[styles.navItem, activeTab === 'MONITOR' && styles.navItemActive]}
+                onPress={() => setActiveTab('MONITOR')}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: activeTab === 'MONITOR' }}
+                accessibilityLabel="Monitor Tab: Hazard assessment"
+              >
+                <Text style={[styles.navIconText, activeTab === 'MONITOR' && styles.navIconTextActive]}>
+                  🛰️
                 </Text>
-                {unreadCount > 0 && (
-                  <View style={styles.unreadBadge}>
-                    <Text style={styles.unreadBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
-                  </View>
-                )}
-              </View>
-              <Text style={[styles.navLabel, activeTab === 'SMS_INBOX' && styles.navLabelActive]}>
-                SMS Alerts
-              </Text>
-            </TouchableOpacity>
+                <Text style={[styles.navLabel, activeTab === 'MONITOR' && styles.navLabelActive]}>
+                  Monitor
+                </Text>
+              </TouchableOpacity>
 
-            {/* Tab 3: Emergency SOS */}
-            <TouchableOpacity
-              style={[styles.navItem, activeTab === 'SOS' && styles.navItemActive]}
-              onPress={() => setActiveTab('SOS')}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: activeTab === 'SOS' }}
-              accessibilityLabel="Emergency SOS Tab: Pre-fill offline SMS"
-            >
-              <Text style={[styles.navIconText, activeTab === 'SOS' && styles.navIconTextActive]}>
-                🆘
-              </Text>
-              <Text style={[styles.navLabel, activeTab === 'SOS' && styles.navLabelActive]}>
-                SOS SMS
-              </Text>
-            </TouchableOpacity>
+              {/* Tab 2: SMS Alerts */}
+              <TouchableOpacity
+                style={[styles.navItem, activeTab === 'SMS_INBOX' && styles.navItemActive]}
+                onPress={() => setActiveTab('SMS_INBOX')}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: activeTab === 'SMS_INBOX' }}
+                accessibilityLabel={`SMS Alerts Tab: ${unreadCount} unread emergency messages`}
+              >
+                <View style={styles.navIconBadgeWrapper}>
+                  <Text style={[styles.navIconText, activeTab === 'SMS_INBOX' && styles.navIconTextActive]}>
+                    📩
+                  </Text>
+                  {unreadCount > 0 && (
+                    <View style={styles.unreadBadge}>
+                      <Text style={styles.unreadBadgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                    </View>
+                  )}
+                </View>
+                <Text style={[styles.navLabel, activeTab === 'SMS_INBOX' && styles.navLabelActive]}>
+                  SMS Alerts
+                </Text>
+              </TouchableOpacity>
+
+              {/* Tab 3: Emergency SOS */}
+              <TouchableOpacity
+                style={[styles.navItem, activeTab === 'SOS' && styles.navItemActive]}
+                onPress={() => setActiveTab('SOS')}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: activeTab === 'SOS' }}
+                accessibilityLabel="Emergency SOS Tab: Pre-fill offline SMS"
+              >
+                <Text style={[styles.navIconText, activeTab === 'SOS' && styles.navIconTextActive]}>
+                  🆘
+                </Text>
+                <Text style={[styles.navLabel, activeTab === 'SOS' && styles.navLabelActive]}>
+                  SOS SMS
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      )}
+        )}
 
-      {/* Global Injury First Aid & Valid Helplines Modal */}
-      <InjuryFirstAidModal
-        visible={firstAidModalVisible}
-        onClose={() => setFirstAidModalVisible(false)}
-      />
-    </SafeAreaView>
+        {/* Global Injury First Aid & Valid Helplines Modal */}
+        <InjuryFirstAidModal
+          visible={firstAidModalVisible}
+          onClose={() => setFirstAidModalVisible(false)}
+        />
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  rootWrapper: {
+    flex: 1,
+    backgroundColor: APP_COLORS.bgSurface
+  },
+  webOuter: {
+    backgroundColor: '#E8EFE9',
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  webContainer: {
+    ...WEB_CONTAINER_STYLE
+  },
   container: {
     flex: 1,
     backgroundColor: APP_COLORS.bgSurface
@@ -197,11 +228,9 @@ const styles = StyleSheet.create({
   },
   bottomNav: {
     flexDirection: 'row',
-    height: Platform.OS === 'ios' ? 76 : 64,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: APP_COLORS.borderDefault,
-    paddingBottom: Platform.OS === 'ios' ? 14 : 6,
     paddingTop: 6,
     justifyContent: 'space-around',
     alignItems: 'center',
