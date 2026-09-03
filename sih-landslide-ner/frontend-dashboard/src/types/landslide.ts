@@ -39,6 +39,16 @@ export interface TransportSegment {
   recommendedSpeedKmh?: number;
 }
 
+export interface HighwayMicroSegment extends TransportSegment {
+  highwayCode: string;
+  segmentKm: number;
+  kmStart: number;
+  kmEnd: number;
+  isAtRisk: boolean;
+  riskReasons: string[];
+}
+
+
 export interface StationNode {
   id: string;
   name: string;

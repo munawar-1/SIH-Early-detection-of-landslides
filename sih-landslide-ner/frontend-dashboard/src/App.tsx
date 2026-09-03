@@ -4,17 +4,20 @@ import type {
   FilterState,
   TransportSegment,
   StationNode,
-  SummaryStatsData
+  SummaryStatsData,
+  HighwayMicroSegment
 } from './types/landslide';
 import {
   RAILWAY_SECTIONS,
   HIGHWAY_SECTIONS,
   CRITICAL_STATIONS
 } from './data/infrastructureData';
+import { NH_SEGMENTS_RAW } from './data/highwayData';
 import {
   fetchGridPredictions,
   triggerLivePipeline,
   evaluateTransportVulnerability,
+  evaluateHighwayMicroSegments,
   computeSummaryStats
 } from './services/apiService';
 
@@ -63,6 +66,7 @@ export const App: React.FC = () => {
   const [gridPoints, setGridPoints] = useState<GridPoint[]>([]);
   const [railways, setRailways] = useState<TransportSegment[]>(RAILWAY_SECTIONS);
   const [highways, setHighways] = useState<TransportSegment[]>(HIGHWAY_SECTIONS);
+  const [highwayMicroSegments, setHighwayMicroSegments] = useState<HighwayMicroSegment[]>([]);
   const [stations] = useState<StationNode[]>(CRITICAL_STATIONS);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
 
@@ -90,8 +94,11 @@ export const App: React.FC = () => {
 
     const evaluatedRailways = evaluateTransportVulnerability(RAILWAY_SECTIONS, result.data);
     const evaluatedHighways = evaluateTransportVulnerability(HIGHWAY_SECTIONS, result.data);
+    const evaluatedMicro = evaluateHighwayMicroSegments(NH_SEGMENTS_RAW, result.data);
+    
     setRailways(evaluatedRailways);
     setHighways(evaluatedHighways);
+    setHighwayMicroSegments(evaluatedMicro);
 
     const calculatedStats = computeSummaryStats(result.data, evaluatedRailways, evaluatedHighways);
     setStats(calculatedStats);
@@ -344,6 +351,7 @@ export const App: React.FC = () => {
                 gridPoints={gridPoints}
                 railways={railways}
                 highways={highways}
+                highwayMicroSegments={highwayMicroSegments}
                 stations={stations}
                 filters={filters}
                 onFilterChange={handleFilterChange}
@@ -361,6 +369,7 @@ export const App: React.FC = () => {
                 gridPoints={gridPoints}
                 railways={railways}
                 highways={highways}
+                highwayMicroSegments={highwayMicroSegments}
                 stations={stations}
                 filters={filters}
                 onSelectTransport={handleSelectTransport}

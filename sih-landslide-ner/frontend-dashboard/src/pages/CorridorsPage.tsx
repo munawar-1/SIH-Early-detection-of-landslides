@@ -1,7 +1,8 @@
 import React from 'react';
-import type { GridPoint, TransportSegment, StationNode, FilterState } from '../types/landslide';
+import type { GridPoint, TransportSegment, StationNode, FilterState, HighwayMicroSegment } from '../types/landslide';
 import { LandslideMap } from '../components/Map/LandslideMap';
 import { TransportMonitor } from '../components/Infrastructure/TransportMonitor';
+import { HighwayRiskPanel } from '../components/Infrastructure/HighwayRiskPanel';
 import { 
   Train, 
   Navigation, 
@@ -12,23 +13,27 @@ interface CorridorsPageProps {
   gridPoints: GridPoint[];
   railways: TransportSegment[];
   highways: TransportSegment[];
+  highwayMicroSegments?: HighwayMicroSegment[];
   stations: StationNode[];
   filters: FilterState;
-  onSelectTransport: (segment: TransportSegment) => void;
-  selectedTransport: TransportSegment | null;
+  onSelectTransport: (segment: TransportSegment | HighwayMicroSegment) => void;
+  selectedTransport: TransportSegment | HighwayMicroSegment | null;
 }
 
 export const CorridorsPage: React.FC<CorridorsPageProps> = ({
   gridPoints,
   railways,
   highways,
+  highwayMicroSegments,
   stations,
   filters,
   onSelectTransport,
   selectedTransport
 }) => {
+  const [activeTab, setActiveTab] = React.useState<'railways' | 'highways'>('railways');
+
   const criticalRailways = railways.filter(r => r.threatLevel === 'CRITICAL' || r.threatLevel === 'WARNING');
-  const criticalHighways = highways.filter(h => h.threatLevel === 'CRITICAL' || h.threatLevel === 'WARNING');
+  const criticalHighways = (highwayMicroSegments || []).filter(h => h.isAtRisk && (h.threatLevel === 'CRITICAL' || h.threatLevel === 'WARNING'));
 
   return (
     <div className="corridors-page-container">
@@ -60,6 +65,22 @@ export const CorridorsPage: React.FC<CorridorsPageProps> = ({
 
       {/* Split-Screen Main Content */}
       <div className="corridors-split-layout">
+        <div style={{ width: '100%', display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+          <button 
+            className={`tab-btn ${activeTab === 'railways' ? 'active' : ''}`}
+            onClick={() => setActiveTab('railways')}
+            style={{ padding: '0.75rem 1.5rem', background: activeTab === 'railways' ? 'var(--accent)' : 'var(--bg-secondary)', color: activeTab === 'railways' ? '#fff' : 'var(--text-secondary)', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold' }}
+          >
+            <Train size={16} /> Railway & Core Network
+          </button>
+          <button 
+            className={`tab-btn ${activeTab === 'highways' ? 'active' : ''}`}
+            onClick={() => setActiveTab('highways')}
+            style={{ padding: '0.75rem 1.5rem', background: activeTab === 'highways' ? 'var(--accent)' : 'var(--bg-secondary)', color: activeTab === 'highways' ? '#fff' : 'var(--text-secondary)', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold' }}
+          >
+            <Navigation size={16} /> National Highways 🛣️
+          </button>
+        </div>
         {/* Left Side: Dedicated Corridor Route Map */}
         <div className="corridor-map-panel">
           <div className="panel-top-banner">
@@ -71,27 +92,36 @@ export const CorridorsPage: React.FC<CorridorsPageProps> = ({
               gridPoints={gridPoints}
               railways={railways}
               highways={highways}
+              highwayMicroSegments={highwayMicroSegments}
               stations={stations}
               filters={{
                 ...filters,
-                showRailways: true,
+                showRailways: activeTab === 'railways',
                 showHighways: true,
                 showStations: true,
                 showGridPoints: true
               }}
-              onSelectTransport={onSelectTransport}
+              onSelectTransport={onSelectTransport as any}
             />
           </div>
         </div>
 
         {/* Right Side: Detailed Corridor Threat Status Cards */}
         <div className="corridor-cards-panel">
-          <TransportMonitor
-            railways={railways}
-            highways={highways}
-            onSelectSegment={onSelectTransport}
-            selectedSegmentId={selectedTransport?.id}
-          />
+          {activeTab === 'railways' ? (
+            <TransportMonitor
+              railways={railways}
+              highways={highways}
+              onSelectSegment={onSelectTransport as any}
+              selectedSegmentId={selectedTransport?.id}
+            />
+          ) : (
+            <HighwayRiskPanel
+              highwaySegments={highwayMicroSegments || []}
+              onSelectSegment={onSelectTransport as any}
+              selectedSegmentId={selectedTransport?.id}
+            />
+          )}
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import type { GridPoint, SummaryStatsData, TransportSegment } from '../types/landslide';
+import type { GridPoint, SummaryStatsData, TransportSegment, HighwayMicroSegment } from '../types/landslide';
 
 import REAL_GRID_POINTS from '../data/realDimaHasaoGrid.json';
 
@@ -303,6 +303,72 @@ export function evaluateTransportVulnerability(
       advisory,
       recommendedSpeedKmh: recommendedSpeed
     };
+  });
+}
+
+/**
+ * Dynamically evaluate Highway Micro Segments based on live GridPoints.
+ * Returns ALL evaluated segments (so Map can draw them contextually), but computes isAtRisk and riskReasons.
+ */
+export function evaluateHighwayMicroSegments(
+  segments: Partial<HighwayMicroSegment>[],
+  gridPoints: GridPoint[],
+  bufferKm: number = 2.0
+): HighwayMicroSegment[] {
+  return segments.map(seg => {
+    let maxProb = 0;
+    let highRiskNearCount = 0;
+    let reasons: Set<string> = new Set();
+    
+    for (const point of gridPoints) {
+      let minDistance = Infinity;
+      if (seg.coordinates) {
+        for (const [sLat, sLon] of seg.coordinates) {
+          const d = calculateHaversineKm(point.latitude, point.longitude, sLat, sLon);
+          if (d < minDistance) minDistance = d;
+        }
+      }
+
+      if (minDistance <= bufferKm) {
+        if (point.probability > maxProb) maxProb = point.probability;
+        if (point.riskLevel === 'HIGH') highRiskNearCount++;
+        
+        if (point.probability >= 0.40) {
+          if (point.slope >= 30) reasons.add('Steep Slope (>30°)');
+          if (point.clayPercent >= 40) reasons.add('High Clay/Shale Content');
+          if (point.rainDay1 + point.rainDay2 + point.rainDay3 >= 80) reasons.add('Heavy 3-Day Rainfall Forecast');
+          if (point.probability >= 0.75) reasons.add('Critical Deep-Seated Slide Risk');
+        }
+      }
+    }
+
+    let threatLevel: 'SAFE' | 'WATCH' | 'WARNING' | 'CRITICAL' = 'SAFE';
+    let advisory = 'Normal highway operations.';
+    let isAtRisk = false;
+
+    if (maxProb >= 0.70 || highRiskNearCount >= 20) {
+      threatLevel = 'CRITICAL';
+      advisory = 'CRITICAL ALERT: High mudslide/subsidence risk. Recommend heavy vehicle restriction.';
+      isAtRisk = true;
+    } else if (maxProb >= 0.55 || highRiskNearCount >= 8) {
+      threatLevel = 'WARNING';
+      advisory = 'WARNING: Saturated slopes. Risk of minor slips or single-lane blockage.';
+      isAtRisk = true;
+    } else if (maxProb >= 0.40) {
+      threatLevel = 'WATCH';
+      advisory = 'WATCH: Drive with caution. Active surface runoff detected.';
+      isAtRisk = true;
+    }
+
+    return {
+      ...seg,
+      threatLevel,
+      maxNearbyProbability: Math.round(maxProb * 1000) / 1000,
+      vulnerablePointsCount: highRiskNearCount,
+      advisory,
+      isAtRisk,
+      riskReasons: Array.from(reasons)
+    } as HighwayMicroSegment;
   });
 }
 

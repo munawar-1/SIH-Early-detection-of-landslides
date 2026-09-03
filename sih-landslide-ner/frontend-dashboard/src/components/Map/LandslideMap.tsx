@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import type { GridPoint, FilterState, TransportSegment, StationNode } from '../../types/landslide';
+import type { GridPoint, FilterState, TransportSegment, StationNode, HighwayMicroSegment } from '../../types/landslide';
 import { HISTORICAL_LANDSLIDES } from '../../data/infrastructureData';
 import { DIMA_HASAO_POLYGON, DIMA_HASAO_BOUNDS, DIMA_HASAO_CENTER } from '../../data/dimaHasaoBoundary';
 import { Crosshair, ZoomIn, ZoomOut, ChevronDown } from 'lucide-react';
@@ -18,6 +18,7 @@ interface LandslideMapProps {
   gridPoints: GridPoint[];
   railways: TransportSegment[];
   highways: TransportSegment[];
+  highwayMicroSegments?: HighwayMicroSegment[];
   stations: StationNode[];
   filters: FilterState;
   onSelectPoint?: (point: GridPoint) => void;
@@ -29,6 +30,7 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
   gridPoints,
   railways,
   highways,
+  highwayMicroSegments,
   stations,
   filters,
   onSelectPoint,
@@ -446,7 +448,58 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
       });
     }
 
-    // C. STATIONS
+    // C. NATIONAL HIGHWAY MICRO-SEGMENTS (At-Risk Alerts)
+    if (filters.showHighways && highwayMicroSegments) {
+      highwayMicroSegments.forEach(seg => {
+        // Draw baseline faintly for all micro segments if we want, or just draw the at-risk ones.
+        // We will just draw the at-risk ones to minimize clutter, as per the plan.
+        if (!seg.isAtRisk) return;
+
+        let segColor = '#eab308'; // WATCH
+        let glowColor = 'rgba(234, 179, 8, 0.4)';
+        
+        if (seg.threatLevel === 'CRITICAL') {
+          segColor = '#ef4444';
+          glowColor = 'rgba(239, 68, 68, 0.6)';
+        } else if (seg.threatLevel === 'WARNING') {
+          segColor = '#f97316';
+          glowColor = 'rgba(249, 115, 22, 0.5)';
+        }
+
+        const glowLine = L.polyline(seg.coordinates, {
+          color: glowColor,
+          weight: seg.threatLevel === 'CRITICAL' ? 14 : 10,
+          opacity: 0.8,
+          lineCap: 'round',
+          lineJoin: 'round',
+          className: seg.threatLevel === 'CRITICAL' ? 'pulse-danger-line' : ''
+        });
+
+        const coreLine = L.polyline(seg.coordinates, {
+          color: segColor,
+          weight: 4,
+          opacity: 1.0,
+          dashArray: seg.threatLevel === 'CRITICAL' ? '6, 6' : undefined
+        });
+
+        coreLine.on('click', () => {
+          if (onSelectTransport) onSelectTransport(seg);
+        });
+
+        coreLine.bindTooltip(`
+          <div class="gis-tooltip">
+            <strong style="color:${segColor}">🛣️ ${seg.highwayCode} | Km ${seg.kmStart}-${seg.kmEnd}</strong><br/>
+            <span>Threat Level: <b>${seg.threatLevel}</b></span><br/>
+            <span>Max Proximity Risk: <b>${Math.round(seg.maxNearbyProbability * 100)}%</b></span>
+          </div>
+        `, { sticky: true, className: 'gis-custom-tooltip' });
+
+        group.addLayer(glowLine);
+        group.addLayer(coreLine);
+      });
+    }
+
+    // D. STATIONS
     if (filters.showStations) {
       stations.forEach(st => {
         const isCritical = st.vulnerabilityStatus === 'CRITICAL';
