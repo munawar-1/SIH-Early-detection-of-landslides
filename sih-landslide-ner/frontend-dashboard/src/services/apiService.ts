@@ -1,114 +1,56 @@
 import type { GridPoint, SummaryStatsData, TransportSegment } from '../types/landslide';
-import { isPointInDimaHasao } from '../data/dimaHasaoBoundary';
 
-const BACKEND_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
+import REAL_GRID_POINTS from '../data/realDimaHasaoGrid.json';
+
+const BACKEND_BASE = (import.meta.env.VITE_API_BASE_URL || 'https://ner-landslide-backend.onrender.com').replace(/\/$/, '');
 const API_BASE_URL = `${BACKEND_BASE}/api/predictions`;
 
 /**
- * Generates synthetic Dima Hasao grid dataset strictly clipped within the authentic district boundary polygon.
- * Bounds: Lat 24.95° to 25.85° N, Lon 92.48° to 93.32° E
- */
-/**
- * Generates realistic Dima Hasao baseline grid dataset strictly clipped within the authentic district boundary polygon.
- * Spatially modeled along the Borail Mountain Range topography (Haflong, Jatinga, Mahur, Harangajao).
- * Resolution: ~1km spatial sampling (~1,400 points within district perimeter).
+ * Generates authentic Dima Hasao baseline grid dataset from verified satellite DEM and global soil databases.
+ * Bounds: Lat 24.95° to 25.85° N, Lon 92.48° to 93.32° E (5,076 real points).
  */
 export function generateFallbackGridData(): GridPoint[] {
-  const points: GridPoint[] = [];
-  let idCounter = 1;
+  return (REAL_GRID_POINTS as any[]).map((p: any, idx: number) => {
+    const slope = Number(p.slope) || 2.5;
+    const slopeRad = (slope * Math.PI) / 180.0;
+    const rainDay1 = Number(p.rain_day1) || 14.5;
+    const rainDay2 = Number(p.rain_day2) || 24.0;
+    const rainDay3 = Number(p.rain_day3) || 18.0;
+    const rain7dApi = rainDay1 + (rainDay2 + rainDay3) * 0.84 + 14.0 * 0.50;
+    const clayPercent = Number(p.clay_percent || p.clay_percentage) || 32.0;
+    const sandPercent = Number(p.sand_percent) || 34.0;
+    const siltPercent = Number(p.silt_percent) || 34.0;
+    const bulkDensity = Number(p.bulk_density) || 1.15;
+    const porePressureIndex = (Math.sin(slopeRad) * (rain7dApi * clayPercent)) / (100.0 * bulkDensity * (1.0 + sandPercent / 100.0));
+    const criticalGhat = (slope >= 28.0 && (Number(p.elevation) || 0) >= 500.0) ? 0.30 : 0.0;
+    const baseProb = 1.0 / (1.0 + Math.exp(-0.32 * (porePressureIndex - 19.5)));
+    const adjustedProb = Math.min(0.96, Math.max(0.02, baseProb * 0.75 + criticalGhat));
+    const probability = Math.round(adjustedProb * 1000) / 1000;
+    const riskLevel = probability >= 0.70 ? 'HIGH' : (probability >= 0.40 ? 'MODERATE' : 'LOW');
 
-  // Spatial sampling (0.010° step ~1.1km resolution)
-  const latMin = 24.95, latMax = 25.85, latStep = 0.010;
-  const lonMin = 92.48, lonMax = 93.32, lonStep = 0.010;
-
-  for (let lat = latMin; lat <= latMax; lat += latStep) {
-    for (let lon = lonMin; lon <= lonMax; lon += lonStep) {
-      // Strictly clip: only include points that fall INSIDE the authentic Dima Hasao district polygon
-      if (!isPointInDimaHasao(lat, lon)) {
-        continue;
-      }
-
-      // Deterministic pseudo-random seed based on coordinate hash to prevent flickering on refresh
-      const coordSeed = Math.sin(lat * 123.45 + lon * 678.9) * 10000;
-      const pseudoNoise = coordSeed - Math.floor(coordSeed);
-      const noise2 = Math.sin(lat * 43.17 - lon * 81.33) * 0.5 + 0.5;
-
-      // Authentic Geological Mountain Systems of Dima Hasao:
-      // 1. Central Borail Ridge & Jatinga/Haflong Escarpment (Steepest ghat zone)
-      const borailDist = Math.hypot(lat - 25.18, (lon - 92.76) * 1.3);
-      // 2. Harangajao / Ditokcherra southern fault scarp (Active railway cutting slide zone)
-      const harangajaoDist = Math.hypot(lat - 25.08, (lon - 92.84) * 1.5);
-      // 3. Eastern Mahur / Asalu mountain spurs
-      const mahurDist = Math.hypot(lat - 25.32, (lon - 93.12) * 1.2);
-
-      // Natural mountain ridge influence with realistic falloff
-      const ridgeInfluence = 
-        Math.exp(-Math.pow(borailDist / 0.15, 2)) * 0.92 +
-        Math.exp(-Math.pow(harangajaoDist / 0.11, 2)) * 0.88 +
-        Math.exp(-Math.pow(mahurDist / 0.14, 2)) * 0.65;
-
-      // Major River Valleys & Low-Slope Flood Basins (Kopili Basin, Diyung Valley, Langting)
-      const kopiliRiver = Math.abs((lat - 25.55) - (lon - 92.68) * 0.8);
-      const diyungRiver = Math.abs((lat - 25.40) + (lon - 93.00) * 0.4 - 62.6);
-      const valleyDamping = Math.min(1.0, Math.max(0.2, Math.min(kopiliRiver, diyungRiver) / 0.08));
-
-      // Elevation: High peaks near Haflong/Borail (up to 1,420m), valleys at 180m - 350m
-      const elevation = Math.round(
-        180 + 
-        ridgeInfluence * 1050 * valleyDamping + 
-        (1 - (lat - 24.95) / 0.9) * 220 + 
-        pseudoNoise * 60
-      );
-
-      // Slope: Borail escarpments have steep slopes (28° - 52°), while river valleys have lower slopes (3° - 14°)
-      let slope = 5.5 + (ridgeInfluence * 40 * valleyDamping) + (noise2 * 10) - (1 - valleyDamping) * 7;
-      slope = Math.max(2.5, Math.min(54.0, Math.round(slope * 10) / 10));
-
-      // Clay percentage: 20% - 40% (typical Dima Hasao acidic clay-loam / shale soil)
-      const clayPercent = Math.round((22 + Math.sin(lat * 20 + lon * 15) * 8 + pseudoNoise * 8) * 10) / 10;
-
-      // 3-Day Forecast Rainfall (mm) - Orographic monsoon enhancement over South Borail & Jatinga windward slope
-      const orographic = ridgeInfluence * 32;
-      const rainDay1 = Math.round((14 + orographic + Math.sin(lat * 12) * 8 + pseudoNoise * 6) * 10) / 10;
-      const rainDay2 = Math.round((18 + orographic * 1.25 + Math.cos(lon * 14) * 10 + pseudoNoise * 8) * 10) / 10;
-      const rainDay3 = Math.round((10 + orographic * 0.65 + pseudoNoise * 5) * 10) / 10;
-
-      // Geotechnical Hydro-Mechanical Destabilization Index Calculation
-      // Real physics: Failure occurs when pore-water pressure overcomes internal friction (Mohr-Coulomb criterion)
-      const slopeRad = (slope * Math.PI) / 180.0;
-      const rain7dApi = rainDay1 + (rainDay2 + rainDay3) * 0.84 + 14.0 * 0.50;
-      const sandPercent = Math.max(20.0, 100.0 - (clayPercent + 35.0));
-      const porePressureIndex = (Math.sin(slopeRad) * (rain7dApi * clayPercent)) / (100.0 * 1.26 * (1.0 + sandPercent / 100.0));
-
-      // Realistic Hazard Probability Curve:
-      // Landslide failure requires extreme triggering combination: steep escarpment (slope > 32°) + high water saturation (PPI > 18.0)
-      // Routine seasonal rain on normal hills is predominantly SAFE (Low Hazard, < 40%)
-      const criticalGhatFactor = (ridgeInfluence > 0.65 && slope >= 30.0) ? 0.35 : 0.0;
-      const baseProb = 1.0 / (1.0 + Math.exp(-0.32 * (porePressureIndex - 19.5)));
-      const adjustedProb = Math.min(0.96, Math.max(0.02, baseProb * 0.75 + criticalGhatFactor + (pseudoNoise * 0.03 - 0.015)));
-      const probability = Math.round(adjustedProb * 1000) / 1000;
-
-      const riskLevel = probability >= 0.70 ? 'HIGH' : (probability >= 0.40 ? 'MODERATE' : 'LOW');
-
-      points.push({
-        id: idCounter++,
-        district: 'Dima Hasao',
-        latitude: Math.round(lat * 1000) / 1000,
-        longitude: Math.round(lon * 1000) / 1000,
-        elevation,
-        slope,
-        clayPercent,
-        rainDay1,
-        rainDay2,
-        rainDay3,
-        probability,
-        riskLevel,
-        lastUpdated: new Date().toISOString()
-      });
-    }
-  }
-
-  return points;
+    return {
+      id: idx + 1,
+      district: 'Dima Hasao',
+      latitude: Number(p.latitude),
+      longitude: Number(p.longitude),
+      elevation: Number(p.elevation),
+      slope: slope,
+      clayPercent: clayPercent,
+      aspect: Number(p.aspect) || 180.0,
+      aspectSin: Number(p.aspect_sin) || 0.0,
+      aspectCos: Number(p.aspect_cos) || 1.0,
+      sandPercent: sandPercent,
+      siltPercent: siltPercent,
+      bulkDensity: bulkDensity,
+      shearStressFactor: Number(p.shear_stress_factor) || 0.1,
+      rainDay1,
+      rainDay2,
+      rainDay3,
+      probability,
+      riskLevel,
+      lastUpdated: new Date().toISOString()
+    };
+  });
 }
 
 import { saveGridPointsToCache, getCachedGridPoints } from './offlineStorageService';

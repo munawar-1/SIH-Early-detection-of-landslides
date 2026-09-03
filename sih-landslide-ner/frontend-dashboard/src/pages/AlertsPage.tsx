@@ -181,8 +181,8 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
       timestamp: new Date().toISOString()
     });
 
-    const backendBase = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
-    const mlBase = (import.meta.env.VITE_ML_API_BASE_URL || 'http://localhost:8000').replace(/\/$/, '');
+    const backendBase = (import.meta.env.VITE_API_BASE_URL || 'https://ner-landslide-backend.onrender.com').replace(/\/$/, '');
+    const mlBase = (import.meta.env.VITE_ML_API_BASE_URL || 'https://sih-early-detection-of-landslides.onrender.com').replace(/\/$/, '');
 
     try {
       const broadcastEndpoints = [
