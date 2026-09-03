@@ -149,13 +149,12 @@ public class OrchestrationService {
                                     double slopeRad = Math.toRadians(p.getSlope());
                                     double rain7dApi = p.getRainDay1() + (p.getRainDay2() + p.getRainDay3()) * 0.84
                                             + 14.0 * 0.50;
-                                    double sand = Math.max(20.0, 100.0 - (p.getClayPercent() + 35.0));
+                                    double sand = p.getSandPercent() != null ? p.getSandPercent() : Math.max(20.0, 100.0 - (p.getClayPercent() + 35.0));
                                     double porePressureIndex = (Math.sin(slopeRad) * (rain7dApi * p.getClayPercent()))
-                                            / (100.0 * 1.26 * (1.0 + sand / 100.0));
-                                    double criticalGhat = (p.getSlope() >= 30.0 && p.getElevation() >= 600.0) ? 0.30
-                                            : 0.0;
-                                    double baseProb = 1.0 / (1.0 + Math.exp(-0.32 * (porePressureIndex - 19.5)));
-                                    double prob = Math.min(0.96, Math.max(0.02, baseProb * 0.75 + criticalGhat));
+                                            / (100.0 * 1.18 * (1.0 + sand / 100.0));
+                                    double criticalBonus = p.getSlope() >= 34.0 ? 0.42 : (p.getSlope() >= 22.0 ? 0.22 : 0.0);
+                                    double baseProb = 1.0 / (1.0 + Math.exp(-0.25 * (porePressureIndex - 11.0)));
+                                    double prob = Math.min(0.96, Math.max(0.02, baseProb * 0.65 + criticalBonus));
                                     prob = Math.round(prob * 1000.0) / 1000.0;
                                     String risk = prob >= 0.70 ? "HIGH" : (prob >= 0.40 ? "MODERATE" : "LOW");
                                     fallbackResults.add(new PredictionResponse(prob, risk));

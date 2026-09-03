@@ -22,9 +22,9 @@ export function generateFallbackGridData(): GridPoint[] {
     const siltPercent = Number(p.silt_percent) || 34.0;
     const bulkDensity = Number(p.bulk_density) || 1.15;
     const porePressureIndex = (Math.sin(slopeRad) * (rain7dApi * clayPercent)) / (100.0 * bulkDensity * (1.0 + sandPercent / 100.0));
-    const criticalGhat = (slope >= 28.0 && (Number(p.elevation) || 0) >= 500.0) ? 0.30 : 0.0;
-    const baseProb = 1.0 / (1.0 + Math.exp(-0.32 * (porePressureIndex - 19.5)));
-    const adjustedProb = Math.min(0.96, Math.max(0.02, baseProb * 0.75 + criticalGhat));
+    const criticalBonus = slope >= 34.0 ? 0.42 : (slope >= 22.0 ? 0.22 : 0.0);
+    const baseProb = 1.0 / (1.0 + Math.exp(-0.25 * (porePressureIndex - 11.0)));
+    const adjustedProb = Math.min(0.96, Math.max(0.02, baseProb * 0.65 + criticalBonus));
     const probability = Math.round(adjustedProb * 1000) / 1000;
     const riskLevel = probability >= 0.70 ? 'HIGH' : (probability >= 0.40 ? 'MODERATE' : 'LOW');
 
@@ -175,10 +175,10 @@ export async function fetchLiveOpenMeteoRainfall(points: GridPoint[]): Promise<G
       const slopeRad = (p.slope * Math.PI) / 180.0;
       const rain7dApi = rainDay1 + (rainDay2 + rainDay3) * 0.84 + 14.0 * 0.50;
       const sandPercent = Math.max(20.0, 100.0 - (p.clayPercent + 35.0));
-      const porePressureIndex = (Math.sin(slopeRad) * (rain7dApi * p.clayPercent)) / (100.0 * 1.26 * (1.0 + sandPercent / 100.0));
-      const criticalGhat = (p.slope >= 30.0) ? 0.30 : 0.0;
-      const baseProb = 1.0 / (1.0 + Math.exp(-0.32 * (porePressureIndex - 19.5)));
-      const adjustedProb = Math.min(0.96, Math.max(0.02, baseProb * 0.75 + criticalGhat));
+      const porePressureIndex = (Math.sin(slopeRad) * (rain7dApi * p.clayPercent)) / (100.0 * 1.18 * (1.0 + sandPercent / 100.0));
+      const criticalBonus = p.slope >= 34.0 ? 0.42 : (p.slope >= 22.0 ? 0.22 : 0.0);
+      const baseProb = 1.0 / (1.0 + Math.exp(-0.25 * (porePressureIndex - 11.0)));
+      const adjustedProb = Math.min(0.96, Math.max(0.02, baseProb * 0.65 + criticalBonus));
       const probability = Math.round(adjustedProb * 1000) / 1000;
       const riskLevel: 'HIGH' | 'MODERATE' | 'LOW' = probability >= 0.70 ? 'HIGH' : (probability >= 0.40 ? 'MODERATE' : 'LOW');
 
