@@ -10,6 +10,7 @@ import {
   AccessibilityInfo
 } from 'react-native';
 import { EmergencySmsAlert, smsService } from '../services/smsService';
+import { soundService } from '../services/soundService';
 import { getThreatTheme, APP_COLORS } from '../constants/theme';
 import { ThreatBadge } from './ThreatBadge';
 import { getSafeAreaInsets } from '../constants/layout';
@@ -40,6 +41,7 @@ export const SmsAlertBanner: React.FC<SmsAlertBannerProps> = ({ onViewSms, onOpe
 
     return () => {
       unsubscribe();
+      soundService.stopEmergencySiren();
       if (dismissTimer.current) clearTimeout(dismissTimer.current);
     };
   }, [reduceMotion]);
@@ -49,6 +51,11 @@ export const SmsAlertBanner: React.FC<SmsAlertBannerProps> = ({ onViewSms, onOpe
 
     setCurrentAlert(alert);
     setVisible(true);
+
+    // Play siren for urgent danger levels
+    if (alert.threatLevel === 'CRITICAL' || alert.threatLevel === 'HIGH') {
+      soundService.playEmergencySiren();
+    }
 
     if (reduceMotion) {
       translateY.setValue(0);
@@ -62,14 +69,15 @@ export const SmsAlertBanner: React.FC<SmsAlertBannerProps> = ({ onViewSms, onOpe
       }).start();
     }
 
-    // Auto-dismiss after 8 seconds
+    // Auto-dismiss after 9 seconds and stop siren
     dismissTimer.current = setTimeout(() => {
       hideAlert();
-    }, 8000);
+    }, 9000);
   };
 
   const hideAlert = () => {
     if (dismissTimer.current) clearTimeout(dismissTimer.current);
+    soundService.stopEmergencySiren();
 
     if (reduceMotion) {
       setVisible(false);
@@ -130,6 +138,11 @@ export const SmsAlertBanner: React.FC<SmsAlertBannerProps> = ({ onViewSms, onOpe
                 {currentAlert.senderTag}
               </Text>
               <Text style={styles.smsTag}>• ALERT SMS</Text>
+              {(currentAlert.threatLevel === 'CRITICAL' || currentAlert.threatLevel === 'HIGH') && (
+                <View style={styles.sirenPill}>
+                  <Text style={styles.sirenPillText}>🔊 SIREN ACTIVE</Text>
+                </View>
+              )}
             </View>
             <ThreatBadge level={currentAlert.threatLevel} size="small" />
           </View>
@@ -234,6 +247,19 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     marginLeft: 4
+  },
+  sirenPill: {
+    backgroundColor: '#DC2626',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginLeft: 6
+  },
+  sirenPillText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.5
   },
   messageText: {
     color: APP_COLORS.textSecondary,

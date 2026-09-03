@@ -33,6 +33,7 @@ export const PitchSimulationScreen: React.FC<PitchSimulationScreenProps> = ({ on
   const [latInput, setLatInput] = useState<string>('');
   const [lngInput, setLngInput] = useState<string>('');
   const [locNameInput, setLocNameInput] = useState<string>('');
+  const [hazardLevel, setHazardLevel] = useState<'AUTO' | 'CRITICAL' | 'HIGH' | 'SAFE'>('AUTO');
   const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
@@ -47,6 +48,9 @@ export const PitchSimulationScreen: React.FC<PitchSimulationScreenProps> = ({ on
         setLatInput(parsed.lat?.toString() || '');
         setLngInput(parsed.lng?.toString() || '');
         setLocNameInput(parsed.name || '');
+        if (parsed.risk_level) {
+          setHazardLevel(parsed.risk_level as any);
+        }
       }
     } catch (e) {
       console.warn('Could not load current pitch coordinate');
@@ -79,26 +83,28 @@ export const PitchSimulationScreen: React.FC<PitchSimulationScreenProps> = ({ on
         riskResult = await performOfflineGeofenceCheck(lat, lng);
       }
 
+      const effectiveRiskLevel = hazardLevel !== 'AUTO' ? hazardLevel : riskResult.risk_level;
+
       const payload: SavedCoordinate = {
         id: Date.now().toString(),
         name,
         lat,
         lng,
         district: riskResult.district || 'Custom Location',
-        risk_level: riskResult.risk_level
+        risk_level: effectiveRiskLevel
       };
 
       // 2. Save active coordinate for monitoring
       await AsyncStorage.setItem(ACTIVE_COORD_KEY, JSON.stringify(payload));
 
-      const isRisk = riskResult.risk_level === 'CRITICAL' || riskResult.risk_level === 'HIGH' || riskResult.in_risk_zone;
+      const isRisk = effectiveRiskLevel === 'CRITICAL' || effectiveRiskLevel === 'HIGH';
 
       Alert.alert(
         '💾 Coordinates Saved!',
-        `Location: ${name}\nCoordinates: ${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E\nAI Risk Status: ${riskResult.risk_level} ${isRisk ? '🚨' : '✅'}\n\n${
+        `Location: ${name}\nCoordinates: ${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E\nAI Risk Status: ${effectiveRiskLevel} ${isRisk ? '🚨' : '✅'}\n\n${
           isRisk
-            ? 'This coordinate is in a HIGH-RISK HAZARD ZONE. The app will receive simulated emergency alert SMS dispatches and banner advisories.'
-            : 'This coordinate is in a SAFE ZONE. Alert banners will remain quiet under normal conditions.'
+            ? 'This coordinate is in a HIGH-RISK HAZARD ZONE. The app will trigger an incoming emergency alert SMS and sounding siren.'
+            : 'This coordinate is in a SAFE ZONE. Alert banners and siren will remain quiet under normal conditions.'
         }`,
         [
           {
@@ -128,18 +134,21 @@ export const PitchSimulationScreen: React.FC<PitchSimulationScreenProps> = ({ on
     setLocNameInput('Jatinga Ridge (NH-27 Pass)');
     setLatInput('25.180');
     setLngInput('92.760');
+    setHazardLevel('CRITICAL');
   };
 
   const setPresetHaflong = () => {
     setLocNameInput('Haflong Ghat Road Corridor');
     setLatInput('25.080');
     setLngInput('92.840');
+    setHazardLevel('HIGH');
   };
 
   const setPresetSafe = () => {
     setLocNameInput('Silchar Plain Sector (Safe)');
     setLatInput('24.833');
     setLngInput('92.778');
+    setHazardLevel('SAFE');
   };
 
   return (
@@ -158,7 +167,7 @@ export const PitchSimulationScreen: React.FC<PitchSimulationScreenProps> = ({ on
         <View style={styles.infoCard}>
           <Text style={styles.infoTitle}>📍 Real-Time Coordinate Sandbox</Text>
           <Text style={styles.infoSub}>
-            Set simulated coordinates to demonstrate how the geofence engine triggers incoming SMS dispatches and banner alerts when entering danger zones.
+            Set simulated coordinates to demonstrate how the geofence engine triggers incoming SMS dispatches and banner alerts with emergency siren when entering danger zones.
           </Text>
         </View>
 
@@ -218,13 +227,53 @@ export const PitchSimulationScreen: React.FC<PitchSimulationScreenProps> = ({ on
             </View>
           </View>
 
+          {/* Risk Level Override Selector */}
+          <Text style={styles.inputLabel}>Risk Level Classification</Text>
+          <View style={styles.riskSelectorGrid}>
+            <TouchableOpacity
+              style={[styles.riskChip, hazardLevel === 'AUTO' && styles.riskChipActiveAuto]}
+              onPress={() => setHazardLevel('AUTO')}
+            >
+              <Text style={[styles.riskChipText, hazardLevel === 'AUTO' && styles.riskChipTextActiveAuto]}>
+                🤖 Auto-Detect
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.riskChip, hazardLevel === 'CRITICAL' && styles.riskChipActiveRed]}
+              onPress={() => setHazardLevel('CRITICAL')}
+            >
+              <Text style={[styles.riskChipText, hazardLevel === 'CRITICAL' && styles.riskChipTextActiveRed]}>
+                🚨 Critical
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.riskChip, hazardLevel === 'HIGH' && styles.riskChipActiveOrange]}
+              onPress={() => setHazardLevel('HIGH')}
+            >
+              <Text style={[styles.riskChipText, hazardLevel === 'HIGH' && styles.riskChipTextActiveOrange]}>
+                ⚠️ High Risk
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.riskChip, hazardLevel === 'SAFE' && styles.riskChipActiveGreen]}
+              onPress={() => setHazardLevel('SAFE')}
+            >
+              <Text style={[styles.riskChipText, hazardLevel === 'SAFE' && styles.riskChipTextActiveGreen]}>
+                🛡️ Safe
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           <TouchableOpacity
             style={styles.primarySaveBtn}
             onPress={handleSaveCoordinate}
             disabled={loading}
           >
             <Text style={styles.primarySaveBtnText}>
-              {loading ? 'Evaluating Spatial Risk...' : '💾 Save Simulated Coordinates'}
+              {loading ? 'Evaluating Spatial Risk...' : '💾 Save & Activate Coordinates'}
             </Text>
           </TouchableOpacity>
 
@@ -391,5 +440,60 @@ const styles = StyleSheet.create({
     color: APP_COLORS.textSecondary,
     fontSize: 12,
     fontWeight: '700'
+  },
+  riskSelectorGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 14
+  },
+  riskChip: {
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: APP_COLORS.bgCardSubtle,
+    borderRadius: 8,
+    paddingVertical: 9,
+    paddingHorizontal: 10,
+    borderWidth: 1.5,
+    borderColor: APP_COLORS.borderDefault,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  riskChipText: {
+    color: APP_COLORS.textSecondary,
+    fontSize: 12,
+    fontWeight: '700'
+  },
+  riskChipActiveAuto: {
+    backgroundColor: '#E0F2FE',
+    borderColor: '#0284C7'
+  },
+  riskChipTextActiveAuto: {
+    color: '#0369A1',
+    fontWeight: '800'
+  },
+  riskChipActiveRed: {
+    backgroundColor: '#FEE2E2',
+    borderColor: '#DC2626'
+  },
+  riskChipTextActiveRed: {
+    color: '#B91C1C',
+    fontWeight: '800'
+  },
+  riskChipActiveOrange: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#D97706'
+  },
+  riskChipTextActiveOrange: {
+    color: '#B45309',
+    fontWeight: '800'
+  },
+  riskChipActiveGreen: {
+    backgroundColor: '#DCFCE7',
+    borderColor: '#16A34A'
+  },
+  riskChipTextActiveGreen: {
+    color: '#15803D',
+    fontWeight: '800'
   }
 });

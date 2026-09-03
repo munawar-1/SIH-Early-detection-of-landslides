@@ -83,14 +83,24 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           // Dynamically check if the user's active coordinate is evaluated as a risk zone
           const dynamicCheck = await performOfflineGeofenceCheck(currLat, currLng);
 
-          const isInsideRiskZone = dynamicCheck.risk_level === 'CRITICAL' || dynamicCheck.risk_level === 'HIGH' || dynamicCheck.in_risk_zone;
+          const isInsideRiskZone =
+            dynamicCheck.risk_level === 'CRITICAL' ||
+            dynamicCheck.risk_level === 'HIGH' ||
+            dynamicCheck.in_risk_zone ||
+            broadcast.threatLevel === 'CRITICAL' ||
+            broadcast.threatLevel === 'HIGH';
 
           if (isInsideRiskZone) {
-            console.log(`🚨 [DANGER POINT MATCHED] Coord (${currLat}, ${currLng}) evaluated as ${dynamicCheck.risk_level}. Adding SMS alert.`);
+            const evaluatedRisk =
+              dynamicCheck.risk_level === 'CRITICAL' || dynamicCheck.risk_level === 'HIGH'
+                ? dynamicCheck.risk_level
+                : (broadcast.threatLevel || 'HIGH');
+
+            console.log(`🚨 [DANGER POINT MATCHED] Coord (${currLat}, ${currLng}) evaluated as ${evaluatedRisk}. Triggering alert & siren.`);
             setLastAckBroadcastId(broadcast.broadcast_id);
             setAlertStatus({
               in_risk_zone: true,
-              risk_level: dynamicCheck.risk_level,
+              risk_level: evaluatedRisk,
               district: dynamicCheck.district || currDistrict,
               probability: dynamicCheck.probability || 0.94,
               advisory: broadcast.body || dynamicCheck.advisory || 'Extreme slope destabilization detected near active coordinate.',
@@ -99,9 +109,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               checked_at: new Date().toISOString()
             });
 
-            // Dispatch to SMS Inbox and trigger non-blocking banner
+            // Dispatch to SMS Inbox and trigger non-blocking banner with siren
             await smsService.addIncomingAlert({
-              threatLevel: dynamicCheck.risk_level,
+              threatLevel: evaluatedRisk,
               senderTag: 'DDMA DIMA HASAO',
               locationName: currDistrict,
               bodyEnglish: broadcast.body || `EMERGENCY ALERT: Severe landslide hazard detected near ${currDistrict}. Evacuate vulnerable slopes immediately.`
@@ -139,14 +149,30 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         setActivePitchCoord(parsed);
         setCurrentCoords({ lat: parsed.lat, lng: parsed.lng, districtName: parsed.name });
 
+        let statusResult: AlertCheckResponse;
         try {
-          const response = await checkAlert(parsed.lat, parsed.lng);
-          setAlertStatus(response);
-          setIsOffline(Boolean(response.isOfflineFallback));
+          statusResult = await checkAlert(parsed.lat, parsed.lng);
+          setIsOffline(Boolean(statusResult.isOfflineFallback));
         } catch (netErr) {
           setIsOffline(true);
-          const offlineResult = await performOfflineGeofenceCheck(parsed.lat, parsed.lng);
-          setAlertStatus(offlineResult);
+          statusResult = await performOfflineGeofenceCheck(parsed.lat, parsed.lng);
+        }
+
+        if (parsed.risk_level === 'CRITICAL' || parsed.risk_level === 'HIGH') {
+          statusResult.risk_level = parsed.risk_level as any;
+          statusResult.in_risk_zone = true;
+        }
+
+        setAlertStatus(statusResult);
+
+        // If high risk or critical, trigger emergency alert banner and siren
+        if (statusResult.risk_level === 'CRITICAL' || statusResult.risk_level === 'HIGH') {
+          await smsService.addIncomingAlert({
+            threatLevel: statusResult.risk_level,
+            senderTag: 'DDMA DIMA HASAO',
+            locationName: parsed.name || 'Dima Hasao Sector',
+            bodyEnglish: statusResult.advisory || `EMERGENCY ALERT: Severe landslide hazard detected near ${parsed.name}. Evacuate vulnerable slopes immediately.`
+          });
         }
         return;
       }
@@ -180,19 +206,26 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
       setCurrentCoords({ lat, lng, districtName });
 
+      let response: AlertCheckResponse;
       try {
-        const response = await checkAlert(lat, lng);
-        setAlertStatus({
-          ...response,
-          district: districtName
-        });
+        response = await checkAlert(lat, lng);
         setIsOffline(Boolean(response.isOfflineFallback));
       } catch (netError) {
         setIsOffline(true);
-        const offlineResult = await performOfflineGeofenceCheck(lat, lng);
-        setAlertStatus({
-          ...offlineResult,
-          district: districtName
+        response = await performOfflineGeofenceCheck(lat, lng);
+      }
+
+      setAlertStatus({
+        ...response,
+        district: districtName
+      });
+
+      if (response.risk_level === 'CRITICAL' || response.risk_level === 'HIGH') {
+        await smsService.addIncomingAlert({
+          threatLevel: response.risk_level,
+          senderTag: 'DDMA DIMA HASAO',
+          locationName: districtName,
+          bodyEnglish: response.advisory || `EMERGENCY ALERT: Severe landslide hazard detected near ${districtName}. Evacuate vulnerable slopes immediately.`
         });
       }
     } finally {

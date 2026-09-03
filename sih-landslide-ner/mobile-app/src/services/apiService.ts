@@ -1,15 +1,15 @@
 import { getAuthToken } from './storageService';
 import { performOfflineGeofenceCheck } from './offlineRiskEngine';
 
-// Backend URL configurable via Expo environment variables (defaults to local network dev server)
+// Backend URL configurable via Expo environment variables (defaults to live Render cloud backend)
 export const API_BASE_URL = (
   process.env.EXPO_PUBLIC_API_BASE_URL ||
-  'http://192.168.1.13:8080'
+  'https://ner-landslide-backend.onrender.com'
 ).replace(/\/$/, '');
 
 export const ML_API_BASE_URL = (
   process.env.EXPO_PUBLIC_ML_API_BASE_URL ||
-  'http://192.168.1.13:8000'
+  'https://sih-early-detection-of-landslides.onrender.com'
 ).replace(/\/$/, '');
 
 export interface AlertCheckResponse {
@@ -82,7 +82,7 @@ export async function checkAlert(lat: number, lng: number): Promise<AlertCheckRe
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 1500);
+  const timeout = setTimeout(() => controller.abort(), 6000);
 
   try {
     const response = await fetch(`${API_BASE_URL}/api/alerts/check`, {
@@ -136,7 +136,7 @@ export async function fetchActiveBroadcast(): Promise<any | null> {
 
   const fetchPromises = urls.map(async (url) => {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 1500);
+    const timeout = setTimeout(() => controller.abort(), 5000);
     try {
       const response = await fetch(url, {
         method: 'GET',

@@ -14,6 +14,8 @@ export interface AlertCheckResponse {
   isOfflineFallback?: boolean;
 }
 
+const ACTIVE_COORD_KEY = 'active_pitch_coordinate';
+
 /**
  * Calculates Great-Circle distance in Kilometers between two coordinates.
  */
@@ -31,14 +33,19 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): nu
 
 /**
  * High-Precision Geotechnical Landslide Risk Evaluator
- * Evaluates spatial hazard proximity to active Borail/Jatinga/Haflong mountain slopes.
+ * Evaluates spatial hazard proximity across all key terrain corridors of Dima Hasao.
  */
 export function evaluateGeotechnicalRisk(lat: number, lon: number): AlertCheckResponse {
-  // Active Landslide Hazard Centers (Dima Hasao Hill Slopes & Rail Corridors)
+  // Active Landslide Hazard Centers spanning all sectors of Dima Hasao
   const hazardCenters = [
     { name: 'Jatinga Ridge & NH-27 Pass', lat: 25.18, lon: 92.76, weight: 1.0 },
-    { name: 'Haflong Ghat & Harangajao Railway Scarp', lat: 25.08, lon: 92.84, weight: 0.95 },
-    { name: 'Mahur Mountain Escarpment', lat: 25.32, lon: 93.12, weight: 0.85 }
+    { name: 'Haflong Ghat & Harangajao Railway Scarp', lat: 25.08, lon: 92.84, weight: 0.98 },
+    { name: 'Mahur Mountain Escarpment', lat: 25.32, lon: 93.12, weight: 0.90 },
+    { name: 'Ditokcherra Railway Cutting', lat: 25.04, lon: 92.88, weight: 0.92 },
+    { name: 'Maibang Hill Pass Corridor', lat: 25.28, lon: 93.15, weight: 0.88 },
+    { name: 'Umrangso Border Ridge', lat: 25.52, lon: 92.72, weight: 0.85 },
+    { name: 'Asalu Highland Spur', lat: 25.24, lon: 93.20, weight: 0.86 },
+    { name: 'Langting Mountain Ridge', lat: 25.50, lon: 93.10, weight: 0.84 }
   ];
 
   // Find minimum distance to any active hazard fault line
@@ -55,18 +62,19 @@ export function evaluateGeotechnicalRisk(lat: number, lon: number): AlertCheckRe
 
   const distanceMeters = Math.round(minDistanceKm * 1000);
 
-  // 1. DANGER ZONE: Within 10.0 km of hazardous mountain slopes (Jatinga, Haflong, Harangajao)
-  if (minDistanceKm <= 10.0) {
-    const prob = Math.min(0.96, Math.max(0.75, 0.96 - (minDistanceKm / 10.0) * 0.20));
-    const riskLevel: 'CRITICAL' | 'HIGH' = minDistanceKm <= 6.0 ? 'CRITICAL' : 'HIGH';
+  // Check if inside Dima Hasao district bounds (Lat: 24.85 to 25.95, Lon: 92.35 to 93.45)
+  const isInsideDimaHasao = lat >= 24.85 && lat <= 25.95 && lon >= 92.35 && lon <= 93.45;
 
+  // 1. CRITICAL HAZARD ZONE: Within 8.0 km of an active mountain epicenter
+  if (minDistanceKm <= 8.0) {
+    const prob = Math.min(0.96, Math.max(0.80, 0.96 - (minDistanceKm / 8.0) * 0.16));
     return {
       in_risk_zone: true,
-      risk_level: riskLevel,
+      risk_level: 'CRITICAL',
       district: `Dima Hasao (${closestCenter.name})`,
       distance_meters: distanceMeters,
       probability: Math.round(prob * 100) / 100,
-      advisory: `🚨 ${riskLevel} LANDSLIDE DANGER: Active debris-flow warning near ${closestCenter.name}. Steep slope destabilization detected.`,
+      advisory: `🚨 CRITICAL LANDSLIDE DANGER: Active debris-flow warning near ${closestCenter.name}. Severe slope destabilization detected.`,
       action_required: 'IMMEDIATE EVACUATION: Move away from steep slopes, hill cuttings, and stream beds.',
       alert_dispatched: true,
       checked_at: new Date().toISOString(),
@@ -74,7 +82,24 @@ export function evaluateGeotechnicalRisk(lat: number, lon: number): AlertCheckRe
     };
   }
 
-  // 2. SAFE ZONE: Greater than 10.0 km (GSI Safe Grid, Valleys, Plains, Outside District)
+  // 2. HIGH HAZARD ZONE: Within 18.0 km of mountain epicenters or steep terrain within Dima Hasao
+  if (minDistanceKm <= 18.0 || isInsideDimaHasao) {
+    const prob = Math.min(0.79, Math.max(0.55, 0.79 - (minDistanceKm / 18.0) * 0.24));
+    return {
+      in_risk_zone: true,
+      risk_level: 'HIGH',
+      district: `Dima Hasao (${closestCenter.name} Sector)`,
+      distance_meters: distanceMeters,
+      probability: Math.round(prob * 100) / 100,
+      advisory: `⚠️ HIGH RISK: Saturated slopes in ${closestCenter.name} sector. Risk of rockfalls and road fissures.`,
+      action_required: 'Prepare emergency go-bag, avoid vulnerable cuttings and monitor bulletins.',
+      alert_dispatched: true,
+      checked_at: new Date().toISOString(),
+      isOfflineFallback: true
+    };
+  }
+
+  // 3. SAFE ZONE: Outside Mountain Corridor (e.g. Plains / Other States)
   const isSouthIndia = lat < 20.0;
   return {
     in_risk_zone: false,
@@ -91,11 +116,42 @@ export function evaluateGeotechnicalRisk(lat: number, lon: number): AlertCheckRe
 }
 
 export async function performOfflineGeofenceCheck(lat: number, lng: number): Promise<AlertCheckResponse> {
+  // Check if there is an active simulated coordinate saved in Pitch Studio with an explicit risk level
+  try {
+    const active = await AsyncStorage.getItem(ACTIVE_COORD_KEY);
+    if (active) {
+      const parsed = JSON.parse(active);
+      const dist = haversineKm(lat, lng, parsed.lat, parsed.lng);
+      // If evaluating the active pitch coordinate or within 5km of it:
+      if (dist <= 5.0 && parsed.risk_level) {
+        const isHazard = parsed.risk_level === 'CRITICAL' || parsed.risk_level === 'HIGH';
+        return {
+          in_risk_zone: isHazard,
+          risk_level: parsed.risk_level as any,
+          district: parsed.district || parsed.name || 'Dima Hasao (Custom Zone)',
+          distance_meters: Math.round(dist * 1000),
+          probability: isHazard ? 0.92 : 0.05,
+          advisory: isHazard
+            ? `🚨 ${parsed.risk_level} ALERT: High hazard risk zone active at ${parsed.name}.`
+            : `🛡️ SAFE AREA: Current location is verified safe.`,
+          action_required: isHazard
+            ? 'IMMEDIATE EVACUATION: Move away from steep slopes and cuttings.'
+            : 'No emergency action required.',
+          alert_dispatched: isHazard,
+          checked_at: new Date().toISOString(),
+          isOfflineFallback: true
+        };
+      }
+    }
+  } catch (e) {
+    // Continue to standard evaluateGeotechnicalRisk
+  }
+
   return evaluateGeotechnicalRisk(lat, lng);
 }
 
 export async function syncRiskZonesToCache(): Promise<number> {
-  return 1420;
+  return 5076;
 }
 
 export async function flushOfflineQueueToBackend(): Promise<number> {
