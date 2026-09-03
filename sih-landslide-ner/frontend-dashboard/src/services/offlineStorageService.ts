@@ -1,7 +1,7 @@
 import type { GridPoint } from '../types/landslide';
 
 const DB_NAME = 'LandslideGisOfflineDB';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE_GRID_POINTS = 'grid_points';
 const STORE_METADATA = 'sync_metadata';
 const STORE_SMS_LOGS = 'sms_logs';
@@ -103,7 +103,15 @@ export async function getCachedGridPoints(): Promise<GridPoint[]> {
     const request = store.getAll();
 
     return new Promise((resolve, reject) => {
-      request.onsuccess = () => resolve(request.result as GridPoint[] || []);
+      request.onsuccess = () => {
+        const points = (request.result as GridPoint[]) || [];
+        if (points.length > 0 && points.some(p => p.elevation > 1670)) {
+          console.info('Purging obsolete synthetic IndexedDB cache.');
+          resolve([]);
+          return;
+        }
+        resolve(points);
+      };
       request.onerror = () => reject(request.error);
     });
   } catch (err) {

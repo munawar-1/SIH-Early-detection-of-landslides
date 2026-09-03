@@ -62,7 +62,7 @@ import { saveGridPointsToCache, getCachedGridPoints } from './offlineStorageServ
 export async function fetchGridPredictions(): Promise<{ data: GridPoint[]; isFallback: boolean; isOfflineCache?: boolean }> {
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 2500);
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
 
     const response = await fetch(API_BASE_URL, {
       signal: controller.signal
