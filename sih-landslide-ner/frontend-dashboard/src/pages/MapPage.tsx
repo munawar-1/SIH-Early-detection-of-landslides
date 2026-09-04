@@ -6,7 +6,6 @@ import {
   Layers, 
   ChevronRight, 
   MapPin, 
-  Clock, 
   Flame, 
   Radio
 } from 'lucide-react';
@@ -96,10 +95,6 @@ export const MapPage: React.FC<MapPageProps> = ({
         <div className="hud-pill">
           <MapPin size={13} className="text-cyan" />
           <span>Dima Hasao District (Assam)</span>
-        </div>
-        <div className="hud-pill">
-          <Clock size={13} className="text-blue" />
-          <span>Forecast Horizon: <strong>{filters.forecastHorizon} Saturation</strong></span>
         </div>
         <div className="hud-pill">
           <Flame size={13} className="text-red" />
