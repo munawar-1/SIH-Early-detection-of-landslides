@@ -404,28 +404,22 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
           railGlow = 'rgba(234, 179, 8, 0.4)';
         }
 
-        if (isSelected) {
-          railColor = '#38bdf8';
-          railGlow = 'rgba(56, 189, 248, 0.9)';
-        }
-
         const glowLine = L.polyline(rail.coordinates, {
-          color: isSelected ? 'rgba(56, 189, 248, 0.9)' : railGlow,
-          weight: isSelected ? 18 : (rail.threatLevel === 'CRITICAL' ? 12 : 8),
-          opacity: isSelected ? 1.0 : 0.8,
+          color: railGlow,
+          weight: isSelected ? (rail.threatLevel === 'CRITICAL' ? 14 : 10) : (rail.threatLevel === 'CRITICAL' ? 12 : 8),
+          opacity: isSelected ? 0.9 : 0.8,
           lineCap: 'round',
-          lineJoin: 'round',
-          className: isSelected ? 'pulse-selected-corridor' : ''
+          lineJoin: 'round'
         });
 
         const baseTrack = L.polyline(rail.coordinates, {
-          color: isSelected ? '#0369a1' : '#1E2B18',
-          weight: isSelected ? 8 : 6,
+          color: '#1E2B18',
+          weight: isSelected ? 7 : 6,
           opacity: 0.95
         });
 
         const trackPattern = L.polyline(rail.coordinates, {
-          color: isSelected ? '#ffffff' : railColor,
+          color: railColor,
           weight: isSelected ? 5 : 4,
           dashArray: '8, 8',
           opacity: 1.0
@@ -437,10 +431,10 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
 
         trackPattern.bindTooltip(`
           <div class="gis-tooltip">
-            <strong style="color:${isSelected ? '#38bdf8' : railColor}">🚂 ${rail.name}</strong><br/>
+            <strong style="color:${railColor}">🚂 ${rail.name}</strong><br/>
             <span>Threat Level: <b>${rail.threatLevel}</b></span><br/>
             <span>Max Proximity Risk: <b>${Math.round(rail.maxNearbyProbability * 100)}%</b></span>
-            ${isSelected ? '<br/><span style="color:#38bdf8;font-weight:bold">● ACTIVE HIGHLIGHTED ROUTE</span>' : ''}
+            ${isSelected ? `<br/><span style="color:${railColor};font-weight:bold">● SELECTED CORRIDOR</span>` : ''}
           </div>
         `, { sticky: true, className: 'gis-custom-tooltip' });
 
@@ -465,20 +459,15 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
         else if (hwy.threatLevel === 'WARNING') hwyColor = '#ea580c';
         else if (hwy.threatLevel === 'WATCH') hwyColor = '#ca8a04';
 
-        if (isSelected) {
-          hwyColor = '#38bdf8';
-        }
-
         const glow = L.polyline(hwy.coordinates, {
-          color: isSelected ? 'rgba(56, 189, 248, 0.9)' : hwyColor,
-          weight: isSelected ? 18 : 10,
-          opacity: isSelected ? 1.0 : 0.35,
-          className: isSelected ? 'pulse-selected-corridor' : ''
+          color: hwyColor,
+          weight: isSelected ? 13 : 10,
+          opacity: isSelected ? 0.45 : 0.35
         });
 
         const hwyLine = L.polyline(hwy.coordinates, {
-          color: isSelected ? '#ffffff' : hwyColor,
-          weight: isSelected ? 6 : 4.5,
+          color: hwyColor,
+          weight: isSelected ? 5.5 : 4.5,
           opacity: 0.95
         });
 
@@ -488,9 +477,9 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
 
         hwyLine.bindTooltip(`
           <div class="gis-tooltip">
-            <strong style="color:${isSelected ? '#38bdf8' : hwyColor}">🛣️ ${hwy.name}</strong><br/>
+            <strong style="color:${hwyColor}">🛣️ ${hwy.name}</strong><br/>
             <span>Threat: <b>${hwy.threatLevel}</b> | Length: <b>${hwy.lengthKm} km</b></span>
-            ${isSelected ? '<br/><span style="color:#38bdf8;font-weight:bold">● ACTIVE HIGHLIGHTED ROUTE</span>' : ''}
+            ${isSelected ? `<br/><span style="color:${hwyColor};font-weight:bold">● SELECTED CORRIDOR</span>` : ''}
           </div>
         `, { sticky: true, className: 'gis-custom-tooltip' });
 

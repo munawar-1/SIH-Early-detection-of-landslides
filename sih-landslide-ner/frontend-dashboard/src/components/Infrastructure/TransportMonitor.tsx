@@ -20,6 +20,8 @@ interface TransportMonitorProps {
   onSelectSegment: (segment: TransportSegment) => void;
   onInspectSegment?: (segment: TransportSegment) => void;
   selectedSegmentId?: string;
+  mapSelectedSegmentId?: string | null;
+  onClearMapSelected?: () => void;
   activeCategory?: 'all' | 'railways' | 'highways';
   onCategoryChange?: (category: 'all' | 'railways' | 'highways') => void;
 }
@@ -30,6 +32,8 @@ export const TransportMonitor: React.FC<TransportMonitorProps> = ({
   onSelectSegment,
   onInspectSegment,
   selectedSegmentId,
+  mapSelectedSegmentId,
+  onClearMapSelected,
   activeCategory,
   onCategoryChange
 }) => {
@@ -44,14 +48,29 @@ export const TransportMonitor: React.FC<TransportMonitorProps> = ({
     }
   };
 
+  // ONLY scroll when intentionally triggered by a user clicking a route on the map
   useEffect(() => {
-    if (selectedSegmentId) {
-      const el = document.getElementById(`corridor-card-${selectedSegmentId}`);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (!mapSelectedSegmentId) return;
+
+    const el = document.getElementById(`corridor-card-${mapSelectedSegmentId}`);
+    const scrollParent = el?.closest('.corridor-cards-panel') as HTMLElement | null;
+    if (el && scrollParent) {
+      const parentRect = scrollParent.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+      // Only scroll the cards container if the card is not already in view
+      if (elRect.top < parentRect.top || elRect.bottom > parentRect.bottom) {
+        const offset = el.offsetTop - scrollParent.offsetTop;
+        scrollParent.scrollTo({
+          top: Math.max(0, offset - 10),
+          behavior: 'smooth'
+        });
       }
     }
-  }, [selectedSegmentId]);
+
+    if (onClearMapSelected) {
+      onClearMapSelected();
+    }
+  }, [mapSelectedSegmentId, onClearMapSelected]);
 
   const getThreatBadge = (level: TransportSegment['threatLevel']) => {
     switch (level) {
@@ -200,7 +219,7 @@ export const TransportMonitor: React.FC<TransportMonitorProps> = ({
             <div 
               key={seg.id} 
               id={`corridor-card-${seg.id}`}
-              className={`corridor-card card-spotlight ${seg.threatLevel.toLowerCase()} ${isSelected ? 'selected' : ''}`}
+              className={`corridor-card card-spotlight ${isRail ? 'is-railway railway' : 'is-highway highway'} ${seg.threatLevel.toLowerCase()} ${isSelected ? 'selected' : ''}`}
               onClick={() => onSelectSegment(seg)}
               onMouseMove={handleSpotlightMove}
             >
@@ -244,7 +263,13 @@ export const TransportMonitor: React.FC<TransportMonitorProps> = ({
 
               {/* Action Advisory Box */}
               <div className="advisory-box">
-                <AlertTriangle size={14} className="adv-icon" />
+                {seg.threatLevel === 'SAFE' ? (
+                  <CheckCircle2 size={14} className="adv-icon" />
+                ) : seg.threatLevel === 'CRITICAL' ? (
+                  <Flame size={14} className="adv-icon" />
+                ) : (
+                  <AlertTriangle size={14} className="adv-icon" />
+                )}
                 <span className="adv-text">{seg.advisory}</span>
               </div>
 

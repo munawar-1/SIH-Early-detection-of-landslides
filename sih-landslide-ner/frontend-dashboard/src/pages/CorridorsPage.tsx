@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { GridPoint, TransportSegment, StationNode, FilterState, HighwayMicroSegment } from '../types/landslide';
 import { LandslideMap } from '../components/Map/LandslideMap';
 import { TransportMonitor } from '../components/Infrastructure/TransportMonitor';
@@ -37,6 +37,24 @@ export const CorridorsPage: React.FC<CorridorsPageProps> = ({
     (selectedTransport as TransportSegment) || (railways.length > 0 ? railways[0] : null)
   );
 
+  const pageContainerRef = useRef<HTMLDivElement>(null);
+
+  // Guarantee that initial navigation to /corridors always starts at the top-left (scrollTop = 0, scrollLeft = 0)
+  useEffect(() => {
+    if (pageContainerRef.current) {
+      pageContainerRef.current.scrollTop = 0;
+      pageContainerRef.current.scrollLeft = 0;
+    }
+    const mainViewport = document.querySelector('.main-content-viewport');
+    if (mainViewport) {
+      mainViewport.scrollTop = 0;
+      mainViewport.scrollLeft = 0;
+    }
+    window.scrollTo(0, 0);
+    document.documentElement.scrollLeft = 0;
+    document.body.scrollLeft = 0;
+  }, []);
+
   // Sync if selectedTransport is updated externally
   useEffect(() => {
     if (selectedTransport && 'type' in selectedTransport) {
@@ -47,8 +65,17 @@ export const CorridorsPage: React.FC<CorridorsPageProps> = ({
   const criticalRailways = railways.filter(r => r.threatLevel === 'CRITICAL' || r.threatLevel === 'WARNING');
   const criticalHighways = highways.filter(h => h.threatLevel === 'CRITICAL' || h.threatLevel === 'WARNING');
 
+  // Track segment ID that was explicitly selected by intentional user interaction on the map
+  const [mapSelectedSegmentId, setMapSelectedSegmentId] = useState<string | null>(null);
+
   const handleSelectCorridor = (seg: TransportSegment) => {
     setSelectedCorridor(seg);
+    setMapSelectedSegmentId(null);
+  };
+
+  const handleSelectFromMap = (seg: TransportSegment) => {
+    setSelectedCorridor(seg);
+    setMapSelectedSegmentId(seg.id);
   };
 
   const handleInspectCorridor = (seg: TransportSegment) => {
@@ -57,7 +84,7 @@ export const CorridorsPage: React.FC<CorridorsPageProps> = ({
   };
 
   return (
-    <div className="corridors-page-container">
+    <div ref={pageContainerRef} className="corridors-page-container">
       {/* Page Header with Operational Summary Metrics */}
       <div className="page-header-bar">
         <div className="header-info">
@@ -84,22 +111,9 @@ export const CorridorsPage: React.FC<CorridorsPageProps> = ({
         </div>
       </div>
 
-      {/* Split-Screen Main Content: Exactly 2 Children (Corridor List on Left, Interactive Map on Right) */}
+      {/* Split-Screen Main Content: Map on Left (approx 58-60%), Corridor Monitor on Right (approx 40-42%) */}
       <div className="corridors-split-layout">
-        {/* Left Side: Detailed Corridor Threat Status Cards */}
-        <div className="corridor-cards-panel">
-          <TransportMonitor
-            railways={railways}
-            highways={highways}
-            onSelectSegment={handleSelectCorridor}
-            onInspectSegment={handleInspectCorridor}
-            selectedSegmentId={selectedCorridor?.id}
-            activeCategory={activeCategory}
-            onCategoryChange={setActiveCategory}
-          />
-        </div>
-
-        {/* Right Side: Dedicated Interactive Corridor Route Map */}
+        {/* Left Side: Dedicated Interactive Corridor Route Map */}
         <div className="corridor-map-panel">
           <div className="panel-top-banner">
             <div className="banner-left">
@@ -137,10 +151,25 @@ export const CorridorsPage: React.FC<CorridorsPageProps> = ({
               transportCategory={activeCategory}
               selectedTransport={selectedCorridor}
               onSelectTransport={seg => {
-                handleSelectCorridor(seg as TransportSegment);
+                handleSelectFromMap(seg as TransportSegment);
               }}
             />
           </div>
+        </div>
+
+        {/* Right Side: Detailed Corridor Threat Status Cards */}
+        <div className="corridor-cards-panel">
+          <TransportMonitor
+            railways={railways}
+            highways={highways}
+            onSelectSegment={handleSelectCorridor}
+            onInspectSegment={handleInspectCorridor}
+            selectedSegmentId={selectedCorridor?.id}
+            mapSelectedSegmentId={mapSelectedSegmentId}
+            onClearMapSelected={() => setMapSelectedSegmentId(null)}
+            activeCategory={activeCategory}
+            onCategoryChange={setActiveCategory}
+          />
         </div>
       </div>
     </div>
