@@ -58,6 +58,7 @@ export const MapPage: React.FC<MapPageProps> = ({
           onSelectPoint={onSelectPoint}
           onSelectTransport={onSelectTransport}
           onSelectStation={onSelectStation}
+          isSimulationActive={false}
         />
       </div>
 

@@ -24,6 +24,9 @@ interface LandslideMapProps {
   onSelectPoint?: (point: GridPoint) => void;
   onSelectTransport?: (segment: TransportSegment) => void;
   onSelectStation?: (station: StationNode) => void;
+  focusedHotspot?: { lat: number; lng: number; zoom: number; name: string } | null;
+  isSimulationActive?: boolean;
+  simulationScenario?: string;
 }
 
 export const LandslideMap: React.FC<LandslideMapProps> = ({
@@ -35,7 +38,10 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
   filters,
   onSelectPoint,
   onSelectTransport,
-  onSelectStation
+  onSelectStation,
+  focusedHotspot,
+  isSimulationActive,
+  simulationScenario
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -100,6 +106,15 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
       });
     }
   };
+
+  // Fly to focused hotspot when selected in simulation bar
+  useEffect(() => {
+    if (focusedHotspot && mapInstanceRef.current) {
+      mapInstanceRef.current.flyTo([focusedHotspot.lat, focusedHotspot.lng], focusedHotspot.zoom, {
+        duration: 1.4
+      });
+    }
+  }, [focusedHotspot]);
 
   const handleZoomIn = () => mapInstanceRef.current?.zoomIn();
   const handleZoomOut = () => mapInstanceRef.current?.zoomOut();
@@ -578,6 +593,17 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
           <ZoomOut size={16} />
         </button>
       </div>
+
+      {/* Simulation Mode Floating Watermark / HUD Badge */}
+      {isSimulationActive && (
+        <div className="map-simulation-watermark">
+          <span className="watermark-dot pulse-red" />
+          <div className="watermark-text">
+            <span className="watermark-title">🌧️ MONSOON PITCH SIMULATION ACTIVE</span>
+            <span className="watermark-sub">{simulationScenario === 'DISASTER_CLOUDBURST' ? 'May 2022 Disaster Benchmark (>300mm)' : 'Borail Range Infiltration Surge'} • Saturated Slope Failure</span>
+          </div>
+        </div>
+      )}
 
       {/* Floating Map HUD Legend */}
       <div className={`gis-map-legend ${isLegendOpen ? 'expanded' : 'collapsed'}`}>

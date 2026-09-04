@@ -1,7 +1,7 @@
 import type { GridPoint } from '../types/landslide';
 
 const DB_NAME = 'LandslideGisOfflineDB';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 const STORE_GRID_POINTS = 'grid_points';
 const STORE_METADATA = 'sync_metadata';
 const STORE_SMS_LOGS = 'sms_logs';
@@ -39,9 +39,11 @@ function openDB(): Promise<IDBDatabase> {
 
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
-      if (!db.objectStoreNames.contains(STORE_GRID_POINTS)) {
-        db.createObjectStore(STORE_GRID_POINTS, { keyPath: 'id' });
+      if (db.objectStoreNames.contains(STORE_GRID_POINTS)) {
+        db.deleteObjectStore(STORE_GRID_POINTS);
       }
+      db.createObjectStore(STORE_GRID_POINTS, { keyPath: 'id' });
+
       if (!db.objectStoreNames.contains(STORE_METADATA)) {
         db.createObjectStore(STORE_METADATA, { keyPath: 'key' });
       }

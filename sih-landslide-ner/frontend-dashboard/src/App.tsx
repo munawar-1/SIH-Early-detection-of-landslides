@@ -24,6 +24,7 @@ import {
 // Pages
 import { LandingPage } from './pages/LandingPage';
 import { MapPage } from './pages/MapPage';
+import { MonsoonSimulationPage } from './pages/MonsoonSimulationPage';
 import { CorridorsPage } from './pages/CorridorsPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { AlertsPage } from './pages/AlertsPage';
@@ -41,11 +42,12 @@ import {
   CheckCircle2,
   Info,
   Home,
-  Compass
+  Compass,
+  CloudRain
 } from 'lucide-react';
 import './index.css';
 
-type ActivePage = 'landing' | 'map' | 'corridors' | 'analytics' | 'alerts';
+type ActivePage = 'landing' | 'map' | 'simulation' | 'corridors' | 'analytics' | 'alerts';
 
 const DEFAULT_FILTERS: FilterState = {
   minRiskLevel: 'ALL',
@@ -257,6 +259,15 @@ export const App: React.FC = () => {
           </button>
 
           <button
+            className={`nav-link-btn sim-nav-btn ${currentPage === 'simulation' ? 'active' : ''}`}
+            onClick={() => setCurrentPage('simulation')}
+          >
+            <CloudRain size={15} className="text-red" />
+            <span>Monsoon Simulator</span>
+            <span className="sim-nav-badge">SIH Pitch</span>
+          </button>
+
+          <button
             className={`nav-link-btn ${currentPage === 'corridors' ? 'active' : ''}`}
             onClick={() => setCurrentPage('corridors')}
           >
@@ -361,6 +372,14 @@ export const App: React.FC = () => {
                 onSelectPoint={handleSelectPoint}
                 onSelectTransport={handleSelectTransport}
                 onSelectStation={handleSelectStation}
+              />
+            )}
+
+            {currentPage === 'simulation' && (
+              <MonsoonSimulationPage
+                baseGridPoints={gridPoints}
+                onNavigateToAlerts={() => setCurrentPage('alerts')}
+                onSelectPoint={handleSelectPoint}
               />
             )}
 

@@ -1,0 +1,479 @@
+/* ==========================================================================
+   DEDICATED DIMA HASAO MONSOON SIMULATION DASHBOARD STYLES
+   ========================================================================== */
+
+.simulation-dashboard-page {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 72px);
+  background: #090d16;
+  color: #f8fafc;
+  overflow: hidden;
+}
+
+/* 1. Top Control Console */
+.sim-control-console {
+  background: rgba(15, 23, 42, 0.96);
+  border-bottom: 2px solid #ef4444;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 20px rgba(239, 68, 68, 0.2);
+  padding: 12px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 10;
+}
+
+.sim-console-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.sim-title-cluster {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sim-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #fbbf24;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  width: fit-content;
+  text-transform: uppercase;
+}
+
+.sim-headline h2 {
+  font-size: 18px;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+}
+
+.sim-headline p {
+  font-size: 11px;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.sim-telemetry-strip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.telemetry-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 6px 14px;
+}
+
+.telemetry-box.red {
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #ef4444;
+}
+
+.telemetry-box.cyan {
+  border-color: rgba(2, 132, 199, 0.4);
+  color: #38bdf8;
+}
+
+.telemetry-box.amber {
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #f59e0b;
+}
+
+.telemetry-data {
+  display: flex;
+  flex-direction: column;
+}
+
+.telemetry-data .val {
+  font-size: 14px;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.1;
+}
+
+.telemetry-data .lbl {
+  font-size: 9.5px;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.btn-sim-broadcast {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+  color: #ffffff;
+  border: 1px solid #ef4444;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4);
+}
+
+.btn-sim-broadcast:hover {
+  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.6);
+  transform: translateY(-1px);
+}
+
+.btn-sim-broadcast.sent {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  border-color: #10b981;
+}
+
+/* 2. Controls Grid */
+.sim-controls-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1.2fr 1.8fr;
+  gap: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 10px;
+}
+
+.sim-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sim-card-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.sim-scenario-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.sim-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 6px 10px;
+  color: #cbd5e1;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s;
+}
+
+.sim-btn:hover {
+  background: #334155;
+  color: #ffffff;
+}
+
+.sim-btn.active.green {
+  background: rgba(16, 185, 129, 0.18);
+  border-color: #10b981;
+  color: #34d399;
+}
+
+.sim-btn.active.amber {
+  background: rgba(245, 158, 11, 0.18);
+  border-color: #f59e0b;
+  color: #fbbf24;
+}
+
+.sim-btn.active.red {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: #ef4444;
+  color: #fca5a5;
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.35);
+}
+
+.btn-txt {
+  display: flex;
+  flex-direction: column;
+}
+
+.btn-txt .main {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.btn-txt .sub {
+  font-size: 9px;
+  opacity: 0.75;
+}
+
+/* Slider Card */
+.slider-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rain-readout {
+  font-size: 12px;
+  font-weight: 800;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.15);
+  padding: 1px 7px;
+  border-radius: 4px;
+}
+
+.sim-slider {
+  width: 100%;
+  height: 6px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #10b981 0%, #f59e0b 40%, #ef4444 85%);
+  outline: none;
+  cursor: pointer;
+  margin: 6px 0 2px;
+}
+
+.sim-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
+  border: 2px solid #0284c7;
+  cursor: grab;
+}
+
+.slider-markers {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: #64748b;
+}
+
+/* Hotspots Card */
+.hotspot-btn-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.hotspot-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 9999px;
+  padding: 4px 9px;
+  color: #cbd5e1;
+  font-size: 10.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.hotspot-tag:hover {
+  background: #334155;
+  color: #ffffff;
+  border-color: #38bdf8;
+}
+
+.hotspot-tag.selected {
+  background: rgba(2, 132, 199, 0.25);
+  border-color: #38bdf8;
+  color: #38bdf8;
+}
+
+.hotspot-tag .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ef4444;
+}
+
+/* 3. Main Workspace */
+.sim-main-workspace {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.sim-map-canvas-wrap {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+
+/* 4. Side Diagnostics Panel */
+.sim-side-panel {
+  background: #0b1120;
+  border-left: 1px solid #1e293b;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+}
+
+.panel-card {
+  background: #131d31;
+  border: 1px solid #1e293b;
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.panel-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.panel-card-header h4 {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+.metric-diag-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.diag-item {
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 6px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.diag-item .lbl {
+  font-size: 9.5px;
+  color: #94a3b8;
+}
+
+.diag-item .val {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.corridor-alert-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #0f172a;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 8px;
+}
+
+.corridor-alert-item strong {
+  font-size: 11.5px;
+  color: #fca5a5;
+  display: block;
+}
+
+.corridor-alert-item p {
+  font-size: 10.5px;
+  color: #cbd5e1;
+  margin: 2px 0 0;
+  line-height: 1.35;
+}
+
+.pitch-tip-box {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.pitch-note {
+  font-size: 11px;
+  color: #fde68a;
+  line-height: 1.45;
+  font-style: italic;
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .sim-controls-grid {
+    grid-template-columns: 1fr;
+  }
+  .sim-main-workspace {
+    grid-template-columns: 1fr;
+  }
+  .sim-side-panel {
+    display: none;
+  }
+}
+
+/* Navbar item for dedicated simulation tab */
+.nav-link-btn.sim-nav-btn {
+  background: rgba(220, 38, 38, 0.08) !important;
+  border: 1px solid rgba(239, 68, 68, 0.35) !important;
+  color: #b91c1c !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nav-link-btn.sim-nav-btn:hover {
+  background: rgba(220, 38, 38, 0.16) !important;
+  border-color: #ef4444 !important;
+  color: #991b1b !important;
+  transform: translateY(-1px);
+}
+
+.nav-link-btn.sim-nav-btn.active {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+  color: #ffffff !important;
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 14px rgba(239, 68, 68, 0.45) !important;
+}
+
+.nav-link-btn.sim-nav-btn.active .sim-nav-badge {
+  background: #ffffff !important;
+  color: #b91c1c !important;
+}
+
+.sim-nav-badge {
+  font-size: 9px;
+  font-weight: 800;
+  padding: 1px 7px;
+  border-radius: 9999px;
+  background: #ef4444;
+  color: #ffffff;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+

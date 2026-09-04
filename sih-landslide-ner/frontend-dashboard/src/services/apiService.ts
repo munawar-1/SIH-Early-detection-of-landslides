@@ -13,18 +13,18 @@ export function generateFallbackGridData(): GridPoint[] {
   return (REAL_GRID_POINTS as any[]).map((p: any, idx: number) => {
     const slope = Number(p.slope) || 2.5;
     const slopeRad = (slope * Math.PI) / 180.0;
-    const rainDay1 = Number(p.rain_day1) || 14.5;
-    const rainDay2 = Number(p.rain_day2) || 24.0;
-    const rainDay3 = Number(p.rain_day3) || 18.0;
-    const rain7dApi = rainDay1 + (rainDay2 + rainDay3) * 0.84 + 14.0 * 0.50;
+    const rainDay1 = Number(p.rain_day1) || 0.0;
+    const rainDay2 = Number(p.rain_day2) || 0.0;
+    const rainDay3 = Number(p.rain_day3) || 0.0;
+    const rain7dApi = rainDay1 + (rainDay2 + rainDay3) * 0.84;
     const clayPercent = Number(p.clay_percent || p.clay_percentage) || 32.0;
     const sandPercent = Number(p.sand_percent) || 34.0;
     const siltPercent = Number(p.silt_percent) || 34.0;
     const bulkDensity = Number(p.bulk_density) || 1.15;
     const porePressureIndex = (Math.sin(slopeRad) * (rain7dApi * clayPercent)) / (100.0 * bulkDensity * (1.0 + sandPercent / 100.0));
-    const criticalBonus = slope >= 34.0 ? 0.42 : (slope >= 22.0 ? 0.22 : 0.0);
+    const criticalBonus = (slope >= 34.0 && rain7dApi > 50.0) ? 0.35 : 0.0;
     const baseProb = 1.0 / (1.0 + Math.exp(-0.25 * (porePressureIndex - 11.0)));
-    const adjustedProb = Math.min(0.96, Math.max(0.02, baseProb * 0.65 + criticalBonus));
+    const adjustedProb = Math.min(0.96, Math.max(0.01, baseProb * 0.40 + criticalBonus));
     const probability = Math.round(adjustedProb * 1000) / 1000;
     const riskLevel = probability >= 0.70 ? 'HIGH' : (probability >= 0.40 ? 'MODERATE' : 'LOW');
 
@@ -75,48 +75,42 @@ export async function fetchGridPredictions(): Promise<{ data: GridPoint[]; isFal
 
     const data: GridPoint[] = await response.json();
     if (data && Array.isArray(data) && data.length > 0) {
-      const hasRain = data.some(p => (p.rainDay1 + p.rainDay2 + p.rainDay3) > 0);
-      let finalData = data;
-      if (!hasRain) {
-        finalData = await fetchLiveOpenMeteoRainfall(data);
-      }
-      console.log(`✅ Loaded ${finalData.length} live ML prediction grid points.`);
-      saveGridPointsToCache(finalData);
-      return { data: finalData, isFallback: false, isOfflineCache: false };
+      console.log(`✅ Loaded ${data.length} live ML prediction grid points.`);
+      saveGridPointsToCache(data);
+      return { data, isFallback: false, isOfflineCache: false };
     }
     throw new Error('Empty response from backend');
   } catch (error) {
-    // Attempt offline retrieval from IndexedDB first
+    console.info('ℹ️ Querying authentic live Open-Meteo satellite weather API for Dima Hasao.');
+    let baseline = generateFallbackGridData();
+    try {
+      const livePoints = await fetchLiveOpenMeteoRainfall(baseline);
+      if (livePoints && livePoints.length > 0) {
+        saveGridPointsToCache(livePoints);
+        return { data: livePoints, isFallback: true, isOfflineCache: false };
+      }
+    } catch (e) {
+      console.warn('Live Open-Meteo query failed, checking offline cache:', e);
+    }
+
+    // Only fallback to IndexedDB if offline or Open-Meteo network query failed
     try {
       const cached = await getCachedGridPoints();
       if (cached && cached.length > 0) {
-        const hasValidRain = cached.some(p => (p.rainDay1 + p.rainDay2 + p.rainDay3) > 0);
-        if (hasValidRain) {
-          console.info(`📦 Loaded ${cached.length} grid points from local IndexedDB offline storage.`);
-          return { data: cached, isFallback: true, isOfflineCache: true };
-        }
+        console.info(`📦 Loaded ${cached.length} grid points from local IndexedDB offline storage.`);
+        return { data: cached, isFallback: true, isOfflineCache: true };
       }
     } catch (e) {
-      console.warn('Could not read from IndexedDB, falling back to procedural GIS baseline.');
+      console.warn('Could not read from IndexedDB, using zero-rainfall baseline.');
     }
 
-    console.info('ℹ️ Generating authentic Dima Hasao GIS baseline with live Open-Meteo weather.');
-    let fallback = generateFallbackGridData();
-    try {
-      const livePoints = await fetchLiveOpenMeteoRainfall(fallback);
-      if (livePoints && livePoints.length > 0) {
-        fallback = livePoints;
-      }
-    } catch (e) {
-      console.warn('Live Open-Meteo enrichment fallback used.');
-    }
-    saveGridPointsToCache(fallback);
-    return { data: fallback, isFallback: true, isOfflineCache: false };
+    return { data: baseline, isFallback: true, isOfflineCache: false };
   }
 }
 
 /**
- * Fetch real-time Open-Meteo precipitation directly for Dima Hasao geospatial hubs
+ * Fetch real-time Open-Meteo precipitation directly for Dima Hasao geospatial hubs.
+ * PURE REAL-TIME DATA: Zero synthetic inflation, zero hardcoded rainfall substitutes.
  */
 export async function fetchLiveOpenMeteoRainfall(points: GridPoint[]): Promise<GridPoint[]> {
   try {
@@ -126,12 +120,13 @@ export async function fetchLiveOpenMeteoRainfall(points: GridPoint[]): Promise<G
       `https://api.open-meteo.com/v1/forecast?latitude=${latSample}&longitude=${lonSample}&daily=precipitation_sum&forecast_days=3&timezone=auto`
     );
     
+    // Default true zero readings if weather API unreachable
     let weatherCenters = [
-      { lat: 25.18, lon: 92.76, d1: 14.5, d2: 26.0, d3: 22.0 }, // Haflong
-      { lat: 25.08, lon: 92.84, d1: 18.0, d2: 32.0, d3: 28.5 }, // Harangajao
-      { lat: 25.32, lon: 93.12, d1: 12.0, d2: 24.5, d3: 19.0 }, // Mahur
-      { lat: 25.52, lon: 92.72, d1: 9.5,  d2: 18.0, d3: 15.0 }, // Umrangso
-      { lat: 25.28, lon: 93.15, d1: 11.0, d2: 22.0, d3: 17.5 }  // Maibang
+      { lat: 25.18, lon: 92.76, d1: 0.0, d2: 0.0, d3: 0.0 }, // Haflong
+      { lat: 25.08, lon: 92.84, d1: 0.0, d2: 0.0, d3: 0.0 }, // Harangajao
+      { lat: 25.32, lon: 93.12, d1: 0.0, d2: 0.0, d3: 0.0 }, // Mahur
+      { lat: 25.52, lon: 92.72, d1: 0.0, d2: 0.0, d3: 0.0 }, // Umrangso
+      { lat: 25.28, lon: 93.15, d1: 0.0, d2: 0.0, d3: 0.0 }  // Maibang
     ];
 
     if (res.ok) {
@@ -140,15 +135,10 @@ export async function fetchLiveOpenMeteoRainfall(points: GridPoint[]): Promise<G
         weatherCenters = data.map((item: any, idx: number) => ({
           lat: [25.18, 25.08, 25.32, 25.52, 25.28][idx],
           lon: [92.76, 92.84, 93.12, 92.72, 93.15][idx],
-          d1: (item.daily?.precipitation_sum?.[0] && item.daily.precipitation_sum[0] > 0) 
-                ? item.daily.precipitation_sum[0] 
-                : [14.5, 18.0, 12.0, 9.5, 11.0][idx],
-          d2: (item.daily?.precipitation_sum?.[1] && item.daily.precipitation_sum[1] > 0) 
-                ? item.daily.precipitation_sum[1] 
-                : [26.0, 32.0, 24.5, 18.0, 22.0][idx],
-          d3: (item.daily?.precipitation_sum?.[2] && item.daily.precipitation_sum[2] > 0) 
-                ? item.daily.precipitation_sum[2] 
-                : [22.0, 28.5, 19.0, 15.0, 17.5][idx],
+          // PURE UNMODIFIED VALUES DIRECTLY FROM OPEN-METEO
+          d1: Number(item.daily?.precipitation_sum?.[0] ?? 0.0),
+          d2: Number(item.daily?.precipitation_sum?.[1] ?? 0.0),
+          d3: Number(item.daily?.precipitation_sum?.[2] ?? 0.0),
         }));
       }
     }
@@ -164,21 +154,20 @@ export async function fetchLiveOpenMeteoRainfall(points: GridPoint[]): Promise<G
         }
       }
 
-      // Orographic elevation factor: higher peaks experience enhanced precipitation
-      const elevFactor = Math.max(0, (p.elevation - 200) / 400.0);
-      const slopeFactor = p.slope >= 28.0 ? 3.5 : 0.0;
-      
-      const rainDay1 = Math.round((nearest.d1 + elevFactor * 2.2 + slopeFactor) * 10) / 10;
-      const rainDay2 = Math.round((nearest.d2 + elevFactor * 3.4 + slopeFactor * 1.5) * 10) / 10;
-      const rainDay3 = Math.round((nearest.d3 + elevFactor * 1.8 + slopeFactor * 0.8) * 10) / 10;
+      // Exact values directly from Open-Meteo (zero elevation or slope manipulation)
+      const rainDay1 = nearest.d1;
+      const rainDay2 = nearest.d2;
+      const rainDay3 = nearest.d3;
 
       const slopeRad = (p.slope * Math.PI) / 180.0;
-      const rain7dApi = rainDay1 + (rainDay2 + rainDay3) * 0.84 + 14.0 * 0.50;
+      const rain7dApi = rainDay1 + (rainDay2 + rainDay3) * 0.84;
       const sandPercent = Math.max(20.0, 100.0 - (p.clayPercent + 35.0));
       const porePressureIndex = (Math.sin(slopeRad) * (rain7dApi * p.clayPercent)) / (100.0 * 1.18 * (1.0 + sandPercent / 100.0));
-      const criticalBonus = p.slope >= 34.0 ? 0.42 : (p.slope >= 22.0 ? 0.22 : 0.0);
+      
+      // Landslide probability strictly driven by actual rainfall and slope mechanics
+      const criticalBonus = (p.slope >= 34.0 && rain7dApi > 50.0) ? 0.35 : 0.0;
       const baseProb = 1.0 / (1.0 + Math.exp(-0.25 * (porePressureIndex - 11.0)));
-      const adjustedProb = Math.min(0.96, Math.max(0.02, baseProb * 0.65 + criticalBonus));
+      const adjustedProb = Math.min(0.96, Math.max(0.01, baseProb * 0.40 + criticalBonus));
       const probability = Math.round(adjustedProb * 1000) / 1000;
       const riskLevel: 'HIGH' | 'MODERATE' | 'LOW' = probability >= 0.70 ? 'HIGH' : (probability >= 0.40 ? 'MODERATE' : 'LOW');
 
@@ -193,7 +182,7 @@ export async function fetchLiveOpenMeteoRainfall(points: GridPoint[]): Promise<G
       };
     });
   } catch (err) {
-    console.warn('Live Open-Meteo direct sync note, using calibrated baseline:', err);
+    console.warn('Live Open-Meteo direct sync error:', err);
     return points;
   }
 }
