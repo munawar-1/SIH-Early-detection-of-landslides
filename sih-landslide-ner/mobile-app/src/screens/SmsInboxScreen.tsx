@@ -282,24 +282,24 @@ export const SmsInboxScreen: React.FC<SmsInboxScreenProps> = ({ onOpenSos }) => 
                     )}
                   </View>
 
-                  {/* Row 2: Severity Badge & Timestamp */}
-                  <View style={styles.cardMetaRow}>
+                  {/* Row 2: Severity Badge */}
+                  <View style={styles.cardSeverityRow}>
                     <ThreatBadge level={item.threatLevel} size="small" />
-                    <Text style={styles.cardTimeText}>{getRelativeTime(item.timestampISO)}</Text>
                   </View>
 
-                  {/* Row 3: Location Pin (if available) */}
-                  {item.locationName && (
-                    <View style={styles.cardLocationRow}>
-                      <Text style={styles.locationSubText} numberOfLines={2}>
-                        📍 {item.locationName}
-                      </Text>
-                    </View>
-                  )}
+                  {/* Row 3: Location & Time */}
+                  <View style={styles.cardLocationTimeRow}>
+                    <Text style={styles.locationSubText} numberOfLines={1}>
+                      📍 {item.locationName || 'Dima Hasao Sector'}
+                    </Text>
+                    <Text style={styles.cardTimeText}>
+                      {getRelativeTime(item.timestampISO)}
+                    </Text>
+                  </View>
                 </View>
 
-                {/* SMS Body Text */}
-                <View style={[styles.messageBox, { backgroundColor: theme.cardBg }]}>
+                {/* SMS Body Text - Neutral Background */}
+                <View style={styles.messageBox}>
                   <Text style={styles.messageBodyText} numberOfLines={isExpanded ? undefined : 3}>
                     {localizedBody}
                   </Text>
@@ -618,13 +618,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: APP_COLORS.borderDefault,
-    marginBottom: 14,
+    marginBottom: 16,
     shadowColor: '#0F2417',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
     elevation: 2
   },
   alertCardUnread: {
@@ -640,38 +640,39 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 6
   },
-  cardMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 4
+  cardSeverityRow: {
+    marginBottom: 6
   },
-  cardLocationRow: {
-    marginTop: 2,
-    marginBottom: 2
+  cardLocationTimeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6
   },
   senderBadgeText: {
     color: APP_COLORS.textPrimary,
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
     flex: 1,
     marginRight: 8
   },
   locationSubText: {
     color: APP_COLORS.textMuted,
     fontSize: 11,
-    fontWeight: '600'
+    fontWeight: '600',
+    maxWidth: '65%'
   },
   cardTimeText: {
     color: APP_COLORS.textMuted,
     fontSize: 11,
-    fontWeight: '600'
+    fontWeight: '500'
   },
   messageBox: {
+    backgroundColor: APP_COLORS.bgCardSubtle,
     borderRadius: 10,
     padding: 12,
     borderWidth: 1,
-    borderColor: 'rgba(15, 36, 23, 0.08)'
+    borderColor: APP_COLORS.borderSubtle
   },
   messageBodyText: {
     color: APP_COLORS.textPrimary,

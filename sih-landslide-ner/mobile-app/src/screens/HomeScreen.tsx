@@ -260,6 +260,20 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     );
   };
 
+  const getRelativeTime = (timestampISO: string) => {
+    try {
+      const diffMs = Date.now() - new Date(timestampISO).getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+      const diffHours = Math.floor(diffMins / 60);
+      if (diffHours < 24) return `${diffHours}h ago`;
+      return `${Math.floor(diffHours / 24)}d ago`;
+    } catch {
+      return 'Recent';
+    }
+  };
+
   // Derived coherent risk presentation states to prevent contradictory UI
   const currentRiskLevel: ThreatLevel = (alertStatus?.risk_level as ThreatLevel) || 'SAFE';
   const isSafe = currentRiskLevel === 'SAFE';
@@ -371,16 +385,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             accessibilityRole="button"
             accessibilityLabel={`Latest SMS Alert from ${latestSms.senderTag}. Tap to open SMS Alerts Inbox.`}
           >
-            {/* Row 1: Source Tag, Sender, and Unread Count */}
-            <View style={styles.tickerTopRow}>
-              <View style={styles.tickerSourceCol}>
-                <Text style={[styles.tickerTag, { color: getThreatTheme(latestSms.threatLevel).accent }]}>
-                  OFFICIAL EMERGENCY ALERT
-                </Text>
-                <Text style={styles.tickerSender} numberOfLines={1}>
-                  {latestSms.senderTag}
-                </Text>
-              </View>
+            {/* OFFICIAL EMERGENCY ALERT */}
+            <Text style={[styles.tickerTag, { color: getThreatTheme(latestSms.threatLevel).accent }]}>
+              OFFICIAL EMERGENCY ALERT
+            </Text>
+
+            {/* Source */}
+            <Text style={styles.tickerSender} numberOfLines={1}>
+              {latestSms.senderTag}
+            </Text>
+
+            {/* Severity and Unread Chip */}
+            <View style={styles.tickerSeverityRow}>
+              <ThreatBadge level={latestSms.threatLevel} size="small" />
               {unreadSmsCount > 0 && (
                 <View style={styles.tickerUnreadChip}>
                   <Text style={styles.tickerUnreadText}>{unreadSmsCount} new</Text>
@@ -388,21 +405,22 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               )}
             </View>
 
-            {/* Row 2: Threat Badge and Location metadata */}
+            {/* Location and Time */}
             <View style={styles.tickerMetaRow}>
-              <ThreatBadge level={latestSms.threatLevel} size="small" />
-              {latestSms.locationName && (
-                <Text style={styles.tickerLocationText} numberOfLines={1}>
-                  📍 {latestSms.locationName}
-                </Text>
-              )}
+              <Text style={styles.tickerLocationText} numberOfLines={1}>
+                📍 {latestSms.locationName || 'Dima Hasao Sector'}
+              </Text>
+              <Text style={styles.tickerTimeText}>
+                {getRelativeTime(latestSms.timestampISO)}
+              </Text>
             </View>
 
+            {/* Message */}
             <Text style={styles.tickerBody} numberOfLines={2}>
               {latestSms.bodyEnglish}
             </Text>
 
-            {/* Row 3: Call-To-Action Link */}
+            {/* Call-To-Action Link */}
             <View style={styles.tickerFooterRow}>
               <Text style={styles.tickerLinkText}>Open Emergency SMS Inbox ➔</Text>
             </View>
@@ -432,7 +450,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         )}
 
         {/* Main Risk Status Card (Primary Emergency Assessment Element) */}
-        <View style={[styles.statusCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+        <View style={[styles.statusCard, { borderLeftColor: theme.accent, borderLeftWidth: 4 }]}>
           {/* Card Top Row: State Tag + ThreatBadge */}
           <View style={styles.cardHeaderRow}>
             <View style={styles.statusIndicatorWrapper}>
@@ -558,7 +576,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               )}
             </View>
             <Text style={styles.quickCardTitle}>Emergency SMS Inbox</Text>
-            <Text style={styles.quickCardSub}>Official multilingual broadcasts & advisory</Text>
+            <Text style={styles.quickCardSub}>Read official emergency alerts</Text>
           </TouchableOpacity>
 
           {/* SOS SMS Composer Card */}
@@ -575,7 +593,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               </View>
             </View>
             <Text style={styles.quickCardTitle}>Offline SOS Composer</Text>
-            <Text style={styles.quickCardSub}>Pre-fill rescue SMS with exact GPS</Text>
+            <Text style={styles.quickCardSub}>Send emergency GPS coordinates</Text>
           </TouchableOpacity>
         </View>
 
@@ -772,14 +790,21 @@ const styles = StyleSheet.create({
   tickerTag: {
     color: '#059669',
     fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.5
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    marginBottom: 2
   },
   tickerSender: {
     color: APP_COLORS.textPrimary,
-    fontSize: 13,
-    fontWeight: '800',
-    marginTop: 2
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 6
+  },
+  tickerSeverityRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6
   },
   tickerMetaRow: {
     flexDirection: 'row',
@@ -791,23 +816,28 @@ const styles = StyleSheet.create({
     color: APP_COLORS.textMuted,
     fontSize: 11,
     fontWeight: '600',
-    maxWidth: '55%'
+    maxWidth: '60%'
+  },
+  tickerTimeText: {
+    color: APP_COLORS.textMuted,
+    fontSize: 11,
+    fontWeight: '500'
   },
   tickerBody: {
     color: APP_COLORS.textSecondary,
-    fontSize: 12,
-    lineHeight: 17,
+    fontSize: 13,
+    lineHeight: 18,
     marginVertical: 4
   },
   tickerFooterRow: {
-    marginTop: 6,
+    marginTop: 8,
     paddingTop: 6,
     borderTopWidth: 1,
     borderTopColor: APP_COLORS.borderSubtle
   },
   tickerLinkText: {
     color: '#166534',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700'
   },
   tickerUnreadChip: {
@@ -872,15 +902,17 @@ const styles = StyleSheet.create({
     textAlign: 'center'
   },
   statusCard: {
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
-    borderWidth: 1.5,
-    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: APP_COLORS.borderDefault,
+    marginBottom: 16,
     shadowColor: '#0F2417',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 3
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2
   },
   cardHeaderRow: {
     flexDirection: 'row',

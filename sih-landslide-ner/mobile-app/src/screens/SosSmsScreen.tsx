@@ -413,31 +413,32 @@ const styles = StyleSheet.create({
     paddingBottom: 110
   },
   header: {
-    marginBottom: 14
+    marginBottom: 16
   },
   title: {
     color: APP_COLORS.textPrimary,
     fontSize: 19,
-    fontWeight: '800',
+    fontWeight: '700',
     letterSpacing: -0.2
   },
   subtitle: {
     color: APP_COLORS.textSecondary,
     fontSize: 12,
     lineHeight: 17,
+    fontWeight: '400',
     marginTop: 3
   },
   diagnosticsCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: APP_COLORS.borderDefault,
-    marginBottom: 14,
+    marginBottom: 16,
     shadowColor: '#0F2417',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
     elevation: 2
   },
   diagHeaderBlock: {
@@ -559,7 +560,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: APP_COLORS.borderDefault,
-    marginBottom: 14,
+    marginBottom: 16,
     shadowColor: '#0F2417',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
@@ -569,7 +570,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     color: APP_COLORS.textPrimary,
     fontSize: 14,
-    fontWeight: '800',
+    fontWeight: '700',
     marginBottom: 10
   },
   helplineRow: {
