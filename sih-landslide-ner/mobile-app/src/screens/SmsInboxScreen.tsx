@@ -164,45 +164,56 @@ export const SmsInboxScreen: React.FC<SmsInboxScreenProps> = ({ onOpenSos }) => 
       </View>
 
       {/* Filter Category Chips */}
-      <View style={styles.filterRow}>
-        <TouchableOpacity
-          style={[styles.filterChip, filter === 'ALL' && styles.filterChipActive]}
-          onPress={() => setFilter('ALL')}
-          accessibilityRole="tab"
-          accessibilityState={{ selected: filter === 'ALL' }}
+      <View style={styles.filterContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterScroll}
         >
-          <Text style={[styles.filterChipText, filter === 'ALL' && styles.filterChipTextActive]}>
-            All Alerts ({alerts.length})
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterChip, filter === 'ALL' && styles.filterChipActive]}
+            onPress={() => setFilter('ALL')}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: filter === 'ALL' }}
+          >
+            <Text style={[styles.filterChipText, filter === 'ALL' && styles.filterChipTextActive]}>
+              All Alerts ({alerts.length})
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.filterChip, filter === 'CRITICAL' && styles.filterChipActive]}
-          onPress={() => setFilter('CRITICAL')}
-          accessibilityRole="tab"
-          accessibilityState={{ selected: filter === 'CRITICAL' }}
-        >
-          <Text style={[styles.filterChipText, filter === 'CRITICAL' && styles.filterChipTextActive]}>
-            Critical Red ({alerts.filter((a) => a.threatLevel === 'CRITICAL').length})
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterChip, filter === 'CRITICAL' && styles.filterChipActive]}
+            onPress={() => setFilter('CRITICAL')}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: filter === 'CRITICAL' }}
+          >
+            <Text style={[styles.filterChipText, filter === 'CRITICAL' && styles.filterChipTextActive]}>
+              Critical Red ({alerts.filter((a) => a.threatLevel === 'CRITICAL').length})
+            </Text>
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.filterChip, filter === 'UNREAD' && styles.filterChipActive]}
-          onPress={() => setFilter('UNREAD')}
-          accessibilityRole="tab"
-          accessibilityState={{ selected: filter === 'UNREAD' }}
-        >
-          <Text style={[styles.filterChipText, filter === 'UNREAD' && styles.filterChipTextActive]}>
-            Unread ({unreadCount})
-          </Text>
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterChip, filter === 'UNREAD' && styles.filterChipActive]}
+            onPress={() => setFilter('UNREAD')}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: filter === 'UNREAD' }}
+          >
+            <Text style={[styles.filterChipText, filter === 'UNREAD' && styles.filterChipTextActive]}>
+              Unread ({unreadCount})
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
 
       {/* Language Selector Bar */}
       <View style={styles.langSelectorBar}>
         <Text style={styles.langBarLabel}>Language:</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.langScroll}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ flex: 1 }}
+          contentContainerStyle={styles.langScroll}
+        >
           {LANGUAGE_TABS.map((item) => {
             const isSelected = item.key === selectedLang;
             return (
@@ -377,49 +388,51 @@ const styles = StyleSheet.create({
     backgroundColor: APP_COLORS.bgSurface
   },
   disclaimerBar: {
-    backgroundColor: '#DCFCE7',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#86EFAC'
+    borderBottomColor: '#FCA5A5'
   },
   disclaimerText: {
-    color: '#166534',
+    color: '#991B1B',
     fontSize: 11,
-    fontWeight: '800',
-    textAlign: 'center'
+    fontWeight: '700',
+    textAlign: 'center',
+    letterSpacing: 0.2
   },
   topBar: {
-    paddingTop: Platform.OS === 'ios' ? 12 : 16,
     paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: APP_COLORS.borderDefault
   },
   pageTitle: {
+    fontSize: 18,
+    fontWeight: '800',
     color: APP_COLORS.textPrimary,
-    fontSize: 20,
-    fontWeight: '800'
+    letterSpacing: -0.2
   },
   pageSub: {
+    fontSize: 11,
     color: APP_COLORS.textMuted,
-    fontSize: 12,
-    marginTop: 2
+    marginTop: 2,
+    fontWeight: '500'
   },
   firstAidPillBtn: {
-    backgroundColor: '#DCFCE7',
+    backgroundColor: APP_COLORS.bgAccentMintSoft,
     paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#86EFAC',
     minHeight: 36,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   firstAidPillText: {
     color: '#166534',
@@ -434,21 +447,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: APP_COLORS.borderDefault,
     minHeight: 36,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   markReadBtnText: {
     color: APP_COLORS.textSecondary,
     fontSize: 12,
     fontWeight: '700'
   },
-  filterRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    gap: 8,
+  filterContainer: {
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: APP_COLORS.borderSubtle
+  },
+  filterScroll: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 8,
+    flexDirection: 'row',
+    alignItems: 'center'
   },
   filterChip: {
     paddingVertical: 6,
@@ -458,7 +475,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: APP_COLORS.borderDefault,
     minHeight: 34,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   filterChipActive: {
     backgroundColor: APP_COLORS.buttonPrimaryBg,
@@ -485,18 +503,23 @@ const styles = StyleSheet.create({
     color: APP_COLORS.textMuted,
     fontSize: 11,
     fontWeight: '700',
-    marginRight: 8
+    marginRight: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3
   },
   langScroll: {
-    gap: 6
+    gap: 6,
+    paddingRight: 8
   },
   langChip: {
-    paddingVertical: 4,
+    paddingVertical: 5,
     paddingHorizontal: 10,
     borderRadius: 8,
     backgroundColor: APP_COLORS.bgCardSubtle,
     borderWidth: 1,
-    borderColor: APP_COLORS.borderDefault
+    borderColor: APP_COLORS.borderDefault,
+    minHeight: 32,
+    justifyContent: 'center'
   },
   langChipActive: {
     backgroundColor: '#DCFCE7',
@@ -518,10 +541,15 @@ const styles = StyleSheet.create({
     padding: 32,
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: APP_COLORS.borderDefault,
-    marginTop: 20
+    marginTop: 20,
+    shadowColor: '#0F2417',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2
   },
   emptyTitle: {
     color: APP_COLORS.textPrimary,
@@ -537,26 +565,26 @@ const styles = StyleSheet.create({
   },
   alertCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1.5,
     borderColor: APP_COLORS.borderDefault,
     marginBottom: 14,
-    shadowColor: '#1E2B18',
+    shadowColor: '#0F2417',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
     elevation: 2
   },
   alertCardUnread: {
-    borderLeftWidth: 4,
+    borderLeftWidth: 5,
     borderLeftColor: '#DC2626'
   },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8
+    marginBottom: 10
   },
   senderCol: {
     flex: 1,
@@ -568,7 +596,7 @@ const styles = StyleSheet.create({
   },
   senderBadgeText: {
     color: APP_COLORS.textPrimary,
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '800'
   },
   unreadDot: {
@@ -581,21 +609,23 @@ const styles = StyleSheet.create({
   locationSubText: {
     color: APP_COLORS.textMuted,
     fontSize: 11,
-    marginTop: 2
+    marginTop: 2,
+    fontWeight: '500'
   },
   cardMetaRight: {
-    alignItems: 'flex-end'
+    alignItems: 'flex-end',
+    gap: 3
   },
   cardTimeText: {
     color: APP_COLORS.textMuted,
     fontSize: 10,
-    marginTop: 3
+    fontWeight: '500'
   },
   messageBox: {
-    borderRadius: 8,
-    padding: 10,
+    borderRadius: 10,
+    padding: 12,
     borderWidth: 1,
-    borderColor: 'rgba(30, 43, 24, 0.06)'
+    borderColor: 'rgba(15, 36, 23, 0.08)'
   },
   messageBodyText: {
     color: APP_COLORS.textPrimary,
@@ -607,8 +637,8 @@ const styles = StyleSheet.create({
   },
   precautionsBox: {
     backgroundColor: APP_COLORS.bgCardSubtle,
-    borderRadius: 8,
-    padding: 10,
+    borderRadius: 10,
+    padding: 12,
     borderWidth: 1,
     borderColor: APP_COLORS.borderDefault,
     marginBottom: 12
@@ -622,7 +652,7 @@ const styles = StyleSheet.create({
   precautionItem: {
     color: APP_COLORS.textSecondary,
     fontSize: 12,
-    lineHeight: 17,
+    lineHeight: 18,
     marginBottom: 4
   },
   actionsRow: {
@@ -634,7 +664,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: APP_COLORS.bgCardSubtle,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: 10,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: APP_COLORS.borderDefault,
@@ -650,10 +680,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: APP_COLORS.buttonPrimaryBg,
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: 10,
     alignItems: 'center',
     minHeight: 44,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    shadowColor: '#0F2417',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 2
   },
   actionBtnPrimaryText: {
     color: '#FFFFFF',
@@ -669,7 +704,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#DCFCE7',
     paddingVertical: 10,
-    borderRadius: 8,
+    borderRadius: 10,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#86EFAC',
@@ -695,11 +730,11 @@ const styles = StyleSheet.create({
     fontWeight: '600'
   },
   firstAidBannerCard: {
-    marginTop: 10,
-    marginBottom: 24,
+    marginTop: 6,
+    marginBottom: 20,
     backgroundColor: '#DCFCE7',
     borderRadius: 14,
-    padding: 16,
+    padding: 14,
     borderWidth: 1,
     borderColor: '#86EFAC',
     flexDirection: 'row',
@@ -713,22 +748,22 @@ const styles = StyleSheet.create({
     marginRight: 10
   },
   firstAidBannerIcon: {
-    fontSize: 26,
+    fontSize: 24,
     marginRight: 12
   },
   firstAidBannerTitle: {
     color: '#166534',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800'
   },
   firstAidBannerSub: {
     color: '#14532D',
     fontSize: 11,
-    lineHeight: 16,
+    lineHeight: 15,
     marginTop: 2
   },
   firstAidBannerArrow: {
-    fontSize: 18,
+    fontSize: 16,
     color: '#166534',
     fontWeight: '800'
   }

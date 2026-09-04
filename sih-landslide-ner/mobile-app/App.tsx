@@ -142,7 +142,7 @@ export default function App() {
                 <Text style={[styles.navIconText, activeTab === 'MONITOR' && styles.navIconTextActive]}>
                   🛰️
                 </Text>
-                <Text style={[styles.navLabel, activeTab === 'MONITOR' && styles.navLabelActive]}>
+                <Text style={[styles.navLabel, activeTab === 'MONITOR' && styles.navLabelActive]} numberOfLines={1}>
                   Monitor
                 </Text>
               </TouchableOpacity>
@@ -165,7 +165,7 @@ export default function App() {
                     </View>
                   )}
                 </View>
-                <Text style={[styles.navLabel, activeTab === 'SMS_INBOX' && styles.navLabelActive]}>
+                <Text style={[styles.navLabel, activeTab === 'SMS_INBOX' && styles.navLabelActive]} numberOfLines={1}>
                   SMS Alerts
                 </Text>
               </TouchableOpacity>
@@ -181,7 +181,7 @@ export default function App() {
                 <Text style={[styles.navIconText, activeTab === 'SOS' && styles.navIconTextActive]}>
                   🆘
                 </Text>
-                <Text style={[styles.navLabel, activeTab === 'SOS' && styles.navLabelActive]}>
+                <Text style={[styles.navLabel, activeTab === 'SOS' && styles.navLabelActive]} numberOfLines={1}>
                   SOS SMS
                 </Text>
               </TouchableOpacity>
@@ -234,28 +234,35 @@ const styles = StyleSheet.create({
     paddingTop: 6,
     justifyContent: 'space-around',
     alignItems: 'center',
-    shadowColor: '#1E2B18',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 4
+    shadowColor: '#0F2417',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 8
   },
   navItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    height: '100%'
+    paddingVertical: 5,
+    paddingHorizontal: 2,
+    borderRadius: 14,
+    marginHorizontal: 3,
+    borderWidth: 1,
+    borderColor: 'transparent'
   },
   navItemActive: {
-    borderTopWidth: 2.5,
-    borderTopColor: '#1E2B18'
+    backgroundColor: APP_COLORS.bgAccentMintSoft,
+    borderColor: '#A7F3D0'
   },
   navIconBadgeWrapper: {
-    position: 'relative'
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center'
   },
   navIconText: {
     fontSize: 20,
-    opacity: 0.6
+    opacity: 0.55
   },
   navIconTextActive: {
     opacity: 1
@@ -264,7 +271,8 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: APP_COLORS.textMuted,
     fontWeight: '600',
-    marginTop: 2
+    marginTop: 3,
+    letterSpacing: 0.2
   },
   navLabelActive: {
     color: APP_COLORS.textPrimary,
@@ -275,7 +283,7 @@ const styles = StyleSheet.create({
     top: -4,
     right: -10,
     backgroundColor: '#DC2626',
-    borderRadius: 9,
+    borderRadius: 10,
     minWidth: 18,
     height: 18,
     justifyContent: 'center',

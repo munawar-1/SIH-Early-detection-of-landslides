@@ -1,11 +1,12 @@
 import React from 'react';
-import { Text, View, ViewStyle, TextStyle } from 'react-native';
-import { ThreatLevel, getThreatTheme } from '../constants/theme';
+import { Text, View, ViewStyle, TextStyle, StyleSheet } from 'react-native';
+import { ThreatLevel, getThreatTheme, RADIUS, SPACING } from '../constants/theme';
 
 export interface ThreatBadgeProps {
   level: ThreatLevel | string;
   size?: 'small' | 'medium' | 'large';
   showDemoPrefix?: boolean;
+  showDot?: boolean;
   style?: ViewStyle;
 }
 
@@ -13,6 +14,7 @@ export const ThreatBadge: React.FC<ThreatBadgeProps> = ({
   level,
   size = 'medium',
   showDemoPrefix = false,
+  showDot = true,
   style
 }) => {
   const theme = getThreatTheme(level);
@@ -24,17 +26,27 @@ export const ThreatBadge: React.FC<ThreatBadgeProps> = ({
     backgroundColor: theme.badgeBg,
     borderColor: theme.badgeBorder,
     borderWidth: 1,
-    borderRadius: isSmall ? 6 : isLarge ? 12 : 8,
-    paddingHorizontal: isSmall ? 8 : isLarge ? 14 : 10,
-    paddingVertical: isSmall ? 3 : isLarge ? 6 : 4,
+    borderRadius: isSmall ? RADIUS.sm : isLarge ? RADIUS.md : RADIUS.sm + 2,
+    paddingHorizontal: isSmall ? 7 : isLarge ? 12 : 9,
+    paddingVertical: isSmall ? 3 : isLarge ? 5 : 4,
+    flexDirection: 'row',
+    alignItems: 'center',
     alignSelf: 'flex-start'
+  };
+
+  const dotStyle: ViewStyle = {
+    width: isSmall ? 5 : isLarge ? 7 : 6,
+    height: isSmall ? 5 : isLarge ? 7 : 6,
+    borderRadius: RADIUS.pill,
+    backgroundColor: theme.accent,
+    marginRight: isSmall ? 4 : 6
   };
 
   const textStyle: TextStyle = {
     color: theme.text,
-    fontSize: isSmall ? 10 : isLarge ? 13 : 11,
+    fontSize: isSmall ? 10 : isLarge ? 12 : 11,
     fontWeight: '800',
-    letterSpacing: 0.4,
+    letterSpacing: 0.5,
     textTransform: 'uppercase'
   };
 
@@ -43,7 +55,12 @@ export const ThreatBadge: React.FC<ThreatBadgeProps> = ({
     : theme.label;
 
   return (
-    <View style={[badgeStyle, style]} accessibilityRole="text" accessibilityLabel={`Threat Level: ${theme.label}`}>
+    <View
+      style={[badgeStyle, style]}
+      accessibilityRole="text"
+      accessibilityLabel={`Threat Level: ${theme.label}`}
+    >
+      {showDot && <View style={dotStyle} />}
       <Text style={textStyle}>{displayText}</Text>
     </View>
   );

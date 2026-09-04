@@ -179,9 +179,9 @@ export const SosSmsScreen: React.FC = () => {
               <Text style={styles.diagValue}>{batteryPct}% Power</Text>
             </View>
 
-            <View style={styles.diagItem}>
-              <Text style={styles.diagLabel}>Nearest Refuge</Text>
-              <Text style={styles.diagValue} numberOfLines={1}>{nearestShelter}</Text>
+            <View style={[styles.diagItem, styles.diagItemFull]}>
+              <Text style={styles.diagLabel}>Nearest Refuge / Safe Shelter</Text>
+              <Text style={styles.diagValue}>{nearestShelter}</Text>
             </View>
           </View>
         </View>
@@ -362,8 +362,8 @@ const styles = StyleSheet.create({
   },
   disclaimerBar: {
     backgroundColor: '#DCFCE7',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    paddingVertical: 7,
+    paddingHorizontal: 14,
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#86EFAC'
@@ -372,43 +372,45 @@ const styles = StyleSheet.create({
     color: '#166534',
     fontSize: 11,
     fontWeight: '800',
-    textAlign: 'center'
+    textAlign: 'center',
+    letterSpacing: 0.2
   },
   content: {
     padding: 16
   },
   header: {
-    marginBottom: 16
+    marginBottom: 14
   },
   title: {
     color: APP_COLORS.textPrimary,
-    fontSize: 20,
-    fontWeight: '800'
+    fontSize: 19,
+    fontWeight: '800',
+    letterSpacing: -0.2
   },
   subtitle: {
     color: APP_COLORS.textSecondary,
-    fontSize: 13,
-    lineHeight: 18,
-    marginTop: 4
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: 3
   },
   diagnosticsCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1.5,
     borderColor: APP_COLORS.borderDefault,
-    marginBottom: 16,
-    shadowColor: '#1E2B18',
+    marginBottom: 14,
+    shadowColor: '#0F2417',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
     elevation: 2
   },
   diagHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12
+    marginBottom: 10
   },
   diagTitle: {
     color: APP_COLORS.textPrimary,
@@ -418,26 +420,32 @@ const styles = StyleSheet.create({
   refreshGpsText: {
     color: '#059669',
     fontSize: 12,
-    fontWeight: '800'
+    fontWeight: '700'
   },
   diagGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10
+    gap: 8
   },
   diagItem: {
-    width: '48%',
+    flex: 1,
+    minWidth: '45%',
     backgroundColor: APP_COLORS.bgCardSubtle,
-    padding: 10,
-    borderRadius: 8,
+    padding: 12,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: APP_COLORS.borderSubtle
+  },
+  diagItemFull: {
+    width: '100%',
+    minWidth: '100%'
   },
   diagLabel: {
     color: APP_COLORS.textMuted,
     fontSize: 10,
     fontWeight: '700',
-    textTransform: 'uppercase'
+    textTransform: 'uppercase',
+    letterSpacing: 0.3
   },
   diagValue: {
     color: APP_COLORS.textPrimary,
@@ -451,7 +459,7 @@ const styles = StyleSheet.create({
     padding: 14,
     borderWidth: 1,
     borderColor: '#86EFAC',
-    marginBottom: 16,
+    marginBottom: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between'
@@ -478,9 +486,12 @@ const styles = StyleSheet.create({
   },
   firstAidBadge: {
     backgroundColor: '#166534',
-    paddingVertical: 5,
-    paddingHorizontal: 8,
-    borderRadius: 6
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    minHeight: 32,
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   firstAidBadgeText: {
     color: '#FFFFFF',
@@ -489,12 +500,12 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 14,
+    borderRadius: 16,
+    padding: 16,
     borderWidth: 1,
     borderColor: APP_COLORS.borderDefault,
-    marginBottom: 16,
-    shadowColor: '#1E2B18',
+    marginBottom: 14,
+    shadowColor: '#0F2417',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 6,
@@ -515,11 +526,13 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: '46%',
     backgroundColor: '#DCFCE7',
-    paddingVertical: 10,
-    borderRadius: 8,
+    paddingVertical: 11,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: '#86EFAC',
-    alignItems: 'center'
+    alignItems: 'center',
+    minHeight: 44,
+    justifyContent: 'center'
   },
   helplineBtnAmb: {
     backgroundColor: '#FEE2E2',
@@ -537,12 +550,15 @@ const styles = StyleSheet.create({
     marginBottom: 10
   },
   editContactBtn: {
-    paddingVertical: 4,
-    paddingHorizontal: 8,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
     backgroundColor: APP_COLORS.bgCardSubtle,
-    borderRadius: 6,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: APP_COLORS.borderDefault
+    borderColor: APP_COLORS.borderDefault,
+    minHeight: 32,
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   editContactBtnText: {
     color: APP_COLORS.textPrimary,
@@ -551,7 +567,7 @@ const styles = StyleSheet.create({
   },
   activeContactBox: {
     backgroundColor: APP_COLORS.bgCardSubtle,
-    borderRadius: 8,
+    borderRadius: 10,
     padding: 12,
     borderWidth: 1,
     borderColor: APP_COLORS.borderDefault,
@@ -575,23 +591,26 @@ const styles = StyleSheet.create({
   inputLabel: {
     color: APP_COLORS.textSecondary,
     fontSize: 12,
-    fontWeight: '600',
-    marginBottom: 6
+    fontWeight: '700',
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3
   },
   textInput: {
     backgroundColor: APP_COLORS.bgCardSubtle,
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    borderRadius: 10,
+    paddingHorizontal: 14,
     paddingVertical: 10,
     color: APP_COLORS.textPrimary,
     fontSize: 14,
     borderWidth: 1,
-    borderColor: APP_COLORS.borderDefault
+    borderColor: APP_COLORS.borderDefault,
+    minHeight: 46
   },
   previewBox: {
     backgroundColor: '#FFFBEB',
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: 10,
+    padding: 14,
     borderWidth: 1,
     borderColor: '#FCD34D',
     borderLeftWidth: 4,
@@ -612,28 +631,29 @@ const styles = StyleSheet.create({
   primarySosBtn: {
     backgroundColor: '#DC2626',
     height: 52,
-    borderRadius: 12,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
     shadowColor: '#DC2626',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 4
+    shadowOpacity: 0.28,
+    shadowRadius: 10,
+    elevation: 6
   },
   primarySosBtnText: {
     color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '800'
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 0.3
   },
   infoNotice: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    padding: 12,
+    borderRadius: 12,
+    padding: 14,
     borderWidth: 1,
     borderColor: APP_COLORS.borderDefault,
-    marginBottom: 20
+    marginBottom: 16
   },
   infoNoticeTitle: {
     color: APP_COLORS.textPrimary,
@@ -648,23 +668,28 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(30, 43, 24, 0.45)',
+    backgroundColor: 'rgba(15, 36, 23, 0.45)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24
   },
   modalContent: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 18,
+    padding: 22,
     borderWidth: 1,
     borderColor: APP_COLORS.borderDefault,
     width: '100%',
-    maxWidth: 380
+    maxWidth: 380,
+    shadowColor: '#0F2417',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    elevation: 6
   },
   modalTitle: {
     color: APP_COLORS.textPrimary,
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '800',
     marginBottom: 6
   },
@@ -676,14 +701,15 @@ const styles = StyleSheet.create({
   },
   modalInput: {
     backgroundColor: APP_COLORS.bgCardSubtle,
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    borderRadius: 10,
+    paddingHorizontal: 14,
     paddingVertical: 10,
     color: APP_COLORS.textPrimary,
-    fontSize: 16,
+    fontSize: 15,
     borderWidth: 1,
     borderColor: '#059669',
-    marginBottom: 16
+    marginBottom: 16,
+    minHeight: 46
   },
   modalButtonsRow: {
     flexDirection: 'row',
@@ -692,8 +718,8 @@ const styles = StyleSheet.create({
   modalCancelBtn: {
     flex: 1,
     backgroundColor: APP_COLORS.bgCardSubtle,
-    height: 44,
-    borderRadius: 8,
+    height: 46,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
@@ -707,10 +733,15 @@ const styles = StyleSheet.create({
   modalSaveBtn: {
     flex: 1,
     backgroundColor: APP_COLORS.buttonPrimaryBg,
-    height: 44,
-    borderRadius: 8,
+    height: 46,
+    borderRadius: 10,
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    shadowColor: '#0F2417',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 2
   },
   modalSaveBtnText: {
     color: '#FFFFFF',

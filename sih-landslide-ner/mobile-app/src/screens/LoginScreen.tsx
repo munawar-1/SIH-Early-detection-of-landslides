@@ -180,33 +180,35 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     alignItems: 'center',
-    marginBottom: 24
+    marginBottom: 20
   },
   badgeIcon: {
     backgroundColor: APP_COLORS.bgAccentMintSoft,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: '#86EFAC',
-    marginBottom: 12
+    marginBottom: 10
   },
   badgeText: {
     color: '#166534',
-    fontSize: 12,
-    fontWeight: '800'
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '800',
     color: APP_COLORS.textPrimary,
-    textAlign: 'center'
+    textAlign: 'center',
+    letterSpacing: -0.3
   },
   subtitle: {
     fontSize: 12,
     color: APP_COLORS.textSecondary,
     textAlign: 'center',
-    marginTop: 4
+    marginTop: 3
   },
   card: {
     backgroundColor: '#FFFFFF',
@@ -214,22 +216,23 @@ const styles = StyleSheet.create({
     padding: 20,
     borderWidth: 1,
     borderColor: APP_COLORS.borderDefault,
-    shadowColor: '#1E2B18',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
+    shadowColor: '#0F2417',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
     shadowRadius: 10,
     elevation: 3
   },
   cardTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '800',
     color: APP_COLORS.textPrimary,
-    marginBottom: 4
+    marginBottom: 3
   },
   cardDescription: {
     fontSize: 12,
     color: APP_COLORS.textSecondary,
-    marginBottom: 16
+    marginBottom: 14,
+    lineHeight: 16
   },
   infoBanner: {
     backgroundColor: '#DCFCE7',
@@ -245,14 +248,15 @@ const styles = StyleSheet.create({
     fontWeight: '700'
   },
   inputGroup: {
-    marginBottom: 16
+    marginBottom: 14
   },
   label: {
     fontSize: 11,
     fontWeight: '700',
     color: APP_COLORS.textSecondary,
     marginBottom: 6,
-    textTransform: 'uppercase'
+    textTransform: 'uppercase',
+    letterSpacing: 0.3
   },
   phoneInputRow: {
     flexDirection: 'row',
@@ -265,7 +269,7 @@ const styles = StyleSheet.create({
   },
   countryCode: {
     color: '#166534',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
     marginRight: 10
   },
@@ -273,7 +277,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 48,
     color: APP_COLORS.textPrimary,
-    fontSize: 16
+    fontSize: 15
   },
   otpInput: {
     backgroundColor: APP_COLORS.bgCardSubtle,
@@ -300,19 +304,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 4,
-    shadowColor: '#1E2B18',
+    shadowColor: '#0F2417',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
     elevation: 2
   },
   buttonText: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '800'
+    fontWeight: '800',
+    letterSpacing: 0.2
   },
   secondaryButton: {
-    marginTop: 14,
+    marginTop: 12,
     alignItems: 'center',
     paddingVertical: 6
   },
@@ -325,6 +330,6 @@ const styles = StyleSheet.create({
     color: APP_COLORS.textMuted,
     fontSize: 11,
     textAlign: 'center',
-    marginTop: 24
+    marginTop: 20
   }
 });

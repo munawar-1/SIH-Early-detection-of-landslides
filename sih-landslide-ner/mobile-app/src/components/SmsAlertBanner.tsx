@@ -271,7 +271,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 6
+    marginTop: 6,
+    flexWrap: 'wrap',
+    gap: 6
   },
   timeText: {
     color: APP_COLORS.textMuted,
@@ -281,15 +283,19 @@ const styles = StyleSheet.create({
   actionButtons: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6
+    gap: 6,
+    flexWrap: 'wrap'
   },
   firstAidBtn: {
     backgroundColor: '#DCFCE7',
-    paddingVertical: 5,
-    paddingHorizontal: 8,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#86EFAC'
+    borderColor: '#86EFAC',
+    minHeight: 36,
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   firstAidBtnText: {
     color: '#166534',
@@ -297,18 +303,24 @@ const styles = StyleSheet.create({
     fontWeight: '800'
   },
   dismissBtn: {
-    paddingVertical: 5,
-    paddingHorizontal: 8
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    minHeight: 36,
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   dismissBtnText: {
     color: APP_COLORS.textMuted,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '600'
   },
   viewSmsBtn: {
-    paddingVertical: 6,
+    paddingVertical: 7,
     paddingHorizontal: 12,
-    borderRadius: 8
+    borderRadius: 8,
+    minHeight: 36,
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   viewSmsBtnText: {
     color: '#FFFFFF',

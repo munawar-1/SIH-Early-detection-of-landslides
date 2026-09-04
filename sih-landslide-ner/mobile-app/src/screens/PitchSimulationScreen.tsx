@@ -310,17 +310,21 @@ const styles = StyleSheet.create({
     backgroundColor: APP_COLORS.bgCardSubtle,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: APP_COLORS.borderDefault
+    borderColor: APP_COLORS.borderDefault,
+    minHeight: 34,
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   backBtnText: {
     color: APP_COLORS.textPrimary,
-    fontSize: 13,
-    fontWeight: '700'
+    fontSize: 12,
+    fontWeight: '800'
   },
   headerTitle: {
     color: APP_COLORS.textPrimary,
     fontSize: 16,
-    fontWeight: '800'
+    fontWeight: '800',
+    letterSpacing: -0.2
   },
   scrollContent: {
     padding: 16
@@ -329,50 +333,56 @@ const styles = StyleSheet.create({
     backgroundColor: '#DCFCE7',
     borderRadius: 14,
     padding: 14,
-    marginBottom: 16,
+    marginBottom: 14,
     borderWidth: 1,
     borderColor: '#86EFAC'
   },
   infoTitle: {
     color: '#166534',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
     marginBottom: 4
   },
   infoSub: {
     color: '#14532D',
     fontSize: 12,
-    lineHeight: 18
+    lineHeight: 17
   },
   formCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    padding: 16,
-    marginBottom: 16,
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 14,
     borderWidth: 1,
     borderColor: APP_COLORS.borderDefault,
-    shadowColor: '#1E2B18',
+    shadowColor: '#0F2417',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
     elevation: 2
   },
   formTitle: {
     color: APP_COLORS.textPrimary,
     fontSize: 14,
     fontWeight: '800',
-    marginBottom: 12
+    marginBottom: 12,
+    letterSpacing: -0.1
   },
   presetRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8
   },
   presetBtn: {
     flex: 1,
+    minWidth: '30%',
     paddingVertical: 10,
-    borderRadius: 8,
+    paddingHorizontal: 4,
+    borderRadius: 10,
     alignItems: 'center',
-    borderWidth: 1
+    justifyContent: 'center',
+    borderWidth: 1,
+    minHeight: 42
   },
   presetBtnRed: {
     backgroundColor: '#FEE2E2',
@@ -389,25 +399,28 @@ const styles = StyleSheet.create({
   presetBtnText: {
     color: APP_COLORS.textPrimary,
     fontSize: 11,
-    fontWeight: '800'
+    fontWeight: '800',
+    textAlign: 'center'
   },
   inputLabel: {
     color: APP_COLORS.textSecondary,
     fontSize: 11,
     fontWeight: '700',
     marginBottom: 6,
-    textTransform: 'uppercase'
+    textTransform: 'uppercase',
+    letterSpacing: 0.3
   },
   textInput: {
     backgroundColor: APP_COLORS.bgCardSubtle,
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    borderRadius: 10,
+    paddingHorizontal: 14,
     paddingVertical: 10,
     color: APP_COLORS.textPrimary,
     fontSize: 14,
     borderWidth: 1,
     borderColor: APP_COLORS.borderDefault,
-    marginBottom: 12
+    marginBottom: 12,
+    minHeight: 46
   },
   coordRow: {
     flexDirection: 'row',
@@ -420,21 +433,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 6,
-    marginBottom: 10
+    marginBottom: 10,
+    shadowColor: '#0F2417',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 2
   },
   primarySaveBtnText: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '800'
+    fontWeight: '800',
+    letterSpacing: 0.2
   },
   clearBtn: {
     backgroundColor: APP_COLORS.bgCardSubtle,
-    height: 42,
+    height: 44,
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: APP_COLORS.borderDefault
+    borderColor: APP_COLORS.borderDefault,
+    minHeight: 44
   },
   clearBtnText: {
     color: APP_COLORS.textSecondary,

@@ -360,7 +360,10 @@ const styles = StyleSheet.create({
     backgroundColor: APP_COLORS.buttonPrimaryBg,
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: 8
+    borderRadius: 8,
+    minHeight: 38,
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   dialNumberText: {
     color: '#FFFFFF',
@@ -374,7 +377,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: APP_COLORS.borderDefault,
     marginBottom: 12,
-    shadowColor: '#1E2B18',
+    shadowColor: '#0F2417',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 5,
@@ -400,7 +403,8 @@ const styles = StyleSheet.create({
   stepTagText: {
     color: '#DC2626',
     fontSize: 10,
-    fontWeight: '800'
+    fontWeight: '800',
+    letterSpacing: 0.3
   },
   stepTitle: {
     color: APP_COLORS.textPrimary,
@@ -417,18 +421,29 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: APP_COLORS.borderDefault
+    borderTopColor: APP_COLORS.borderDefault,
+    shadowColor: '#0F2417',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 4
   },
   acknowledgeBtn: {
     backgroundColor: APP_COLORS.buttonPrimaryBg,
     height: 50,
     borderRadius: 12,
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    shadowColor: '#0F2417',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 2
   },
   acknowledgeBtnText: {
     color: '#FFFFFF',
     fontSize: 15,
-    fontWeight: '800'
+    fontWeight: '800',
+    letterSpacing: 0.2
   }
 });

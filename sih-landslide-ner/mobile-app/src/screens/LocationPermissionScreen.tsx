@@ -116,92 +116,94 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   iconContainer: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: APP_COLORS.bgAccentMintSoft,
     borderWidth: 1.5,
     borderColor: '#86EFAC',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 20
+    marginBottom: 16
   },
   iconText: {
-    fontSize: 34
+    fontSize: 32
   },
   title: {
-    fontSize: 22,
+    fontSize: 21,
     fontWeight: '800',
     color: APP_COLORS.textPrimary,
     textAlign: 'center',
-    marginBottom: 10
+    marginBottom: 8,
+    letterSpacing: -0.2
   },
   description: {
     fontSize: 13,
     color: APP_COLORS.textSecondary,
     textAlign: 'center',
-    lineHeight: 19,
-    marginBottom: 24
+    lineHeight: 18,
+    marginBottom: 20
   },
   featureBox: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 20,
+    padding: 18,
     borderWidth: 1,
     borderColor: APP_COLORS.borderDefault,
     width: '100%',
-    marginBottom: 28,
-    shadowColor: '#1E2B18',
+    marginBottom: 24,
+    shadowColor: '#0F2417',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
+    shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2
   },
   featureRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    marginBottom: 16
+    marginBottom: 14
   },
   featureIcon: {
-    fontSize: 22,
-    marginRight: 14,
+    fontSize: 20,
+    marginRight: 12,
     marginTop: 2
   },
   featureTextCol: {
     flex: 1
   },
   featureTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '800',
     color: APP_COLORS.textPrimary
   },
   featureSub: {
     fontSize: 12,
     color: APP_COLORS.textSecondary,
-    marginTop: 3,
+    marginTop: 2,
     lineHeight: 16
   },
   primaryButton: {
     backgroundColor: APP_COLORS.buttonPrimaryBg,
-    height: 50,
+    height: 48,
     borderRadius: 12,
     width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
-    shadowColor: '#1E2B18',
+    shadowColor: '#0F2417',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
     elevation: 2
   },
   primaryButtonText: {
     color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '800'
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.2
   },
   skipButton: {
-    paddingVertical: 10
+    paddingVertical: 8
   },
   skipButtonText: {
     color: APP_COLORS.textMuted,

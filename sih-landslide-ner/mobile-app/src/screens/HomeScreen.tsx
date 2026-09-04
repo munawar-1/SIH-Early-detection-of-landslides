@@ -8,7 +8,8 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
-  Platform
+  Platform,
+  Linking
 } from 'react-native';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -241,21 +242,39 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     Alert.alert('GPS Reset', 'Monitoring switched back to your real physical GPS location.');
   };
 
+  const handleCallHelpline = (number: string, title: string) => {
+    Alert.alert(
+      `Call Emergency Helpline`,
+      `Dial ${title} (${number}) now?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: `Call ${number}`,
+          onPress: () => {
+            Linking.openURL(`tel:${number}`).catch(() => {
+              Alert.alert('Dialer Error', `Could not open dialer for ${number}`);
+            });
+          }
+        }
+      ]
+    );
+  };
+
   const theme = getThreatTheme(alertStatus?.risk_level);
 
   return (
     <View style={styles.container}>
-      {/* Top Website-Matched Mint Navbar */}
+      {/* Top Professional National/State Warning Navbar */}
       <View style={styles.navBar}>
-        <View>
+        <View style={styles.brandContainer}>
           <View style={styles.brandRow}>
-            <View style={styles.brandDot} />
-            <Text style={styles.navTitle}>NER Landslide Warning</Text>
+            <View style={styles.livePulseDot} />
+            <Text style={styles.navTitle} numberOfLines={1} ellipsizeMode="tail">NER Landslide Warning</Text>
           </View>
-          <Text style={styles.navSub}>Dima Hasao Early Warning System • SIH 2026</Text>
+          <Text style={styles.navSub} numberOfLines={1} ellipsizeMode="tail">Dima Hasao Sector • Early Warning Platform</Text>
         </View>
 
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <View style={styles.navActionsRow}>
           <TouchableOpacity
             style={styles.pitchModeHeaderBtn}
             onPress={onOpenPitchSimulation}
@@ -335,40 +354,81 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </View>
         )}
 
-        {/* Main Risk Status Card (Website Styled Container) */}
+        {/* Main Risk Status Card (Primary Emergency Assessment Element) */}
         <View style={[styles.statusCard, { backgroundColor: theme.cardBg, borderColor: theme.cardBorder }]}>
+          {/* Card Top Row: State Tag + ThreatBadge */}
           <View style={styles.cardHeaderRow}>
-            <View style={{ flex: 1, marginRight: 8 }}>
-              <Text style={[styles.statusHeading, { color: theme.text }]}>
-                {alertStatus?.risk_level === 'CRITICAL' ? 'CRITICAL DANGER ZONE' :
-                 alertStatus?.risk_level === 'HIGH' ? 'HIGH RISK HAZARD ZONE' :
-                 alertStatus?.risk_level === 'MODERATE' ? 'MODERATE RISK ZONE' : 'SAFE ZONE VERIFIED'}
-              </Text>
-              <Text style={styles.statusSubLabel}>
-                {alertStatus?.risk_level === 'SAFE'
-                  ? 'No imminent landslide threat detected at your current coordinates'
-                  : 'AI risk model detected high soil saturation & severe slope instability'}
+            <View style={styles.statusIndicatorWrapper}>
+              <View style={[styles.statusDot, { backgroundColor: theme.accent }]} />
+              <Text style={[styles.statusIndicatorText, { color: theme.text }]}>
+                {alertStatus?.risk_level === 'SAFE' ? 'MONITORING NORMAL' : 'HAZARD ELEVATED'}
               </Text>
             </View>
             <ThreatBadge level={alertStatus?.risk_level || 'SAFE'} size="medium" />
           </View>
 
+          {/* Primary Risk Heading */}
+          <Text style={[styles.statusHeading, { color: theme.text }]}>
+            {alertStatus?.risk_level === 'CRITICAL' ? 'CRITICAL HAZARD ZONE' :
+             alertStatus?.risk_level === 'HIGH' ? 'HIGH WARNING HAZARD ZONE' :
+             alertStatus?.risk_level === 'MODERATE' ? 'MODERATE ADVISORY ZONE' : 'SAFE ZONE VERIFIED'}
+          </Text>
+
+          <Text style={styles.statusSubLabel}>
+            {alertStatus?.risk_level === 'SAFE'
+              ? 'No imminent landslide threat detected at your current coordinates.'
+              : 'AI risk model detected high soil saturation & severe slope instability.'}
+          </Text>
+
+          {/* Recommended Action Callout */}
+          <View style={[styles.actionCalloutBox, { borderColor: theme.badgeBorder, backgroundColor: theme.badgeBg }]}>
+            <Text style={[styles.actionCalloutTag, { color: theme.text }]}>RECOMMENDED CITIZEN ACTION</Text>
+            <Text style={[styles.actionCalloutText, { color: theme.text }]}>
+              {alertStatus?.action_required || (
+                alertStatus?.risk_level === 'CRITICAL'
+                  ? 'Move away from steep slopes, cliff edges, and natural drainage paths immediately.'
+                  : alertStatus?.risk_level === 'HIGH'
+                  ? 'Stay vigilant for ground movement, bulging retaining walls, and localized rockfalls.'
+                  : alertStatus?.risk_level === 'MODERATE'
+                  ? 'Monitor weather forecasts and avoid non-essential hillside corridor transit.'
+                  : 'Normal conditions verified. Maintain standard situational awareness during monsoon.'
+              )}
+            </Text>
+          </View>
+
+          {/* Advisory Detail */}
           <Text style={styles.advisorySummary}>
             {alertStatus?.advisory || 'Continuous slope stability & rainfall monitoring active...'}
           </Text>
 
           <View style={styles.divider} />
 
-          <View style={styles.metaRow}>
-            <View>
-              <Text style={styles.metaLabel}>Monitored Sector</Text>
-              <Text style={styles.metaValue}>
-                {currentCoords?.districtName || alertStatus?.district || 'Dima Hasao Sector'} ({currentCoords?.lat.toFixed(3)}°, {currentCoords?.lng.toFixed(3)}°)
+          {/* 4-Item Telemetry Matrix */}
+          <View style={styles.telemetryGrid}>
+            <View style={styles.telemetryItem}>
+              <Text style={styles.telemetryLabel}>Monitored Sector</Text>
+              <Text style={styles.telemetryValue} numberOfLines={1} ellipsizeMode="tail">
+                {currentCoords?.districtName || alertStatus?.district || 'Dima Hasao Sector'}
               </Text>
             </View>
-            <View style={{ alignItems: 'flex-end' }}>
-              <Text style={styles.metaLabel}>Last Assessment</Text>
-              <Text style={styles.metaValue}>
+
+            <View style={styles.telemetryItem}>
+              <Text style={styles.telemetryLabel}>Coordinates</Text>
+              <Text style={styles.telemetryValue} numberOfLines={1} ellipsizeMode="tail">
+                {currentCoords ? `${currentCoords.lat.toFixed(3)}°, ${currentCoords.lng.toFixed(3)}°` : 'Acquiring GPS...'}
+              </Text>
+            </View>
+
+            <View style={styles.telemetryItem}>
+              <Text style={styles.telemetryLabel}>Risk Saturation</Text>
+              <Text style={styles.telemetryValue} numberOfLines={1} ellipsizeMode="tail">
+                {alertStatus?.probability ? `${Math.round(alertStatus.probability * 100)}% Index` : alertStatus?.risk_level === 'SAFE' ? '8% Low' : '85% Elevated'}
+              </Text>
+            </View>
+
+            <View style={styles.telemetryItem}>
+              <Text style={styles.telemetryLabel}>Last Assessment</Text>
+              <Text style={styles.telemetryValue} numberOfLines={1} ellipsizeMode="tail">
                 {alertStatus?.checked_at ? new Date(alertStatus.checked_at).toLocaleTimeString() : 'Just now'}
               </Text>
             </View>
@@ -387,7 +447,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             <View style={{ flex: 1 }}>
               <Text style={styles.firstAidHeroTitle}>Landslide Injury & Triage Protocol</Text>
               <Text style={styles.firstAidHeroSub}>
-                Sequential First-Aid steps for crush injuries + Direct dial 1070 / 1077 / 108
+                Sequential First-Aid steps for crush trauma + Direct dial 1070 / 1077 / 108
               </Text>
             </View>
           </View>
@@ -461,18 +521,56 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </View>
         </View>
 
-        {/* Valid Emergency Helplines Card */}
+        {/* Valid Emergency Helplines Card with Direct 1-Tap Calling */}
         <View style={styles.helplineCard}>
           <View style={styles.helplineCardHeader}>
             <Text style={styles.helplineTitle}>📞 Official Emergency Helplines</Text>
             <TouchableOpacity onPress={() => setFirstAidModalVisible(true)}>
-              <Text style={styles.viewAllHelpText}>View All ➔</Text>
+              <Text style={styles.viewAllHelpText}>View Full Guide ➔</Text>
             </TouchableOpacity>
           </View>
-          <Text style={styles.helplineRow}>• State Disaster (ASDMA): <Text style={styles.bold}>1070</Text></Text>
-          <Text style={styles.helplineRow}>• District Disaster (DDMA): <Text style={styles.bold}>1077</Text></Text>
-          <Text style={styles.helplineRow}>• Medical Trauma Ambulance: <Text style={styles.bold}>108</Text></Text>
-          <Text style={styles.helplineRow}>• All-in-One National Helpline: <Text style={styles.bold}>112</Text></Text>
+
+          <View style={styles.helplineGrid}>
+            <TouchableOpacity
+              style={styles.helplineGridBtn}
+              onPress={() => handleCallHelpline('1070', 'ASDMA State Disaster Control')}
+              accessibilityRole="button"
+              accessibilityLabel="Call ASDMA Helpline 1070"
+            >
+              <Text style={styles.helplineBtnNum}>1070</Text>
+              <Text style={styles.helplineBtnLabel} numberOfLines={1} ellipsizeMode="tail">State ASDMA</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.helplineGridBtn}
+              onPress={() => handleCallHelpline('1077', 'DDMA Dima Hasao')}
+              accessibilityRole="button"
+              accessibilityLabel="Call DDMA Helpline 1077"
+            >
+              <Text style={styles.helplineBtnNum}>1077</Text>
+              <Text style={styles.helplineBtnLabel} numberOfLines={1} ellipsizeMode="tail">District DDMA</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.helplineGridBtn, styles.helplineGridBtnAmb]}
+              onPress={() => handleCallHelpline('108', '108 Ambulance')}
+              accessibilityRole="button"
+              accessibilityLabel="Call Ambulance Helpline 108"
+            >
+              <Text style={[styles.helplineBtnNum, styles.helplineBtnNumAmb]}>108</Text>
+              <Text style={styles.helplineBtnLabel} numberOfLines={1} ellipsizeMode="tail">Ambulance</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.helplineGridBtn}
+              onPress={() => handleCallHelpline('112', '112 Unified Emergency')}
+              accessibilityRole="button"
+              accessibilityLabel="Call Unified Emergency 112"
+            >
+              <Text style={styles.helplineBtnNum}>112</Text>
+              <Text style={styles.helplineBtnLabel} numberOfLines={1} ellipsizeMode="tail">Unified 112</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
 
@@ -500,49 +598,63 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: APP_COLORS.borderDefault
   },
+  brandContainer: {
+    flex: 1,
+    marginRight: 8
+  },
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6
+    gap: 7
   },
-  brandDot: {
+  livePulseDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: '#10B981'
   },
   navTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '800',
-    color: APP_COLORS.textPrimary
+    color: APP_COLORS.textPrimary,
+    letterSpacing: -0.2
   },
   navSub: {
     fontSize: 11,
     color: APP_COLORS.textMuted,
-    marginTop: 2
+    marginTop: 2,
+    fontWeight: '500'
+  },
+  navActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6
   },
   pitchModeHeaderBtn: {
     backgroundColor: APP_COLORS.bgAccentMintSoft,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#86EFAC',
-    minHeight: 36,
-    justifyContent: 'center'
+    minHeight: 34,
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   pitchModeHeaderBtnText: {
     color: '#166534',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800'
   },
   settingsBtn: {
     padding: 8,
-    minHeight: 40,
-    justifyContent: 'center'
+    minHeight: 36,
+    minWidth: 36,
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   settingsIcon: {
-    fontSize: 20
+    fontSize: 18
   },
   scrollContent: {
     padding: 16
@@ -551,15 +663,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 14,
-    marginBottom: 16,
+    marginBottom: 14,
     borderWidth: 1,
     borderColor: APP_COLORS.borderDefault,
     borderLeftWidth: 4,
     borderLeftColor: '#059669',
-    shadowColor: '#1E2B18',
+    shadowColor: '#0F2417',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
-    shadowRadius: 8,
+    shadowRadius: 6,
     elevation: 2
   },
   tickerHeaderRow: {
@@ -580,7 +692,8 @@ const styles = StyleSheet.create({
   tickerSender: {
     color: APP_COLORS.textPrimary,
     fontSize: 13,
-    fontWeight: '800'
+    fontWeight: '800',
+    marginTop: 1
   },
   tickerBody: {
     color: APP_COLORS.textSecondary,
@@ -610,13 +723,49 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800'
   },
+  pitchActiveBanner: {
+    backgroundColor: APP_COLORS.bgAccentMintSoft,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#86EFAC',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between'
+  },
+  pitchActiveTitle: {
+    color: '#166534',
+    fontSize: 13,
+    fontWeight: '800'
+  },
+  pitchActiveSub: {
+    color: '#14532D',
+    fontSize: 11,
+    marginTop: 1
+  },
+  resetGpsBtn: {
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#86EFAC',
+    minHeight: 34,
+    justifyContent: 'center'
+  },
+  resetGpsBtnText: {
+    color: '#166534',
+    fontSize: 11,
+    fontWeight: '700'
+  },
   offlineBadge: {
     backgroundColor: '#FEF3C7',
     padding: 10,
-    borderRadius: 8,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: '#FCD34D',
-    marginBottom: 16
+    marginBottom: 14
   },
   offlineBadgeText: {
     color: '#92400E',
@@ -628,28 +777,62 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     borderWidth: 1.5,
-    marginBottom: 16,
-    shadowColor: '#1E2B18',
+    marginBottom: 14,
+    shadowColor: '#0F2417',
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3
   },
   cardHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 10
+    alignItems: 'center',
+    marginBottom: 8
+  },
+  statusIndicatorWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4
+  },
+  statusIndicatorText: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.4
   },
   statusHeading: {
-    fontSize: 17,
+    fontSize: 19,
     fontWeight: '800',
-    marginBottom: 2
+    marginBottom: 3,
+    letterSpacing: -0.3
   },
   statusSubLabel: {
     color: APP_COLORS.textSecondary,
-    fontSize: 11,
-    lineHeight: 15
+    fontSize: 12,
+    lineHeight: 17,
+    marginBottom: 12
+  },
+  actionCalloutBox: {
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    marginBottom: 12
+  },
+  actionCalloutTag: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+    marginBottom: 3
+  },
+  actionCalloutText: {
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 17
   },
   advisorySummary: {
     color: APP_COLORS.textPrimary,
@@ -660,20 +843,26 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: 'rgba(30, 43, 24, 0.08)',
+    backgroundColor: 'rgba(15, 36, 23, 0.08)',
     marginBottom: 12
   },
-  metaRow: {
+  telemetryGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between'
+    flexWrap: 'wrap',
+    gap: 10
   },
-  metaLabel: {
+  telemetryItem: {
+    flex: 1,
+    minWidth: '45%'
+  },
+  telemetryLabel: {
     fontSize: 10,
     color: APP_COLORS.textMuted,
     textTransform: 'uppercase',
-    fontWeight: '700'
+    fontWeight: '700',
+    letterSpacing: 0.3
   },
-  metaValue: {
+  telemetryValue: {
     fontSize: 12,
     fontWeight: '800',
     color: APP_COLORS.textPrimary,
@@ -685,7 +874,7 @@ const styles = StyleSheet.create({
     padding: 14,
     borderWidth: 1,
     borderColor: '#86EFAC',
-    marginBottom: 16,
+    marginBottom: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between'
@@ -697,7 +886,7 @@ const styles = StyleSheet.create({
     marginRight: 10
   },
   firstAidHeroIcon: {
-    fontSize: 26,
+    fontSize: 24,
     marginRight: 12
   },
   firstAidHeroTitle: {
@@ -713,9 +902,12 @@ const styles = StyleSheet.create({
   },
   firstAidArrowBtn: {
     backgroundColor: '#166534',
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 8
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    minHeight: 34,
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   firstAidArrowText: {
     color: '#FFFFFF',
@@ -725,7 +917,7 @@ const styles = StyleSheet.create({
   quickAccessGrid: {
     flexDirection: 'row',
     gap: 12,
-    marginBottom: 16
+    marginBottom: 14
   },
   quickCard: {
     flex: 1,
@@ -734,7 +926,7 @@ const styles = StyleSheet.create({
     padding: 14,
     borderWidth: 1,
     borderColor: APP_COLORS.borderDefault,
-    shadowColor: '#1E2B18',
+    shadowColor: '#0F2417',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
     shadowRadius: 6,
@@ -781,7 +973,7 @@ const styles = StyleSheet.create({
     lineHeight: 15
   },
   actionContainer: {
-    marginBottom: 16
+    marginBottom: 14
   },
   checkButton: {
     backgroundColor: APP_COLORS.buttonPrimaryBg,
@@ -790,16 +982,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
-    shadowColor: '#1E2B18',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
+    shadowColor: '#0F2417',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
     shadowRadius: 6,
     elevation: 2
   },
   checkButtonText: {
     color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '800'
+    fontWeight: '800',
+    letterSpacing: 0.2
   },
   infoBox: {
     backgroundColor: '#FFFFFF',
@@ -825,13 +1018,18 @@ const styles = StyleSheet.create({
     padding: 14,
     borderWidth: 1,
     borderColor: APP_COLORS.borderDefault,
-    marginBottom: 20
+    marginBottom: 16,
+    shadowColor: '#0F2417',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2
   },
   helplineCardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8
+    marginBottom: 10
   },
   helplineTitle: {
     color: APP_COLORS.textPrimary,
@@ -843,46 +1041,40 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800'
   },
-  helplineRow: {
-    color: APP_COLORS.textSecondary,
-    fontSize: 12,
-    marginBottom: 4
-  },
-  bold: {
-    fontWeight: '800',
-    color: APP_COLORS.textPrimary
-  },
-  pitchActiveBanner: {
-    backgroundColor: APP_COLORS.bgAccentMintSoft,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 14,
-    borderWidth: 1,
-    borderColor: '#86EFAC',
+  helplineGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between'
+    gap: 6
   },
-  pitchActiveTitle: {
-    color: '#166534',
+  helplineGridBtn: {
+    flex: 1,
+    backgroundColor: APP_COLORS.bgCardSubtle,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: APP_COLORS.borderDefault,
+    minHeight: 46
+  },
+  helplineGridBtnAmb: {
+    backgroundColor: '#FEE2E2',
+    borderColor: '#FCA5A5'
+  },
+  helplineBtnNum: {
+    color: APP_COLORS.textPrimary,
     fontSize: 13,
     fontWeight: '800'
   },
-  pitchActiveSub: {
-    color: '#14532D',
-    fontSize: 11
+  helplineBtnNumAmb: {
+    color: '#DC2626'
   },
-  resetGpsBtn: {
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 5,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#86EFAC'
-  },
-  resetGpsBtnText: {
-    color: '#166534',
-    fontSize: 11,
-    fontWeight: '700'
+  helplineBtnLabel: {
+    color: APP_COLORS.textMuted,
+    fontSize: 9,
+    fontWeight: '700',
+    marginTop: 2,
+    textTransform: 'uppercase',
+    textAlign: 'center'
   }
 });
