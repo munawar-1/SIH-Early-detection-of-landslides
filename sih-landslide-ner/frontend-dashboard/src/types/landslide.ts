@@ -8,6 +8,14 @@ export interface GridPoint {
   elevation: number;
   slope: number;
   clayPercent: number;
+  /** The following terrain/soil properties are sent with the point to the ML service. */
+  aspect?: number;
+  aspectSin?: number;
+  aspectCos?: number;
+  sandPercent?: number;
+  siltPercent?: number;
+  bulkDensity?: number;
+  shearStressFactor?: number;
   rainDay1: number;
   rainDay2: number;
   rainDay3: number;

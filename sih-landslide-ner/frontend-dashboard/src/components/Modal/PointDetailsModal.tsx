@@ -3,7 +3,6 @@ import type { GridPoint, TransportSegment, StationNode } from '../../types/lands
 import { 
   X, 
   MapPin, 
-  Mountain, 
   Layers, 
   CloudRain, 
   ShieldAlert, 
@@ -27,6 +26,35 @@ export const PointDetailsModal: React.FC<PointDetailsModalProps> = ({
   onClose
 }) => {
   if (!point && !segment && !station) return null;
+
+  // Keep this calculation identical to ml-service/src/main.py's
+  // transform_feature_dict(). These are the derived values in the 12-column model tensor.
+  const modelInputs = point ? (() => {
+    const rainDayMinus1 = point.rainDay1;
+    const rain3dSum = point.rainDay1 + point.rainDay2 + point.rainDay3;
+    const rain7dApi = rainDayMinus1
+      + (rain3dSum - rainDayMinus1) * 0.84
+      + (rain3dSum * 0.65) * (0.84 ** 3);
+    const sandPercent = point.sandPercent ?? 30;
+    const bulkDensity = point.bulkDensity ?? 1.26;
+    const porePressureIndex = (Math.sin(point.slope * Math.PI / 180) * (rain7dApi * point.clayPercent))
+      / (100 * Math.max(0.8, bulkDensity) * (1 + sandPercent / 100));
+
+    return [
+      ['Slope', `${point.slope.toFixed(1)}°`],
+      ['Elevation', `${point.elevation.toFixed(1)} m`],
+      ['Aspect sine', (point.aspectSin ?? Math.sin((point.aspect ?? 145) * Math.PI / 180)).toFixed(4)],
+      ['Aspect cosine', (point.aspectCos ?? Math.cos((point.aspect ?? 145) * Math.PI / 180)).toFixed(4)],
+      ['Clay content', `${point.clayPercent.toFixed(1)}%`],
+      ['Sand content', `${sandPercent.toFixed(1)}%`],
+      ['Silt content', `${(point.siltPercent ?? (100 - point.clayPercent - sandPercent)).toFixed(1)}%`],
+      ['Bulk density', `${bulkDensity.toFixed(3)} g/cm³`],
+      ['Rainfall — last 24h', `${rainDayMinus1.toFixed(1)} mm`],
+      ['Rainfall — 3-day total', `${rain3dSum.toFixed(1)} mm`],
+      ['7-day antecedent rainfall', `${rain7dApi.toFixed(1)} mm`],
+      ['Pore-pressure index', porePressureIndex.toFixed(2)],
+    ];
+  })() : [];
 
   return (
     <div className="gis-modal-backdrop" onClick={onClose}>
@@ -149,21 +177,21 @@ export const PointDetailsModal: React.FC<PointDetailsModalProps> = ({
                 </div>
               </div>
 
-              <div className="grid-3col">
-                <div className="spec-card">
-                  <Mountain size={16} className="text-purple" />
-                  <span className="spec-title">Slope Steepness</span>
-                  <span className="spec-value">{point.slope}°</span>
+              <div className="model-inputs-section">
+                <div className="model-inputs-heading">
+                  <Layers size={16} className="text-purple" />
+                  <div>
+                    <span>All 12 ML input features</span>
+                    <small>Exact feature vector used for this grid-cell prediction</small>
+                  </div>
                 </div>
-                <div className="spec-card">
-                  <Layers size={16} className="text-amber" />
-                  <span className="spec-title">Soil Clay %</span>
-                  <span className="spec-value">{point.clayPercent}%</span>
-                </div>
-                <div className="spec-card">
-                  <MapPin size={16} className="text-slate" />
-                  <span className="spec-title">Elevation</span>
-                  <span className="spec-value">{point.elevation} m</span>
+                <div className="model-inputs-grid">
+                  {modelInputs.map(([label, value]) => (
+                    <div className="spec-card model-input-card" key={label}>
+                      <span className="spec-title">{label}</span>
+                      <span className="spec-value">{value}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -187,7 +215,7 @@ export const PointDetailsModal: React.FC<PointDetailsModalProps> = ({
                   </div>
                 </div>
                 <div className="rain-total">
-                  Cumulative 3-Day Infiltration: <strong>{(point.rainDay1 + point.rainDay2 + point.rainDay3).toFixed(1)} mm</strong>
+                  Forecast total (also shown above as the ML 3-day rainfall feature): <strong>{(point.rainDay1 + point.rainDay2 + point.rainDay3).toFixed(1)} mm</strong>
                 </div>
               </div>
             </div>
