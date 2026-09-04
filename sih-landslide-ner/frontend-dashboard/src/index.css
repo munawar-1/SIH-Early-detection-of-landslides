@@ -8339,7 +8339,7 @@ body {
 
 .corridors-split-layout {
   display: grid;
-  grid-template-columns: 1.15fr 0.85fr;
+  grid-template-columns: minmax(380px, 440px) 1fr;
   gap: 20px;
   flex: 1;
   min-height: 0;
@@ -8640,3 +8640,38 @@ body {
 }
 
 
+
+
+.btn-inspect-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: #0284c7;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  border-radius: 9999px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.btn-inspect-banner:hover {
+  background: #0369a1;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
+}
+
+@keyframes corridorDash {
+  to {
+    stroke-dashoffset: -40;
+  }
+}
+
+.pulse-selected-corridor {
+  animation: corridorDash 1.5s linear infinite;
+  filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.85));
+}

@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import type { GridPoint, TransportSegment, StationNode, FilterState, HighwayMicroSegment } from '../types/landslide';
 import { LandslideMap } from '../components/Map/LandslideMap';
 import { TransportMonitor } from '../components/Infrastructure/TransportMonitor';
-import { HighwayRiskPanel } from '../components/Infrastructure/HighwayRiskPanel';
 import { 
   Train, 
   Navigation, 
@@ -30,14 +29,36 @@ export const CorridorsPage: React.FC<CorridorsPageProps> = ({
   onSelectTransport,
   selectedTransport
 }) => {
-  const [activeTab, setActiveTab] = React.useState<'railways' | 'highways'>('railways');
+  // Shared active corridor category passed to both TransportMonitor and LandslideMap
+  const [activeCategory, setActiveCategory] = useState<'all' | 'railways' | 'highways'>('all');
+  
+  // Active selected corridor state for synchronized highlighting and camera tracking
+  const [selectedCorridor, setSelectedCorridor] = useState<TransportSegment | null>(
+    (selectedTransport as TransportSegment) || (railways.length > 0 ? railways[0] : null)
+  );
+
+  // Sync if selectedTransport is updated externally
+  useEffect(() => {
+    if (selectedTransport && 'type' in selectedTransport) {
+      setSelectedCorridor(selectedTransport as TransportSegment);
+    }
+  }, [selectedTransport]);
 
   const criticalRailways = railways.filter(r => r.threatLevel === 'CRITICAL' || r.threatLevel === 'WARNING');
-  const criticalHighways = (highwayMicroSegments || []).filter(h => h.isAtRisk && (h.threatLevel === 'CRITICAL' || h.threatLevel === 'WARNING'));
+  const criticalHighways = highways.filter(h => h.threatLevel === 'CRITICAL' || h.threatLevel === 'WARNING');
+
+  const handleSelectCorridor = (seg: TransportSegment) => {
+    setSelectedCorridor(seg);
+  };
+
+  const handleInspectCorridor = (seg: TransportSegment) => {
+    setSelectedCorridor(seg);
+    onSelectTransport(seg);
+  };
 
   return (
     <div className="corridors-page-container">
-      {/* Page Header */}
+      {/* Page Header with Operational Summary Metrics */}
       <div className="page-header-bar">
         <div className="header-info">
           <div className="icon-badge">
@@ -63,29 +84,41 @@ export const CorridorsPage: React.FC<CorridorsPageProps> = ({
         </div>
       </div>
 
-      {/* Split-Screen Main Content */}
+      {/* Split-Screen Main Content: Exactly 2 Children (Corridor List on Left, Interactive Map on Right) */}
       <div className="corridors-split-layout">
-        <div style={{ width: '100%', display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
-          <button 
-            className={`tab-btn ${activeTab === 'railways' ? 'active' : ''}`}
-            onClick={() => setActiveTab('railways')}
-            style={{ padding: '0.75rem 1.5rem', background: activeTab === 'railways' ? 'var(--accent)' : 'var(--bg-secondary)', color: activeTab === 'railways' ? '#fff' : 'var(--text-secondary)', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold' }}
-          >
-            <Train size={16} /> Railway & Core Network
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'highways' ? 'active' : ''}`}
-            onClick={() => setActiveTab('highways')}
-            style={{ padding: '0.75rem 1.5rem', background: activeTab === 'highways' ? 'var(--accent)' : 'var(--bg-secondary)', color: activeTab === 'highways' ? '#fff' : 'var(--text-secondary)', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 'bold' }}
-          >
-            <Navigation size={16} /> National Highways 🛣️
-          </button>
+        {/* Left Side: Detailed Corridor Threat Status Cards */}
+        <div className="corridor-cards-panel">
+          <TransportMonitor
+            railways={railways}
+            highways={highways}
+            onSelectSegment={handleSelectCorridor}
+            onInspectSegment={handleInspectCorridor}
+            selectedSegmentId={selectedCorridor?.id}
+            activeCategory={activeCategory}
+            onCategoryChange={setActiveCategory}
+          />
         </div>
-        {/* Left Side: Dedicated Corridor Route Map */}
+
+        {/* Right Side: Dedicated Interactive Corridor Route Map */}
         <div className="corridor-map-panel">
           <div className="panel-top-banner">
-            <span className="banner-title">Interactive Corridor Route Map</span>
-            <span className="banner-desc">Click on any track stretch or highway link to inspect hazard metrics</span>
+            <div className="banner-left">
+              <span className="banner-title">Interactive Corridor Route Map</span>
+              <span className="banner-desc">
+                {selectedCorridor 
+                  ? `Active: ${selectedCorridor.name} (${selectedCorridor.code}) • ${(selectedCorridor.maxNearbyProbability * 100).toFixed(0)}% Proximity Risk` 
+                  : 'Click on any track stretch or highway link to inspect hazard metrics'}
+              </span>
+            </div>
+            {selectedCorridor && (
+              <button 
+                className="btn-inspect-banner"
+                onClick={() => handleInspectCorridor(selectedCorridor)}
+                title="Inspect detailed geotechnical specs and speed restrictions"
+              >
+                Inspect Details →
+              </button>
+            )}
           </div>
           <div className="corridor-map-wrapper">
             <LandslideMap
@@ -96,32 +129,18 @@ export const CorridorsPage: React.FC<CorridorsPageProps> = ({
               stations={stations}
               filters={{
                 ...filters,
-                showRailways: activeTab === 'railways',
-                showHighways: true,
+                showRailways: activeCategory === 'all' || activeCategory === 'railways',
+                showHighways: activeCategory === 'all' || activeCategory === 'highways',
                 showStations: true,
                 showGridPoints: true
               }}
-              onSelectTransport={onSelectTransport as any}
+              transportCategory={activeCategory}
+              selectedTransport={selectedCorridor}
+              onSelectTransport={seg => {
+                handleSelectCorridor(seg as TransportSegment);
+              }}
             />
           </div>
-        </div>
-
-        {/* Right Side: Detailed Corridor Threat Status Cards */}
-        <div className="corridor-cards-panel">
-          {activeTab === 'railways' ? (
-            <TransportMonitor
-              railways={railways}
-              highways={highways}
-              onSelectSegment={onSelectTransport as any}
-              selectedSegmentId={selectedTransport?.id}
-            />
-          ) : (
-            <HighwayRiskPanel
-              highwaySegments={highwayMicroSegments || []}
-              onSelectSegment={onSelectTransport as any}
-              selectedSegmentId={selectedTransport?.id}
-            />
-          )}
         </div>
       </div>
     </div>

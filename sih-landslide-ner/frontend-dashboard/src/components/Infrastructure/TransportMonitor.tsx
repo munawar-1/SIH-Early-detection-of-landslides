@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { TransportSegment } from '../../types/landslide';
 import { FoldText } from '../Text/FoldText';
 import { 
@@ -9,7 +9,7 @@ import {
   CheckCircle2, 
   Gauge, 
   TrendingUp, 
-  ChevronRight,
+  ChevronRight, 
   Download,
   Flame
 } from 'lucide-react';
@@ -18,16 +18,40 @@ interface TransportMonitorProps {
   railways: TransportSegment[];
   highways: TransportSegment[];
   onSelectSegment: (segment: TransportSegment) => void;
+  onInspectSegment?: (segment: TransportSegment) => void;
   selectedSegmentId?: string;
+  activeCategory?: 'all' | 'railways' | 'highways';
+  onCategoryChange?: (category: 'all' | 'railways' | 'highways') => void;
 }
 
 export const TransportMonitor: React.FC<TransportMonitorProps> = ({
   railways,
   highways,
   onSelectSegment,
-  selectedSegmentId
+  onInspectSegment,
+  selectedSegmentId,
+  activeCategory,
+  onCategoryChange
 }) => {
-  const [activeTab, setActiveTab] = useState<'all' | 'railways' | 'highways'>('all');
+  const [internalTab, setInternalTab] = useState<'all' | 'railways' | 'highways'>('all');
+  const currentCategory = activeCategory ?? internalTab;
+
+  const handleTabChange = (cat: 'all' | 'railways' | 'highways') => {
+    if (onCategoryChange) {
+      onCategoryChange(cat);
+    } else {
+      setInternalTab(cat);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedSegmentId) {
+      const el = document.getElementById(`corridor-card-${selectedSegmentId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+  }, [selectedSegmentId]);
 
   const getThreatBadge = (level: TransportSegment['threatLevel']) => {
     switch (level) {
@@ -44,8 +68,8 @@ export const TransportMonitor: React.FC<TransportMonitorProps> = ({
   };
 
   const filteredSegments = [
-    ...(activeTab === 'highways' ? [] : railways),
-    ...(activeTab === 'railways' ? [] : highways)
+    ...(currentCategory === 'highways' ? [] : railways),
+    ...(currentCategory === 'railways' ? [] : highways)
   ].sort((a, b) => {
     const order = { CRITICAL: 0, WARNING: 1, WATCH: 2, SAFE: 3 };
     return order[a.threatLevel] - order[b.threatLevel];
@@ -147,22 +171,22 @@ export const TransportMonitor: React.FC<TransportMonitorProps> = ({
       {/* Filter Tabs */}
       <div className="transport-tabs">
         <button 
-          className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`}
-          onClick={() => setActiveTab('all')}
+          className={`tab-btn ${currentCategory === 'all' ? 'active' : ''}`}
+          onClick={() => handleTabChange('all')}
         >
           All Routes ({railways.length + highways.length})
         </button>
         <button 
-          className={`tab-btn ${activeTab === 'railways' ? 'active' : ''}`}
-          onClick={() => setActiveTab('railways')}
+          className={`tab-btn ${currentCategory === 'railways' ? 'active' : ''}`}
+          onClick={() => handleTabChange('railways')}
         >
-          <Train size={14} /> Lumding–Badarpur Rail ({railways.length})
+          <Train size={14} /> Railway &amp; Core Network ({railways.length})
         </button>
         <button 
-          className={`tab-btn ${activeTab === 'highways' ? 'active' : ''}`}
-          onClick={() => setActiveTab('highways')}
+          className={`tab-btn ${currentCategory === 'highways' ? 'active' : ''}`}
+          onClick={() => handleTabChange('highways')}
         >
-          <Navigation size={14} /> NH-27 &amp; Highways ({highways.length})
+          <Navigation size={14} /> National Highways ({highways.length})
         </button>
       </div>
 
@@ -175,6 +199,7 @@ export const TransportMonitor: React.FC<TransportMonitorProps> = ({
           return (
             <div 
               key={seg.id} 
+              id={`corridor-card-${seg.id}`}
               className={`corridor-card card-spotlight ${seg.threatLevel.toLowerCase()} ${isSelected ? 'selected' : ''}`}
               onClick={() => onSelectSegment(seg)}
               onMouseMove={handleSpotlightMove}
@@ -183,7 +208,7 @@ export const TransportMonitor: React.FC<TransportMonitorProps> = ({
                 <div className="route-identity">
                   <span className={`type-tag ${isRail ? 'rail' : 'hwy'}`}>
                     {isRail ? <Train size={12} /> : <Navigation size={12} />}
-                    {isRail ? 'RAIL' : 'HIGHWAY'}
+                    {isRail ? 'RAILWAY' : 'HIGHWAY'}
                   </span>
                   <span className="route-code">{seg.code}</span>
                 </div>
@@ -227,7 +252,18 @@ export const TransportMonitor: React.FC<TransportMonitorProps> = ({
                 <span className="threat-points-tag">
                   <TrendingUp size={12} /> {seg.vulnerablePointsCount} high-risk terrain grid points within 2km
                 </span>
-                <span className="inspect-link">
+                <span 
+                  className="inspect-link"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onInspectSegment) {
+                      onInspectSegment(seg);
+                    } else {
+                      onSelectSegment(seg);
+                    }
+                  }}
+                  title={`Inspect detailed geotechnical metrics for ${seg.name}`}
+                >
                   Inspect <ChevronRight size={14} />
                 </span>
               </div>

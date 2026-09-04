@@ -14,6 +14,8 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
+export type TransportCategory = 'all' | 'railways' | 'highways' | 'railway' | 'highway';
+
 interface LandslideMapProps {
   gridPoints: GridPoint[];
   railways: TransportSegment[];
@@ -21,6 +23,8 @@ interface LandslideMapProps {
   highwayMicroSegments?: HighwayMicroSegment[];
   stations: StationNode[];
   filters: FilterState;
+  transportCategory?: TransportCategory;
+  selectedTransport?: TransportSegment | HighwayMicroSegment | null;
   onSelectPoint?: (point: GridPoint) => void;
   onSelectTransport?: (segment: TransportSegment) => void;
   onSelectStation?: (station: StationNode) => void;
@@ -36,6 +40,8 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
   highwayMicroSegments,
   stations,
   filters,
+  transportCategory,
+  selectedTransport,
   onSelectPoint,
   onSelectTransport,
   onSelectStation,
@@ -371,9 +377,19 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
 
     group.clearLayers();
 
+    // Determine visibility based on active category prop or fallback to filter state
+    const showRailways = transportCategory 
+      ? (transportCategory === 'all' || transportCategory === 'railways' || transportCategory === 'railway')
+      : filters.showRailways;
+
+    const showHighways = transportCategory
+      ? (transportCategory === 'all' || transportCategory === 'highways' || transportCategory === 'highway')
+      : filters.showHighways;
+
     // A. RAILWAYS (Lumding–Badarpur Hill Section)
-    if (filters.showRailways) {
+    if (showRailways) {
       railways.forEach(rail => {
+        const isSelected = selectedTransport ? selectedTransport.id === rail.id : false;
         let railColor = '#3b82f6';
         let railGlow = 'rgba(59, 130, 246, 0.3)';
 
@@ -388,23 +404,29 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
           railGlow = 'rgba(234, 179, 8, 0.4)';
         }
 
+        if (isSelected) {
+          railColor = '#38bdf8';
+          railGlow = 'rgba(56, 189, 248, 0.9)';
+        }
+
         const glowLine = L.polyline(rail.coordinates, {
-          color: railGlow,
-          weight: rail.threatLevel === 'CRITICAL' ? 12 : 8,
-          opacity: 0.8,
+          color: isSelected ? 'rgba(56, 189, 248, 0.9)' : railGlow,
+          weight: isSelected ? 18 : (rail.threatLevel === 'CRITICAL' ? 12 : 8),
+          opacity: isSelected ? 1.0 : 0.8,
           lineCap: 'round',
-          lineJoin: 'round'
+          lineJoin: 'round',
+          className: isSelected ? 'pulse-selected-corridor' : ''
         });
 
         const baseTrack = L.polyline(rail.coordinates, {
-          color: '#1E2B18',
-          weight: 6,
+          color: isSelected ? '#0369a1' : '#1E2B18',
+          weight: isSelected ? 8 : 6,
           opacity: 0.95
         });
 
         const trackPattern = L.polyline(rail.coordinates, {
-          color: railColor,
-          weight: 4,
+          color: isSelected ? '#ffffff' : railColor,
+          weight: isSelected ? 5 : 4,
           dashArray: '8, 8',
           opacity: 1.0
         });
@@ -415,35 +437,48 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
 
         trackPattern.bindTooltip(`
           <div class="gis-tooltip">
-            <strong style="color:${railColor}">🚂 ${rail.name}</strong><br/>
+            <strong style="color:${isSelected ? '#38bdf8' : railColor}">🚂 ${rail.name}</strong><br/>
             <span>Threat Level: <b>${rail.threatLevel}</b></span><br/>
             <span>Max Proximity Risk: <b>${Math.round(rail.maxNearbyProbability * 100)}%</b></span>
+            ${isSelected ? '<br/><span style="color:#38bdf8;font-weight:bold">● ACTIVE HIGHLIGHTED ROUTE</span>' : ''}
           </div>
         `, { sticky: true, className: 'gis-custom-tooltip' });
 
         group.addLayer(glowLine);
         group.addLayer(baseTrack);
         group.addLayer(trackPattern);
+
+        if (isSelected) {
+          glowLine.bringToFront();
+          baseTrack.bringToFront();
+          trackPattern.bringToFront();
+        }
       });
     }
 
     // B. HIGHWAYS (NH-27, SH-20)
-    if (filters.showHighways) {
+    if (showHighways) {
       highways.forEach(hwy => {
+        const isSelected = selectedTransport ? selectedTransport.id === hwy.id : false;
         let hwyColor = '#10b981';
         if (hwy.threatLevel === 'CRITICAL') hwyColor = '#dc2626';
         else if (hwy.threatLevel === 'WARNING') hwyColor = '#ea580c';
         else if (hwy.threatLevel === 'WATCH') hwyColor = '#ca8a04';
 
+        if (isSelected) {
+          hwyColor = '#38bdf8';
+        }
+
         const glow = L.polyline(hwy.coordinates, {
-          color: hwyColor,
-          weight: 10,
-          opacity: 0.35
+          color: isSelected ? 'rgba(56, 189, 248, 0.9)' : hwyColor,
+          weight: isSelected ? 18 : 10,
+          opacity: isSelected ? 1.0 : 0.35,
+          className: isSelected ? 'pulse-selected-corridor' : ''
         });
 
         const hwyLine = L.polyline(hwy.coordinates, {
-          color: hwyColor,
-          weight: 4.5,
+          color: isSelected ? '#ffffff' : hwyColor,
+          weight: isSelected ? 6 : 4.5,
           opacity: 0.95
         });
 
@@ -453,13 +488,19 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
 
         hwyLine.bindTooltip(`
           <div class="gis-tooltip">
-            <strong style="color:${hwyColor}">🛣️ ${hwy.name}</strong><br/>
+            <strong style="color:${isSelected ? '#38bdf8' : hwyColor}">🛣️ ${hwy.name}</strong><br/>
             <span>Threat: <b>${hwy.threatLevel}</b> | Length: <b>${hwy.lengthKm} km</b></span>
+            ${isSelected ? '<br/><span style="color:#38bdf8;font-weight:bold">● ACTIVE HIGHLIGHTED ROUTE</span>' : ''}
           </div>
         `, { sticky: true, className: 'gis-custom-tooltip' });
 
         group.addLayer(glow);
         group.addLayer(hwyLine);
+
+        if (isSelected) {
+          glow.bringToFront();
+          hwyLine.bringToFront();
+        }
       });
     }
 
@@ -575,7 +616,21 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
       });
     }
 
-  }, [railways, highways, stations, filters, onSelectTransport, onSelectStation]);
+  }, [railways, highways, highwayMicroSegments, stations, filters, transportCategory, selectedTransport, onSelectTransport, onSelectStation]);
+
+  // 6. Camera auto-pan and smooth fit bounds when selectedTransport changes
+  useEffect(() => {
+    if (!selectedTransport || !selectedTransport.coordinates || selectedTransport.coordinates.length === 0) return;
+    const map = mapInstanceRef.current;
+    if (!map) return;
+
+    try {
+      const bounds = L.latLngBounds(selectedTransport.coordinates as L.LatLngExpression[]);
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 13, animate: true });
+    } catch (e) {
+      console.error('Error fitting map bounds to selected corridor:', e);
+    }
+  }, [selectedTransport]);
 
   return (
     <div className="gis-map-wrapper">
