@@ -32,7 +32,9 @@ import {
   Send, 
   Sparkles, 
   ShieldAlert, 
-  Activity
+  Activity,
+  CheckCircle2,
+  Crosshair
 } from 'lucide-react';
 import './MonsoonSimulationPage.css';
 
@@ -111,113 +113,138 @@ export const MonsoonSimulationPage: React.FC<MonsoonSimulationPageProps> = ({
     }
   };
 
+  const scenarioNameDisplay = useMemo(() => {
+    if (scenario === 'DISASTER_CLOUDBURST') return 'May 2022 Cloudburst';
+    if (scenario === 'MODERATE_MONSOON') return 'Active Monsoon';
+    if (scenario === 'CLEAR_WEATHER') return 'Dry Season (Clear)';
+    return 'Custom Infiltration';
+  }, [scenario]);
+
   return (
     <div className="simulation-dashboard-page">
-      {/* Top Banner Control Console */}
-      <div className="sim-control-console">
-        <div className="sim-console-top">
-          <div className="sim-title-cluster">
-            <div className="sim-live-badge">
-              <Sparkles size={13} className="text-amber" />
-              <span>SIH PITCH EVALUATION SUITE</span>
+      {/* Background Ambience Isolated from Document Flow */}
+      <div className="sim-ambient-bg">
+        <div className="sim-ambient-orb orb-1" />
+        <div className="sim-ambient-orb orb-2" />
+      </div>
+
+      {/* 1. Compact Header Command Bar */}
+      <header className="sim-header-bar">
+        <div className="sim-header-brand">
+          <div className="sim-icon-box">
+            <CloudRain size={18} className="text-cyan" />
+          </div>
+          <div className="sim-title-group">
+            <div className="sim-title-row">
+              <h2 className="sim-title">MONSOON SIMULATOR</h2>
+              <span className="sim-pitch-badge">
+                <Sparkles size={11} /> SIH Pitch
+              </span>
             </div>
-            <div className="sim-headline">
-              <h2>🌧️ Dima Hasao Monsoon Disaster Simulator</h2>
-              <p>Isolated Sandbox: Benchmarked against the May 2022 &amp; June 2024 Barail Mountain Deluges</p>
+            <p className="sim-subtitle">
+              Dima Hasao Disaster Simulation • May 2022 &amp; June 2024 Benchmark
+            </p>
+          </div>
+        </div>
+
+        {/* Live Simulation Status Element */}
+        <div className="sim-status-strip">
+          <span className="status-live-pulse" />
+          <span className="status-label">SIMULATION ACTIVE:</span>
+          <span className="status-scenario">{scenarioNameDisplay}</span>
+          <span className="status-sep">•</span>
+          <span className="status-val">{rainfallMm} mm Infiltration</span>
+          <span className="status-sep">•</span>
+          <span className="status-loc">Dima Hasao Sector</span>
+        </div>
+
+        {/* Telemetry Metric Badges & Emergency Action */}
+        <div className="sim-header-actions">
+          <div className="sim-metrics-cluster">
+            <div className="sim-mini-badge red" title="Red Alert Landslide Hotspots">
+              <Flame size={13} />
+              <strong>{highRiskCount}</strong> Hotspots
+            </div>
+            <div className="sim-mini-badge blue" title="Rail Track Severance Risk">
+              <Train size={13} />
+              <strong>{criticalRailCount}</strong> Rail
+            </div>
+            <div className="sim-mini-badge amber" title="NH-27 Highway Closures">
+              <Navigation size={13} />
+              <strong>{criticalHighwayCount}</strong> Highway
             </div>
           </div>
 
-          <div className="sim-telemetry-strip">
-            <div className="telemetry-box red">
-              <Flame size={16} />
-              <div className="telemetry-data">
-                <span className="val">{highRiskCount}</span>
-                <span className="lbl">Red Alert Grid Hotspots</span>
-              </div>
-            </div>
+          <button 
+            className={`btn-sim-dispatch ${broadcastSent ? 'sent' : ''}`}
+            onClick={handleDispatchSimulationAlert}
+            title="Dispatch Automated Cell Broadcast to Dima Hasao Sector"
+            type="button"
+          >
+            <Send size={13} />
+            <span>{broadcastSent ? 'Broadcast Dispatched' : 'Dispatch Warning'}</span>
+          </button>
+        </div>
+      </header>
 
-            <div className="telemetry-box cyan">
-              <Train size={16} />
-              <div className="telemetry-data">
-                <span className="val">{criticalRailCount} Sections</span>
-                <span className="lbl">Rail Track Severance Risk</span>
-              </div>
-            </div>
-
-            <div className="telemetry-box amber">
-              <Navigation size={16} />
-              <div className="telemetry-data">
-                <span className="val">{criticalHighwayCount} Cuts</span>
-                <span className="lbl">NH-27 Highway Closures</span>
-              </div>
-            </div>
-
-            <button 
-              className={`btn-sim-broadcast ${broadcastSent ? 'sent' : ''}`}
-              onClick={handleDispatchSimulationAlert}
-              title="Test Automated Cell Tower Broadcast to Dima Hasao"
+      {/* 2. Compact Simulation Control Center */}
+      <section className="sim-controls-strip">
+        {/* Panel 1: Monsoon Rainfall Benchmark */}
+        <div className="sim-panel benchmark-panel">
+          <div className="panel-header-mini">
+            <CloudRain size={13} />
+            <span>1. Rainfall Benchmark</span>
+          </div>
+          <div className="benchmark-cards-grid">
+            <button
+              className={`benchmark-card ${scenario === 'CLEAR_WEATHER' ? 'selected green' : ''}`}
+              onClick={() => handleScenarioSelect('CLEAR_WEATHER', 9)}
               type="button"
             >
-              <Send size={14} />
-              <span>{broadcastSent ? '✅ Broadcast Sent (14,200 Mobiles)' : 'Dispatch Emergency Warning'}</span>
+              <Sun size={14} className="icon-green" />
+              <div className="b-card-text">
+                <span className="b-name">Dry Season</span>
+                <span className="b-val">&lt;10mm • Safe Baseline</span>
+              </div>
+              {scenario === 'CLEAR_WEATHER' && <CheckCircle2 size={13} className="check-icon" />}
+            </button>
+
+            <button
+              className={`benchmark-card ${scenario === 'MODERATE_MONSOON' ? 'selected amber' : ''}`}
+              onClick={() => handleScenarioSelect('MODERATE_MONSOON', 145)}
+              type="button"
+            >
+              <CloudRain size={14} className="icon-amber" />
+              <div className="b-card-text">
+                <span className="b-name">Active Monsoon</span>
+                <span className="b-val">145mm • Saturated</span>
+              </div>
+              {scenario === 'MODERATE_MONSOON' && <CheckCircle2 size={13} className="check-icon" />}
+            </button>
+
+            <button
+              className={`benchmark-card ${scenario === 'DISASTER_CLOUDBURST' ? 'selected red' : ''}`}
+              onClick={() => handleScenarioSelect('DISASTER_CLOUDBURST', 310)}
+              type="button"
+            >
+              <AlertOctagon size={14} className="icon-red" />
+              <div className="b-card-text">
+                <span className="b-name">May 2022 Cloudburst</span>
+                <span className="b-val">310mm • Disaster Deluge</span>
+              </div>
+              {scenario === 'DISASTER_CLOUDBURST' && <CheckCircle2 size={13} className="check-icon" />}
             </button>
           </div>
         </div>
 
-        {/* Console Controls Grid */}
-        <div className="sim-controls-grid">
-          {/* Preset Scenarios */}
-          <div className="sim-card scenario-picker">
-            <label className="sim-card-label">
-              <CloudRain size={13} /> 1. Monsoon Rainfall Benchmark
-            </label>
-            <div className="sim-scenario-btns">
-              <button
-                className={`sim-btn ${scenario === 'CLEAR_WEATHER' ? 'active green' : ''}`}
-                onClick={() => handleScenarioSelect('CLEAR_WEATHER', 9)}
-                type="button"
-              >
-                <Sun size={15} className="text-green" />
-                <div className="btn-txt">
-                  <span className="main">Dry Season (Clear)</span>
-                  <span className="sub">&lt;10mm / Safe Baseline</span>
-                </div>
-              </button>
-
-              <button
-                className={`sim-btn ${scenario === 'MODERATE_MONSOON' ? 'active amber' : ''}`}
-                onClick={() => handleScenarioSelect('MODERATE_MONSOON', 145)}
-                type="button"
-              >
-                <CloudRain size={15} className="text-amber" />
-                <div className="btn-txt">
-                  <span className="main">Active Monsoon Surge</span>
-                  <span className="sub">145mm / Mountain Saturated</span>
-                </div>
-              </button>
-
-              <button
-                className={`sim-btn ${scenario === 'DISASTER_CLOUDBURST' ? 'active red pulse-glow' : ''}`}
-                onClick={() => handleScenarioSelect('DISASTER_CLOUDBURST', 310)}
-                type="button"
-              >
-                <AlertOctagon size={15} className="text-red" />
-                <div className="btn-txt">
-                  <span className="main">May 2022 Cloudburst</span>
-                  <span className="sub">310mm / Disaster Failure</span>
-                </div>
-              </button>
-            </div>
+        {/* Panel 2: 72H Infiltration Slider */}
+        <div className="sim-panel infiltration-panel">
+          <div className="panel-header-mini">
+            <Sliders size={13} />
+            <span>2. 72H Infiltration</span>
+            <span className="infiltration-badge">{rainfallMm} mm</span>
           </div>
-
-          {/* Interactive Infiltration Slider */}
-          <div className="sim-card slider-card">
-            <div className="slider-label-row">
-              <label className="sim-card-label">
-                <Sliders size={13} /> 2. 72h Infiltration:
-              </label>
-              <span className="rain-readout">{rainfallMm} mm</span>
-            </div>
+          <div className="slider-wrapper-mini">
             <input 
               type="range" 
               min={10} 
@@ -228,101 +255,140 @@ export const MonsoonSimulationPage: React.FC<MonsoonSimulationPageProps> = ({
                 setScenario('CUSTOM');
                 setRainfallMm(Number(e.target.value));
               }}
-              className="sim-slider"
+              className="compact-sim-slider"
             />
-            <div className="slider-markers">
+            <div className="slider-threshold-labels">
               <span>Dry (10mm)</span>
               <span>Warning (120mm)</span>
               <span>Deluge (260mm)</span>
               <span>Disaster (400mm+)</span>
             </div>
           </div>
+        </div>
 
-          {/* Hotspot Focus Teleports */}
-          <div className="sim-card hotspots-card">
-            <label className="sim-card-label">
-              <MapPin size={13} /> 3. Fly to Hotspot
-            </label>
-            <div className="hotspot-btn-list">
-              {DIMA_HASAO_HOTSPOTS.map(spot => (
-                <button
-                  key={spot.id}
-                  className={`hotspot-tag ${activeHotspotId === spot.id ? 'selected' : ''}`}
-                  onClick={() => handleHotspotClick(spot)}
-                  type="button"
-                >
-                  <span className="dot" />
-                  <span>{spot.name}</span>
-                </button>
-              ))}
-            </div>
+        {/* Panel 3: Fly to Hotspot */}
+        <div className="sim-panel hotspot-panel">
+          <div className="panel-header-mini">
+            <MapPin size={13} />
+            <span>3. Fly to Hotspot</span>
+          </div>
+          <div className="hotspot-chips-container">
+            {DIMA_HASAO_HOTSPOTS.map(spot => (
+              <button
+                key={spot.id}
+                className={`hotspot-chip ${activeHotspotId === spot.id ? 'active' : ''}`}
+                onClick={() => handleHotspotClick(spot)}
+                type="button"
+              >
+                <span className="chip-dot" />
+                <span>{spot.name}</span>
+              </button>
+            ))}
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Main Map & Intelligence Workspace */}
-      <div className="sim-main-workspace">
-        {/* Full Interactive Leaflet Simulation Canvas */}
-        <div className="sim-map-canvas-wrap">
-          <LandslideMap
-            gridPoints={simulatedPoints}
-            railways={simulatedRailways}
-            highways={simulatedHighways}
-            highwayMicroSegments={simulatedMicroHighways}
-            stations={CRITICAL_STATIONS}
-            filters={simFilters}
-            onSelectPoint={onSelectPoint}
-            focusedHotspot={focusedHotspot}
-            isSimulationActive={true}
-            simulationScenario={scenario}
-          />
+      {/* 3. Main Workspace: Hero Interactive Map + Diagnostics & Severance */}
+      <main className="sim-main-workspace">
+        {/* Full Interactive Leaflet Simulation Canvas in Hero Frame */}
+        <div className="sim-map-frame">
+          <div className="sim-map-header-toolbar">
+            <div className="map-toolbar-left">
+              <div className="map-title-cluster">
+                <span className="map-live-dot" />
+                <span className="map-main-title">LIVE HAZARD MAP</span>
+                <span className="map-sep">•</span>
+                <span className="map-subtitle">Dima Hasao • Monsoon Simulation</span>
+              </div>
+            </div>
+
+            <div className="map-toolbar-right">
+              <span className="map-scenario-pill">
+                {scenario === 'DISASTER_CLOUDBURST' ? 'May 2022 Benchmark (>300mm)' : `${rainfallMm}mm 72h Infiltration`}
+              </span>
+              <button 
+                className="map-action-btn"
+                onClick={() => {
+                  if (DIMA_HASAO_HOTSPOTS.length > 0) {
+                    handleHotspotClick(DIMA_HASAO_HOTSPOTS[0]);
+                  }
+                }}
+                title="Fit to Dima Hasao Sector"
+                type="button"
+              >
+                <Crosshair size={12} /> Fit Area
+              </button>
+            </div>
+          </div>
+
+          <div className="sim-map-canvas-wrap">
+            <LandslideMap
+              gridPoints={simulatedPoints}
+              railways={simulatedRailways}
+              highways={simulatedHighways}
+              highwayMicroSegments={simulatedMicroHighways}
+              stations={CRITICAL_STATIONS}
+              filters={simFilters}
+              onSelectPoint={onSelectPoint}
+              focusedHotspot={focusedHotspot}
+              isSimulationActive={true}
+              simulationScenario={scenario}
+            />
+          </div>
         </div>
 
-        {/* Right Intelligence & Geotechnical Breakdown Panel */}
-        <div className="sim-side-panel">
+        {/* Right Diagnostics & Critical Severance Panel */}
+        <aside className="sim-side-panel">
+          {/* Diagnostics Card */}
           <div className="panel-card diagnostic-box">
             <div className="panel-card-header">
               <Activity size={15} className="text-cyan" />
-              <h4>Geotechnical Diagnostics (Borail Ridge)</h4>
+              <h4>GEOTECHNICAL DIAGNOSTICS</h4>
+              <span className="ridge-subtitle">Borail Ridge</span>
             </div>
             <div className="metric-diag-row">
               <div className="diag-item">
-                <span className="lbl">Pore Pressure ($u_w$)</span>
-                <span className="val text-red">
-                  {rainfallMm > 200 ? '28.4 kPa (Saturated)' : '11.2 kPa (Moderate)'}
+                <span className="lbl">Pore Pressure</span>
+                <span className="val">{rainfallMm > 200 ? '28.4 kPa' : '11.2 kPa'}</span>
+                <span className={`tag ${rainfallMm > 200 ? 'danger' : 'warning'}`}>
+                  {rainfallMm > 200 ? 'Saturated' : 'Moderate'}
                 </span>
               </div>
               <div className="diag-item">
-                <span className="lbl">Factor of Safety ($FOS$)</span>
-                <span className="val text-red">
-                  {rainfallMm > 200 ? '0.78 (Failure Imminent)' : '1.34 (Stable)'}
+                <span className="lbl">Safety Factor</span>
+                <span className="val">{rainfallMm > 200 ? '0.78' : '1.34'}</span>
+                <span className={`tag ${rainfallMm > 200 ? 'danger' : 'safe'}`}>
+                  {rainfallMm > 200 ? 'Failure Risk' : 'Stable'}
                 </span>
               </div>
               <div className="diag-item">
-                <span className="lbl">Soil Clay Content</span>
-                <span className="val">32.4% (ISRIC SoilGrids)</span>
+                <span className="lbl">Soil Clay</span>
+                <span className="val">32.4%</span>
+                <span className="tag neutral">ISRIC SoilGrids</span>
               </div>
               <div className="diag-item">
-                <span className="lbl">Barail Slope Criticality</span>
-                <span className="val">34.6° Steep Scarp</span>
+                <span className="lbl">Slope</span>
+                <span className="val">34.6°</span>
+                <span className="tag warning">Steep Scarp</span>
               </div>
             </div>
           </div>
 
+          {/* Simulated Critical Severance Card */}
           <div className="panel-card corridors-alert-box">
             <div className="panel-card-header">
               <ShieldAlert size={15} className="text-red" />
-              <h4>Simulated Critical Severance</h4>
+              <h4>SIMULATED CRITICAL SEVERANCE</h4>
             </div>
-            <div className="corridor-alert-item">
-              <Train size={14} className="text-red" />
+            <div className="corridor-alert-item rail-severance">
+              <Train size={15} className="text-red" />
               <div>
                 <strong>Lumding–Badarpur Railway Line</strong>
                 <p>Track foundation wash-away threat between Daotuhaja and New Haflong (Km 52).</p>
               </div>
             </div>
-            <div className="corridor-alert-item">
-              <Navigation size={14} className="text-amber" />
+            <div className="corridor-alert-item hwy-severance">
+              <Navigation size={15} className="text-amber" />
               <div>
                 <strong>NH-27 Jatinga Mountain Pass</strong>
                 <p>Debris flows and boulder falls blocking 4-lane East-West highway corridor.</p>
@@ -330,17 +396,18 @@ export const MonsoonSimulationPage: React.FC<MonsoonSimulationPageProps> = ({
             </div>
           </div>
 
+          {/* Evaluator Pitch Highlight Card */}
           <div className="panel-card pitch-tip-box">
             <div className="panel-card-header">
               <Sparkles size={14} className="text-amber" />
-              <h4>Evaluator Pitch Highlight</h4>
+              <h4>INSIGHT • WHY THIS MATTERS</h4>
             </div>
             <p className="pitch-note">
               "Judges, during dry months, the live GIS stays green. But when intense monsoon cloudbursts strike Dima Hasao, our multi-parameter ML engine uses SRTM slope, ISRIC clay, and precipitation to forecast slope failures 72 hours before disaster strikes."
             </p>
           </div>
-        </div>
-      </div>
+        </aside>
+      </main>
     </div>
   );
 };

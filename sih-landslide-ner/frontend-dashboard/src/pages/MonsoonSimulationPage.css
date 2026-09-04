@@ -1,445 +1,895 @@
 /* ==========================================================================
-   DEDICATED DIMA HASAO MONSOON SIMULATION DASHBOARD STYLES
+   DIMA HASAO MONSOON SIMULATION DASHBOARD - COMPACT LIGHT-MODE VIEWPORT
    ========================================================================== */
 
 .simulation-dashboard-page {
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 72px);
-  background: #090d16;
-  color: #f8fafc;
+  box-sizing: border-box;
+  background: var(--bg-surface, #FAF9F4);
+  color: var(--text-primary, #1E2B18);
   overflow: hidden;
+  padding: 10px 18px 12px;
+  gap: 10px;
+  position: relative;
 }
 
-/* 1. Top Control Console */
-.sim-control-console {
-  background: rgba(15, 23, 42, 0.96);
-  border-bottom: 2px solid #ef4444;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 20px rgba(239, 68, 68, 0.2);
-  padding: 12px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  z-index: 10;
+/* Background Ambient Orbs (Isolated from Document Flow) */
+.sim-ambient-bg {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  pointer-events: none !important;
+  overflow: hidden !important;
+  z-index: 0 !important;
 }
 
-.sim-console-top {
+.sim-ambient-orb {
+  position: absolute !important;
+  border-radius: 50% !important;
+  filter: blur(80px) !important;
+  pointer-events: none !important;
+}
+
+.sim-ambient-orb.orb-1 {
+  width: 440px;
+  height: 440px;
+  background: radial-gradient(circle, rgba(160, 241, 189, 0.22) 0%, transparent 70%);
+  top: -60px;
+  right: 8%;
+}
+
+.sim-ambient-orb.orb-2 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(186, 230, 253, 0.25) 0%, transparent 70%);
+  bottom: 10px;
+  left: -50px;
+}
+
+.simulation-dashboard-page > header,
+.simulation-dashboard-page > section,
+.simulation-dashboard-page > main {
+  position: relative;
+  z-index: 1;
+}
+
+/* ==========================================================================
+   1. COMPACT SIMULATOR COMMAND HEADER BAR
+   ========================================================================== */
+.sim-header-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(30, 43, 24, 0.1);
+  border-radius: var(--radius-lg, 12px);
+  padding: 8px 16px;
+  box-shadow: 0 2px 8px rgba(30, 43, 24, 0.04);
+  flex-shrink: 0;
+  gap: 14px;
+  min-height: 48px;
 }
 
-.sim-title-cluster {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.sim-live-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(245, 158, 11, 0.15);
-  border: 1px solid rgba(245, 158, 11, 0.4);
-  color: #fbbf24;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  padding: 2px 10px;
-  border-radius: 9999px;
-  width: fit-content;
-  text-transform: uppercase;
-}
-
-.sim-headline h2 {
-  font-size: 18px;
-  font-weight: 800;
-  color: #ffffff;
-  margin: 0;
-}
-
-.sim-headline p {
-  font-size: 11px;
-  color: #94a3b8;
-  margin: 0;
-}
-
-.sim-telemetry-strip {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.telemetry-box {
+.sim-header-brand {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: #1e293b;
-  border: 1px solid #334155;
-  border-radius: 8px;
-  padding: 6px 14px;
 }
 
-.telemetry-box.red {
-  border-color: rgba(239, 68, 68, 0.4);
-  color: #ef4444;
+.sim-icon-box {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: #E0F2FE;
+  border: 1px solid #BAE6FD;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.telemetry-box.cyan {
-  border-color: rgba(2, 132, 199, 0.4);
-  color: #38bdf8;
-}
-
-.telemetry-box.amber {
-  border-color: rgba(245, 158, 11, 0.4);
-  color: #f59e0b;
-}
-
-.telemetry-data {
+.sim-title-group {
   display: flex;
   flex-direction: column;
 }
 
-.telemetry-data .val {
-  font-size: 14px;
-  font-weight: 800;
-  color: #ffffff;
-  line-height: 1.1;
+.sim-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.telemetry-data .lbl {
+.sim-title {
+  font-family: var(--font-title);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-primary, #1E2B18);
+  letter-spacing: -0.01em;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.sim-pitch-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #FEF3C7;
+  border: 1px solid #FCD34D;
+  color: #B45309;
   font-size: 9.5px;
-  color: #94a3b8;
+  font-weight: 800;
+  padding: 1px 7px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sim-subtitle {
+  font-size: 11px;
+  color: var(--text-secondary, #455A3F);
+  margin: 1px 0 0;
+  font-weight: 500;
   white-space: nowrap;
 }
 
-.btn-sim-broadcast {
-  display: inline-flex;
+/* Live Simulation Status Element */
+.sim-status-strip {
+  display: flex;
   align-items: center;
-  gap: 8px;
-  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
-  color: #ffffff;
-  border: 1px solid #ef4444;
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4);
+  gap: 7px;
+  background: #FAF9F4;
+  border: 1px solid rgba(30, 43, 24, 0.08);
+  border-radius: 9999px;
+  padding: 4px 12px;
+  font-size: 11px;
+  color: var(--text-primary, #1E2B18);
+  box-shadow: 0 1px 3px rgba(30, 43, 24, 0.03);
+  white-space: nowrap;
 }
 
-.btn-sim-broadcast:hover {
-  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
-  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.6);
+.status-live-pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #DC2626;
+  box-shadow: 0 0 6px rgba(220, 38, 38, 0.6);
+  animation: pulse-slow 1.4s infinite ease-in-out;
+  flex-shrink: 0;
+}
+
+.status-label {
+  font-size: 10px;
+  font-weight: 800;
+  color: #B91C1C;
+  letter-spacing: 0.04em;
+}
+
+.status-scenario {
+  font-weight: 700;
+  color: #1E2B18;
+}
+
+.status-val {
+  font-weight: 700;
+  color: #0284C7;
+}
+
+.status-sep {
+  color: rgba(30, 43, 24, 0.2);
+}
+
+.status-loc {
+  font-weight: 600;
+  color: var(--text-secondary, #455A3F);
+}
+
+/* Metric Badges & Action Group */
+.sim-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.sim-metrics-cluster {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sim-mini-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.sim-mini-badge strong {
+  font-family: var(--font-title);
+  font-weight: 800;
+}
+
+.sim-mini-badge.red {
+  background: #FEF2F2;
+  border-color: #FECACA;
+  color: #DC2626;
+}
+
+.sim-mini-badge.blue {
+  background: #F0F9FF;
+  border-color: #BAE6FD;
+  color: #0284C7;
+}
+
+.sim-mini-badge.amber {
+  background: #FFFBEB;
+  border-color: #FDE68A;
+  color: #D97706;
+}
+
+.btn-sim-dispatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
+  color: #ffffff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+  white-space: nowrap;
+}
+
+.btn-sim-dispatch:hover {
+  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.45);
   transform: translateY(-1px);
 }
 
-.btn-sim-broadcast.sent {
-  background: linear-gradient(135deg, #059669 0%, #047857 100%);
-  border-color: #10b981;
+.btn-sim-dispatch.sent {
+  background: linear-gradient(135deg, #16A34A 0%, #15803D 100%);
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.3);
 }
 
-/* 2. Controls Grid */
-.sim-controls-grid {
+/* ==========================================================================
+   2. COMPACT SIMULATION CONTROL CENTER STRIP
+   ========================================================================== */
+.sim-controls-strip {
   display: grid;
-  grid-template-columns: 1.6fr 1.2fr 1.8fr;
-  gap: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  padding-top: 10px;
+  grid-template-columns: 1.35fr 1fr 1.45fr;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
-.sim-card {
+.sim-panel {
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(30, 43, 24, 0.1);
+  border-radius: var(--radius-lg, 12px);
+  padding: 7px 12px;
+  box-shadow: 0 2px 8px rgba(30, 43, 24, 0.04);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
+  min-width: 0;
 }
 
-.sim-card-label {
-  font-size: 10.5px;
-  font-weight: 700;
-  color: #94a3b8;
+.panel-header-mini {
+  font-size: 10px;
+  font-weight: 800;
   text-transform: uppercase;
+  color: var(--text-secondary, #455A3F);
   letter-spacing: 0.04em;
   display: flex;
   align-items: center;
-  gap: 5px;
-}
-
-.sim-scenario-btns {
-  display: flex;
-  gap: 8px;
-}
-
-.sim-btn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: #1e293b;
-  border: 1px solid #334155;
-  border-radius: 8px;
-  padding: 6px 10px;
-  color: #cbd5e1;
-  cursor: pointer;
-  text-align: left;
-  transition: all 0.2s;
-}
-
-.sim-btn:hover {
-  background: #334155;
-  color: #ffffff;
-}
-
-.sim-btn.active.green {
-  background: rgba(16, 185, 129, 0.18);
-  border-color: #10b981;
-  color: #34d399;
-}
-
-.sim-btn.active.amber {
-  background: rgba(245, 158, 11, 0.18);
-  border-color: #f59e0b;
-  color: #fbbf24;
-}
-
-.sim-btn.active.red {
-  background: rgba(239, 68, 68, 0.25);
-  border-color: #ef4444;
-  color: #fca5a5;
-  box-shadow: 0 0 14px rgba(239, 68, 68, 0.35);
-}
-
-.btn-txt {
-  display: flex;
-  flex-direction: column;
-}
-
-.btn-txt .main {
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.btn-txt .sub {
-  font-size: 9px;
-  opacity: 0.75;
-}
-
-/* Slider Card */
-.slider-label-row {
-  display: flex;
   justify-content: space-between;
-  align-items: center;
-}
-
-.rain-readout {
-  font-size: 12px;
-  font-weight: 800;
-  color: #38bdf8;
-  background: rgba(56, 189, 248, 0.15);
-  padding: 1px 7px;
-  border-radius: 4px;
-}
-
-.sim-slider {
-  width: 100%;
-  height: 6px;
-  border-radius: 4px;
-  background: linear-gradient(90deg, #10b981 0%, #f59e0b 40%, #ef4444 85%);
-  outline: none;
-  cursor: pointer;
-  margin: 6px 0 2px;
-}
-
-.sim-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: #ffffff;
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.6);
-  border: 2px solid #0284c7;
-  cursor: grab;
-}
-
-.slider-markers {
-  display: flex;
-  justify-content: space-between;
-  font-size: 9px;
-  color: #64748b;
-}
-
-/* Hotspots Card */
-.hotspot-btn-list {
-  display: flex;
-  flex-wrap: wrap;
   gap: 6px;
 }
 
-.hotspot-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: #1e293b;
-  border: 1px solid #334155;
-  border-radius: 9999px;
-  padding: 4px 9px;
-  color: #cbd5e1;
-  font-size: 10.5px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
+/* 1. Rainfall Benchmark Cards */
+.benchmark-cards-grid {
+  display: flex;
+  gap: 6px;
 }
 
-.hotspot-tag:hover {
-  background: #334155;
-  color: #ffffff;
-  border-color: #38bdf8;
-}
-
-.hotspot-tag.selected {
-  background: rgba(2, 132, 199, 0.25);
-  border-color: #38bdf8;
-  color: #38bdf8;
-}
-
-.hotspot-tag .dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #ef4444;
-}
-
-/* 3. Main Workspace */
-.sim-main-workspace {
-  display: grid;
-  grid-template-columns: 1fr 360px;
+.benchmark-card {
   flex: 1;
-  overflow: hidden;
-  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #FAF9F4;
+  border: 1px solid rgba(30, 43, 24, 0.09);
+  border-radius: 8px;
+  padding: 5px 8px;
+  color: var(--text-primary, #1E2B18);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  min-width: 0;
 }
 
-.sim-map-canvas-wrap {
-  position: relative;
-  height: 100%;
-  width: 100%;
+.benchmark-card:hover {
+  background: #FFFFFF;
+  border-color: #0284C7;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(30, 43, 24, 0.06);
 }
 
-/* 4. Side Diagnostics Panel */
-.sim-side-panel {
-  background: #0b1120;
-  border-left: 1px solid #1e293b;
-  padding: 16px;
+.benchmark-card.selected.green {
+  background: #F0FDF4;
+  border-color: #22C55E;
+  box-shadow: 0 0 0 1.5px #22C55E;
+}
+
+.benchmark-card.selected.amber {
+  background: #FFFBEB;
+  border-color: #F59E0B;
+  box-shadow: 0 0 0 1.5px #F59E0B;
+}
+
+.benchmark-card.selected.red {
+  background: #FEF2F2;
+  border-color: #EF4444;
+  box-shadow: 0 0 0 1.5px #EF4444;
+}
+
+.b-card-text {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  overflow-y: auto;
+  min-width: 0;
+  flex: 1;
 }
 
-.panel-card {
-  background: #131d31;
-  border: 1px solid #1e293b;
-  border-radius: 10px;
-  padding: 14px;
-}
-
-.panel-card-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.panel-card-header h4 {
-  font-size: 12.5px;
+.b-name {
+  font-family: var(--font-title);
+  font-size: 10.5px;
   font-weight: 700;
-  color: #ffffff;
-  margin: 0;
+  color: var(--text-primary, #1E2B18);
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.metric-diag-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+.b-val {
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--text-muted, #6E8268);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.diag-item {
-  background: #0f172a;
-  border: 1px solid #1e293b;
-  border-radius: 6px;
-  padding: 8px 10px;
+.check-icon {
+  color: currentColor;
+  flex-shrink: 0;
+}
+
+.icon-green {
+  color: #16A34A;
+  flex-shrink: 0;
+}
+
+.icon-amber {
+  color: #D97706;
+  flex-shrink: 0;
+}
+
+.icon-red {
+  color: #DC2626;
+  flex-shrink: 0;
+}
+
+/* 2. Infiltration Slider Panel */
+.infiltration-badge {
+  font-family: var(--font-title);
+  font-size: 11px;
+  font-weight: 800;
+  color: #0284C7;
+  background: #E0F2FE;
+  padding: 1px 8px;
+  border-radius: 9999px;
+  border: 1px solid #BAE6FD;
+}
+
+.slider-wrapper-mini {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
+.compact-sim-slider {
+  width: 100%;
+  height: 5px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #22C55E 0%, #F59E0B 40%, #EF4444 85%);
+  outline: none;
+  cursor: pointer;
+  margin: 3px 0 2px;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.compact-sim-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  box-shadow: 0 1px 5px rgba(30, 43, 24, 0.3);
+  border: 2px solid #1E2B18;
+  cursor: grab;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.compact-sim-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  border-color: #0284C7;
+}
+
+.compact-sim-slider::-webkit-slider-thumb:active {
+  cursor: grabbing;
+}
+
+.slider-threshold-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 8.5px;
+  font-weight: 600;
+  color: var(--text-muted, #6E8268);
+}
+
+/* 3. Hotspots Chips Panel */
+.hotspot-chips-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.hotspot-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #FAF9F4;
+  border: 1px solid rgba(30, 43, 24, 0.1);
+  border-radius: 9999px;
+  padding: 3px 8px;
+  color: var(--text-primary, #1E2B18);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+.hotspot-chip:hover {
+  background: #FFFFFF;
+  color: #0284C7;
+  border-color: #0284C7;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(2, 132, 199, 0.12);
+}
+
+.hotspot-chip.active {
+  background: #E0F2FE;
+  border-color: #0284C7;
+  color: #0284C7;
+  font-weight: 700;
+  box-shadow: 0 0 0 1.5px #0284C7;
+}
+
+.chip-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #EF4444;
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   3. MAIN WORKSPACE: HERO MAP CANVAS + SIDE DIAGNOSTICS
+   ========================================================================== */
+.sim-main-workspace {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Hero Map Frame */
+.sim-map-frame {
+  background: #FFFFFF;
+  border: 1px solid rgba(30, 43, 24, 0.1);
+  border-radius: var(--radius-xl, 14px);
+  box-shadow: 0 4px 18px rgba(30, 43, 24, 0.05);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Map Header Toolbar */
+.sim-map-header-toolbar {
+  padding: 7px 14px;
+  background: rgba(30, 43, 24, 0.025);
+  border-bottom: 1px solid rgba(30, 43, 24, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.map-toolbar-left {
+  display: flex;
+  align-items: center;
+}
+
+.map-title-cluster {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.map-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #16A34A;
+  box-shadow: 0 0 6px rgba(22, 163, 74, 0.6);
+  flex-shrink: 0;
+}
+
+.map-main-title {
+  font-family: var(--font-title);
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-primary, #1E2B18);
+  letter-spacing: 0.03em;
+}
+
+.map-sep {
+  color: rgba(30, 43, 24, 0.2);
+}
+
+.map-subtitle {
+  font-size: 11px;
+  color: var(--text-secondary, #455A3F);
+  font-weight: 500;
+}
+
+.map-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.map-scenario-pill {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: #FAF9F4;
+  border: 1px solid rgba(30, 43, 24, 0.1);
+  color: var(--text-primary, #1E2B18);
+}
+
+.map-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  background: #FFFFFF;
+  border: 1px solid rgba(30, 43, 24, 0.14);
+  border-radius: 6px;
+  color: var(--text-primary, #1E2B18);
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  box-shadow: 0 1px 3px rgba(30, 43, 24, 0.04);
+}
+
+.map-action-btn:hover {
+  background: #FAF9F4;
+  border-color: #0284C7;
+  color: #0284C7;
+}
+
+/* Map Canvas Wrap - Fills 100% of the Hero Frame */
+.sim-map-canvas-wrap {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  position: relative;
+}
+
+/* ==========================================================================
+   4. SIDE DIAGNOSTICS & SEVERANCE PANEL
+   ========================================================================== */
+.sim-side-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 2px;
+  scroll-behavior: smooth;
+}
+
+.sim-side-panel::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sim-side-panel::-webkit-scrollbar-track {
+  background: rgba(30, 43, 24, 0.03);
+  border-radius: 4px;
+}
+
+.sim-side-panel::-webkit-scrollbar-thumb {
+  background: rgba(30, 43, 24, 0.2);
+  border-radius: 4px;
+}
+
+.panel-card {
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(30, 43, 24, 0.1);
+  border-radius: var(--radius-xl, 13px);
+  padding: 12px;
+  box-shadow: 0 2px 10px rgba(30, 43, 24, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.panel-card-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.panel-card-header h4 {
+  font-family: var(--font-title);
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--text-primary, #1E2B18);
+  letter-spacing: 0.02em;
+  margin: 0;
+}
+
+.ridge-subtitle {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted, #6E8268);
+  margin-left: auto;
+}
+
+/* Geotechnical 2-Column Grid */
+.metric-diag-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.diag-item {
+  background: #FAF9F4;
+  border: 1px solid rgba(30, 43, 24, 0.08);
+  border-radius: 8px;
+  padding: 7px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transition: all 0.18s ease;
+}
+
+.diag-item:hover {
+  background: #FFFFFF;
+  border-color: rgba(30, 43, 24, 0.16);
+}
+
 .diag-item .lbl {
   font-size: 9.5px;
-  color: #94a3b8;
+  font-weight: 700;
+  color: var(--text-muted, #6E8268);
+  text-transform: uppercase;
 }
 
 .diag-item .val {
-  font-size: 11.5px;
-  font-weight: 700;
-  color: #f1f5f9;
+  font-family: var(--font-title);
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-primary, #1E2B18);
+  line-height: 1.2;
 }
 
+.diag-item .tag {
+  display: inline-block;
+  font-size: 8.5px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  width: fit-content;
+  margin-top: 1px;
+}
+
+.diag-item .tag.danger {
+  background: #FEE2E2;
+  color: #DC2626;
+}
+
+.diag-item .tag.warning {
+  background: #FEF3C7;
+  color: #D97706;
+}
+
+.diag-item .tag.safe {
+  background: #DCFCE7;
+  color: #16A34A;
+}
+
+.diag-item .tag.neutral {
+  background: #E2E8F0;
+  color: #475569;
+}
+
+/* Critical Infrastructure Alert Cards */
 .corridor-alert-item {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  background: #0f172a;
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  border-radius: 6px;
-  padding: 10px;
-  margin-bottom: 8px;
+  gap: 9px;
+  border-radius: 8px;
+  padding: 8px 10px;
+  border-left: 3.5px solid;
+  transition: all 0.18s ease;
+}
+
+.corridor-alert-item:hover {
+  transform: translateX(2px);
+}
+
+.corridor-alert-item.rail-severance {
+  border-left-color: #DC2626;
+  background: #FEF2F2;
+}
+
+.corridor-alert-item.rail-severance strong {
+  color: #991B1B;
+}
+
+.corridor-alert-item.hwy-severance {
+  border-left-color: #D97706;
+  background: #FFFBEB;
+}
+
+.corridor-alert-item.hwy-severance strong {
+  color: #92400E;
 }
 
 .corridor-alert-item strong {
-  font-size: 11.5px;
-  color: #fca5a5;
+  font-family: var(--font-title);
+  font-size: 11px;
+  font-weight: 800;
   display: block;
 }
 
 .corridor-alert-item p {
-  font-size: 10.5px;
-  color: #cbd5e1;
+  font-size: 10px;
+  color: var(--text-secondary, #455A3F);
   margin: 2px 0 0;
   line-height: 1.35;
 }
 
+/* Evaluator Pitch Insight Box */
 .pitch-tip-box {
-  background: rgba(245, 158, 11, 0.08);
-  border: 1px solid rgba(245, 158, 11, 0.25);
+  background: #FEF9EE;
+  border: 1px solid #FDE68A;
+  padding: 10px;
 }
 
 .pitch-note {
-  font-size: 11px;
-  color: #fde68a;
+  font-size: 10.5px;
+  color: #455A3F;
   line-height: 1.45;
   font-style: italic;
   margin: 0;
+  font-weight: 500;
 }
 
-/* Responsive */
-@media (max-width: 1200px) {
-  .sim-controls-grid {
-    grid-template-columns: 1fr;
+/* ==========================================================================
+   5. FLOATING MAP OVERLAYS IN LIGHT MODE
+   ========================================================================== */
+.map-simulation-watermark {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  padding: 6px 12px;
+  border-radius: 10px;
+  box-shadow: 0 4px 14px rgba(30, 43, 24, 0.08);
+  pointer-events: none;
+}
+
+.map-simulation-watermark .watermark-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #DC2626;
+  box-shadow: 0 0 8px rgba(220, 38, 38, 0.6);
+  flex-shrink: 0;
+  animation: pulse-slow 1.4s infinite ease-in-out;
+}
+
+.map-simulation-watermark .watermark-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.map-simulation-watermark .watermark-title {
+  font-family: var(--font-title);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #B91C1C;
+}
+
+.map-simulation-watermark .watermark-sub {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: #455A3F;
+}
+
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
   }
-  .sim-main-workspace {
-    grid-template-columns: 1fr;
-  }
-  .sim-side-panel {
-    display: none;
+  50% {
+    opacity: 0.55;
+    transform: scale(1.15);
   }
 }
 
-/* Navbar item for dedicated simulation tab */
+/* ==========================================================================
+   6. GLOBAL TOPBAR SIMULATION TAB HARMONIZATION
+   ========================================================================== */
 .nav-link-btn.sim-nav-btn {
-  background: rgba(220, 38, 38, 0.08) !important;
-  border: 1px solid rgba(239, 68, 68, 0.35) !important;
-  color: #b91c1c !important;
+  background: rgba(220, 38, 38, 0.06) !important;
+  border: 1px solid rgba(239, 68, 68, 0.25) !important;
+  color: #B91C1C !important;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -448,32 +898,68 @@
 }
 
 .nav-link-btn.sim-nav-btn:hover {
-  background: rgba(220, 38, 38, 0.16) !important;
-  border-color: #ef4444 !important;
-  color: #991b1b !important;
+  background: rgba(220, 38, 38, 0.12) !important;
+  border-color: #EF4444 !important;
+  color: #991B1B !important;
   transform: translateY(-1px);
 }
 
 .nav-link-btn.sim-nav-btn.active {
-  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
-  color: #ffffff !important;
-  border-color: #ef4444 !important;
-  box-shadow: 0 0 14px rgba(239, 68, 68, 0.45) !important;
+  background: #1E2B18 !important;
+  color: #FFFFFF !important;
+  border-color: #1E2B18 !important;
+  box-shadow: 0 2px 10px rgba(30, 43, 24, 0.15) !important;
 }
 
 .nav-link-btn.sim-nav-btn.active .sim-nav-badge {
-  background: #ffffff !important;
-  color: #b91c1c !important;
+  background: #EF4444 !important;
+  color: #FFFFFF !important;
 }
 
 .sim-nav-badge {
-  font-size: 9px;
+  font-size: 9.5px;
   font-weight: 800;
-  padding: 1px 7px;
+  padding: 2px 7px;
   border-radius: 9999px;
-  background: #ef4444;
-  color: #ffffff;
+  background: #EF4444;
+  color: #FFFFFF;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
+/* ==========================================================================
+   7. RESPONSIVE DESIGN (1280px, 1366px, 1440px, 1600px+)
+   ========================================================================== */
+@media (max-width: 1366px) {
+  .sim-controls-strip {
+    grid-template-columns: 1.25fr 1fr 1.35fr;
+    gap: 8px;
+  }
+  .sim-main-workspace {
+    grid-template-columns: 1fr 320px;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .simulation-dashboard-page {
+    overflow-y: auto;
+    height: 100%;
+  }
+  .sim-header-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .sim-controls-strip {
+    grid-template-columns: 1fr;
+  }
+  .sim-main-workspace {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-height: 800px;
+  }
+  .sim-map-frame {
+    min-height: 480px;
+  }
+}
