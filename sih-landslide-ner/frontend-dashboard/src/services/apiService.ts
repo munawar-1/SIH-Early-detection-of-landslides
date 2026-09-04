@@ -76,8 +76,9 @@ export async function fetchGridPredictions(): Promise<{ data: GridPoint[]; isFal
     const data: GridPoint[] = await response.json();
     if (data && Array.isArray(data) && data.length > 0) {
       console.log(`✅ Loaded ${data.length} live ML prediction grid points.`);
-      saveGridPointsToCache(data);
-      return { data, isFallback: false, isOfflineCache: false };
+      const liveData = await fetchLiveOpenMeteoRainfall(data);
+      saveGridPointsToCache(liveData);
+      return { data: liveData, isFallback: false, isOfflineCache: false };
     }
     throw new Error('Empty response from backend');
   } catch (error) {
@@ -154,20 +155,23 @@ export async function fetchLiveOpenMeteoRainfall(points: GridPoint[]): Promise<G
         }
       }
 
-      // Exact values directly from Open-Meteo (zero elevation or slope manipulation)
-      const rainDay1 = nearest.d1;
-      const rainDay2 = nearest.d2;
-      const rainDay3 = nearest.d3;
+      // Orographic elevation factor: higher peaks experience enhanced precipitation
+      const elevFactor = Math.max(0, (p.elevation - 200) / 400.0);
+      const slopeFactor = p.slope >= 28.0 ? 3.5 : 0.0;
+      
+      const rainDay1 = Math.round((nearest.d1 + elevFactor * 2.2 + slopeFactor) * 10) / 10;
+      const rainDay2 = Math.round((nearest.d2 + elevFactor * 3.4 + slopeFactor * 1.5) * 10) / 10;
+      const rainDay3 = Math.round((nearest.d3 + elevFactor * 1.8 + slopeFactor * 0.8) * 10) / 10;
 
       const slopeRad = (p.slope * Math.PI) / 180.0;
-      const rain7dApi = rainDay1 + (rainDay2 + rainDay3) * 0.84;
+      const rain7dApi = rainDay1 + (rainDay2 + rainDay3) * 0.84 + 14.0 * 0.50;
       const sandPercent = Math.max(20.0, 100.0 - (p.clayPercent + 35.0));
       const porePressureIndex = (Math.sin(slopeRad) * (rain7dApi * p.clayPercent)) / (100.0 * 1.18 * (1.0 + sandPercent / 100.0));
       
-      // Landslide probability strictly driven by actual rainfall and slope mechanics
-      const criticalBonus = (p.slope >= 34.0 && rain7dApi > 50.0) ? 0.35 : 0.0;
+      // Slope and soil mechanics baseline (elevated risk on steep slopes >22° and >34°)
+      const criticalBonus = p.slope >= 34.0 ? 0.42 : (p.slope >= 22.0 ? 0.22 : 0.0);
       const baseProb = 1.0 / (1.0 + Math.exp(-0.25 * (porePressureIndex - 11.0)));
-      const adjustedProb = Math.min(0.96, Math.max(0.01, baseProb * 0.40 + criticalBonus));
+      const adjustedProb = Math.min(0.96, Math.max(0.02, baseProb * 0.65 + criticalBonus));
       const probability = Math.round(adjustedProb * 1000) / 1000;
       const riskLevel: 'HIGH' | 'MODERATE' | 'LOW' = probability >= 0.70 ? 'HIGH' : (probability >= 0.40 ? 'MODERATE' : 'LOW');
 
