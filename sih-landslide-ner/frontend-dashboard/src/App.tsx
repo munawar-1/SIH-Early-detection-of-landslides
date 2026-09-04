@@ -259,12 +259,11 @@ export const App: React.FC = () => {
           </button>
 
           <button
-            className={`nav-link-btn sim-nav-btn ${currentPage === 'simulation' ? 'active' : ''}`}
+            className={`nav-link-btn ${currentPage === 'simulation' ? 'active' : ''}`}
             onClick={() => setCurrentPage('simulation')}
           >
-            <CloudRain size={15} className="text-red" />
+            <CloudRain size={15} />
             <span>Monsoon Simulator</span>
-            <span className="sim-nav-badge">SIH Pitch</span>
           </button>
 
           <button

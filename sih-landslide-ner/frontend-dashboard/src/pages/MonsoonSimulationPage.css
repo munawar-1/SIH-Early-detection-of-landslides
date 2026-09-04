@@ -1,5 +1,5 @@
 /* ==========================================================================
-   DIMA HASAO MONSOON SIMULATION DASHBOARD - COMPACT LIGHT-MODE VIEWPORT
+   DIMA HASAO MONSOON SIMULATION DASHBOARD - REFINED VIEWPORT & UI POLISH
    ========================================================================== */
 
 .simulation-dashboard-page {
@@ -37,15 +37,15 @@
 .sim-ambient-orb.orb-1 {
   width: 440px;
   height: 440px;
-  background: radial-gradient(circle, rgba(160, 241, 189, 0.22) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(160, 241, 189, 0.20) 0%, transparent 70%);
   top: -60px;
-  right: 8%;
+  right: 12%;
 }
 
 .sim-ambient-orb.orb-2 {
   width: 400px;
   height: 400px;
-  background: radial-gradient(circle, rgba(186, 230, 253, 0.25) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(186, 230, 253, 0.22) 0%, transparent 70%);
   bottom: 10px;
   left: -50px;
 }
@@ -261,19 +261,24 @@
   transform: translateY(-1px);
 }
 
+.btn-sim-dispatch:active {
+  transform: translateY(0);
+}
+
 .btn-sim-dispatch.sent {
   background: linear-gradient(135deg, #16A34A 0%, #15803D 100%);
   box-shadow: 0 2px 8px rgba(22, 163, 74, 0.3);
 }
 
 /* ==========================================================================
-   2. COMPACT SIMULATION CONTROL CENTER STRIP
+   2. SIMULATION CONTROLS STRIP (OVERVIEW-STYLE CARDS & BORDERS)
    ========================================================================== */
 .sim-controls-strip {
   display: grid;
-  grid-template-columns: 1.35fr 1fr 1.45fr;
+  grid-template-columns: 1.45fr 1fr 1.35fr;
   gap: 10px;
   flex-shrink: 0;
+  min-height: 84px;
 }
 
 .sim-panel {
@@ -282,71 +287,140 @@
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(30, 43, 24, 0.1);
   border-radius: var(--radius-lg, 12px);
-  padding: 7px 12px;
+  padding: 8px 12px;
   box-shadow: 0 2px 8px rgba(30, 43, 24, 0.04);
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
   min-width: 0;
 }
 
 .panel-header-mini {
-  font-size: 10px;
-  font-weight: 800;
-  text-transform: uppercase;
-  color: var(--text-secondary, #455A3F);
-  letter-spacing: 0.04em;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 6px;
 }
 
-/* 1. Rainfall Benchmark Cards */
+.panel-header-title {
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--text-primary, #1E2B18);
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.panel-title-icon {
+  color: var(--text-secondary, #455A3F);
+}
+
+.panel-header-tag {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--text-muted, #6E8268);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Overview-Style Scenario Benchmark Cards */
 .benchmark-cards-grid {
   display: flex;
-  gap: 6px;
+  gap: 8px;
 }
 
 .benchmark-card {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 6px;
-  background: #FAF9F4;
-  border: 1px solid rgba(30, 43, 24, 0.09);
-  border-radius: 8px;
-  padding: 5px 8px;
+  gap: 8px;
+  background: #FFFFFF;
+  border-radius: 10px;
+  padding: 7px 10px;
   color: var(--text-primary, #1E2B18);
   cursor: pointer;
   text-align: left;
-  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   min-width: 0;
+  position: relative;
+  box-shadow: 0 1px 4px rgba(30, 43, 24, 0.03);
 }
 
 .benchmark-card:hover {
-  background: #FFFFFF;
-  border-color: #0284C7;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(30, 43, 24, 0.06);
+  transform: scale(1.015) translateY(-1px);
+  box-shadow: 0 4px 14px rgba(30, 43, 24, 0.08);
 }
 
-.benchmark-card.selected.green {
-  background: #F0FDF4;
+/* Green Variant (Dry Season) */
+.benchmark-card.green-variant {
+  border: 1px solid rgba(34, 197, 94, 0.35);
+}
+
+.benchmark-card.green-variant:hover {
   border-color: #22C55E;
-  box-shadow: 0 0 0 1.5px #22C55E;
 }
 
-.benchmark-card.selected.amber {
-  background: #FFFBEB;
+.benchmark-card.green-variant.selected {
+  border: 2px solid #22C55E;
+  background: #F0FDF4;
+  box-shadow: 0 0 0 1px #22C55E, 0 4px 14px rgba(34, 197, 94, 0.16);
+}
+
+/* Amber Variant (Active Monsoon) */
+.benchmark-card.amber-variant {
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.benchmark-card.amber-variant:hover {
   border-color: #F59E0B;
-  box-shadow: 0 0 0 1.5px #F59E0B;
 }
 
-.benchmark-card.selected.red {
-  background: #FEF2F2;
+.benchmark-card.amber-variant.selected {
+  border: 2px solid #F59E0B;
+  background: #FFFBEB;
+  box-shadow: 0 0 0 1px #F59E0B, 0 4px 14px rgba(245, 158, 11, 0.16);
+}
+
+/* Red Variant (May 2022 Cloudburst) */
+.benchmark-card.red-variant {
+  border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.benchmark-card.red-variant:hover {
   border-color: #EF4444;
-  box-shadow: 0 0 0 1.5px #EF4444;
+}
+
+.benchmark-card.red-variant.selected {
+  border: 2px solid #EF4444;
+  background: #FEF2F2;
+  box-shadow: 0 0 0 1px #EF4444, 0 4px 14px rgba(239, 68, 68, 0.2);
+}
+
+.b-card-icon-wrap {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.b-card-icon-wrap.green {
+  background: #DCFCE7;
+  color: #16A34A;
+}
+
+.b-card-icon-wrap.amber {
+  background: #FEF3C7;
+  color: #D97706;
+}
+
+.b-card-icon-wrap.red {
+  background: #FEE2E2;
+  color: #DC2626;
 }
 
 .b-card-text {
@@ -358,52 +432,52 @@
 
 .b-name {
   font-family: var(--font-title);
-  font-size: 10.5px;
-  font-weight: 700;
+  font-size: 11.5px;
+  font-weight: 800;
   color: var(--text-primary, #1E2B18);
-  line-height: 1.15;
+  line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .b-val {
-  font-size: 9px;
-  font-weight: 500;
+  font-size: 9.5px;
+  font-weight: 600;
   color: var(--text-muted, #6E8268);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-top: 1px;
 }
 
-.check-icon {
-  color: currentColor;
+.b-active-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
 
-.icon-green {
+.b-active-indicator.green {
   color: #16A34A;
-  flex-shrink: 0;
 }
 
-.icon-amber {
+.b-active-indicator.amber {
   color: #D97706;
-  flex-shrink: 0;
 }
 
-.icon-red {
+.b-active-indicator.red {
   color: #DC2626;
-  flex-shrink: 0;
 }
 
-/* 2. Infiltration Slider Panel */
+/* Infiltration Slider Panel */
 .infiltration-badge {
   font-family: var(--font-title);
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 800;
   color: #0284C7;
   background: #E0F2FE;
-  padding: 1px 8px;
+  padding: 1px 9px;
   border-radius: 9999px;
   border: 1px solid #BAE6FD;
 }
@@ -411,12 +485,12 @@
 .slider-wrapper-mini {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 
 .compact-sim-slider {
   width: 100%;
-  height: 5px;
+  height: 6px;
   border-radius: 4px;
   background: linear-gradient(90deg, #22C55E 0%, #F59E0B 40%, #EF4444 85%);
   outline: none;
@@ -428,12 +502,12 @@
 
 .compact-sim-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 15px;
-  height: 15px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: #FFFFFF;
-  box-shadow: 0 1px 5px rgba(30, 43, 24, 0.3);
-  border: 2px solid #1E2B18;
+  box-shadow: 0 1px 6px rgba(30, 43, 24, 0.35);
+  border: 2.5px solid #1E2B18;
   cursor: grab;
   transition: transform 0.15s ease, border-color 0.15s ease;
 }
@@ -450,16 +524,42 @@
 .slider-threshold-labels {
   display: flex;
   justify-content: space-between;
-  font-size: 8.5px;
+  font-size: 9px;
   font-weight: 600;
   color: var(--text-muted, #6E8268);
 }
 
-/* 3. Hotspots Chips Panel */
+.marker-safe {
+  color: #16A34A;
+}
+
+.marker-warn {
+  color: #D97706;
+}
+
+.marker-deluge {
+  color: #DC2626;
+}
+
+.marker-disaster {
+  color: #991B1B;
+}
+
+/* Hotspot Chips Panel */
+.hotspot-count-pill {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--text-secondary, #455A3F);
+  background: #FAF9F4;
+  padding: 1px 7px;
+  border-radius: 9999px;
+  border: 1px solid rgba(30, 43, 24, 0.08);
+}
+
 .hotspot-chips-container {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 5px;
   align-items: center;
 }
 
@@ -470,9 +570,9 @@
   background: #FAF9F4;
   border: 1px solid rgba(30, 43, 24, 0.1);
   border-radius: 9999px;
-  padding: 3px 8px;
+  padding: 3px 9px;
   color: var(--text-primary, #1E2B18);
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
@@ -483,8 +583,8 @@
   background: #FFFFFF;
   color: #0284C7;
   border-color: #0284C7;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 5px rgba(2, 132, 199, 0.12);
+  transform: scale(1.02) translateY(-1px);
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.14);
 }
 
 .hotspot-chip.active {
@@ -504,12 +604,12 @@
 }
 
 /* ==========================================================================
-   3. MAIN WORKSPACE: HERO MAP CANVAS + SIDE DIAGNOSTICS
+   3. MAIN WORKSPACE: OPTIMIZED MAP (85% WIDTH, 90% HEIGHT) + EXPANDED SIDE PANEL
    ========================================================================== */
 .sim-main-workspace {
   display: grid;
-  grid-template-columns: 1fr 350px;
-  gap: 10px;
+  grid-template-columns: 1fr 440px;
+  gap: 12px;
   flex: 1;
   min-height: 0;
   height: 100%;
@@ -517,7 +617,7 @@
   position: relative;
 }
 
-/* Hero Map Frame */
+/* Optimized Map Frame (Reduced Dominance to 85% Width & ~90% Height Proportions) */
 .sim-map-frame {
   background: #FFFFFF;
   border: 1px solid rgba(30, 43, 24, 0.1);
@@ -525,8 +625,8 @@
   box-shadow: 0 4px 18px rgba(30, 43, 24, 0.05);
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-height: 0;
+  height: 94%;
+  min-height: 420px;
   overflow: hidden;
   position: relative;
 }
@@ -618,7 +718,7 @@
   color: #0284C7;
 }
 
-/* Map Canvas Wrap - Fills 100% of the Hero Frame */
+/* Map Canvas Wrap - Fills Remaining Frame Height */
 .sim-map-canvas-wrap {
   flex: 1;
   width: 100%;
@@ -628,12 +728,12 @@
 }
 
 /* ==========================================================================
-   4. SIDE DIAGNOSTICS & SEVERANCE PANEL
+   4. EXPANDED SIDE DIAGNOSTICS & SEVERANCE PANEL (440px WIDTH)
    ========================================================================== */
 .sim-side-panel {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   height: 100%;
   min-height: 0;
   overflow-y: auto;
@@ -643,7 +743,7 @@
 }
 
 .sim-side-panel::-webkit-scrollbar {
-  width: 4px;
+  width: 5px;
 }
 
 .sim-side-panel::-webkit-scrollbar-track {
@@ -656,127 +756,195 @@
   border-radius: 4px;
 }
 
+.sim-side-panel::-webkit-scrollbar-thumb:hover {
+  background: rgba(2, 132, 199, 0.4);
+}
+
 .panel-card {
   background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(30, 43, 24, 0.1);
   border-radius: var(--radius-xl, 13px);
-  padding: 12px;
-  box-shadow: 0 2px 10px rgba(30, 43, 24, 0.04);
+  padding: 14px 16px;
+  box-shadow: 0 3px 12px rgba(30, 43, 24, 0.04);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .panel-card-header {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+}
+
+.header-icon-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.header-icon-badge.cyan {
+  background: #E0F2FE;
+  color: #0284C7;
+  border: 1px solid #BAE6FD;
+}
+
+.header-icon-badge.red {
+  background: #FEF2F2;
+  color: #DC2626;
+  border: 1px solid #FECACA;
+}
+
+.header-text-group {
+  display: flex;
+  flex-direction: column;
 }
 
 .panel-card-header h4 {
   font-family: var(--font-title);
-  font-size: 11.5px;
+  font-size: 12.5px;
   font-weight: 800;
   color: var(--text-primary, #1E2B18);
   letter-spacing: 0.02em;
   margin: 0;
+  line-height: 1.2;
 }
 
 .ridge-subtitle {
   font-size: 10px;
   font-weight: 600;
   color: var(--text-muted, #6E8268);
-  margin-left: auto;
+  margin-top: 1px;
 }
 
-/* Geotechnical 2-Column Grid */
+.active-breach-count {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 800;
+  color: #B91C1C;
+  background: #FEE2E2;
+  border: 1px solid #FCA5A5;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+/* Geotechnical Diagnostics 2-Column Grid (Enlarged) */
 .metric-diag-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  gap: 8px;
 }
 
 .diag-item {
   background: #FAF9F4;
   border: 1px solid rgba(30, 43, 24, 0.08);
-  border-radius: 8px;
-  padding: 7px 8px;
+  border-radius: 10px;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  transition: all 0.18s ease;
+  gap: 3px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .diag-item:hover {
   background: #FFFFFF;
-  border-color: rgba(30, 43, 24, 0.16);
+  border-color: rgba(30, 43, 24, 0.18);
+  transform: scale(1.01) translateY(-1px);
+  box-shadow: 0 3px 10px rgba(30, 43, 24, 0.05);
 }
 
 .diag-item .lbl {
-  font-size: 9.5px;
+  font-size: 10.5px;
   font-weight: 700;
   color: var(--text-muted, #6E8268);
   text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 .diag-item .val {
   font-family: var(--font-title);
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 800;
   color: var(--text-primary, #1E2B18);
   line-height: 1.2;
+  margin: 1px 0;
 }
 
 .diag-item .tag {
   display: inline-block;
-  font-size: 8.5px;
+  font-size: 9.5px;
   font-weight: 700;
-  padding: 1px 5px;
-  border-radius: 3px;
+  padding: 2px 7px;
+  border-radius: 4px;
   width: fit-content;
-  margin-top: 1px;
 }
 
 .diag-item .tag.danger {
   background: #FEE2E2;
   color: #DC2626;
+  border: 1px solid #FCA5A5;
 }
 
 .diag-item .tag.warning {
   background: #FEF3C7;
   color: #D97706;
+  border: 1px solid #FCD34D;
 }
 
 .diag-item .tag.safe {
   background: #DCFCE7;
   color: #16A34A;
+  border: 1px solid #86EFAC;
 }
 
 .diag-item .tag.neutral {
   background: #E2E8F0;
   color: #475569;
+  border: 1px solid #CBD5E1;
 }
 
-/* Critical Infrastructure Alert Cards */
+.diag-footnote {
+  font-size: 9.5px;
+  color: var(--text-muted, #6E8268);
+  margin-top: 2px;
+  font-weight: 500;
+}
+
+/* Critical Infrastructure Alert Cards (Expanded) */
+.severance-items-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .corridor-alert-item {
   display: flex;
   align-items: flex-start;
-  gap: 9px;
-  border-radius: 8px;
-  padding: 8px 10px;
-  border-left: 3.5px solid;
-  transition: all 0.18s ease;
+  gap: 10px;
+  border-radius: 10px;
+  padding: 10px 12px;
+  border-left: 4px solid;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .corridor-alert-item:hover {
-  transform: translateX(2px);
+  transform: scale(1.01) translateX(2px);
+  box-shadow: 0 4px 12px rgba(30, 43, 24, 0.06);
 }
 
 .corridor-alert-item.rail-severance {
   border-left-color: #DC2626;
-  background: #FEF2F2;
+  border-top: 1px solid #FECACA;
+  border-right: 1px solid #FECACA;
+  border-bottom: 1px solid #FECACA;
+  background: #FFF7F7;
 }
 
 .corridor-alert-item.rail-severance strong {
@@ -785,41 +953,84 @@
 
 .corridor-alert-item.hwy-severance {
   border-left-color: #D97706;
-  background: #FFFBEB;
+  border-top: 1px solid #FDE68A;
+  border-right: 1px solid #FDE68A;
+  border-bottom: 1px solid #FDE68A;
+  background: #FFFDF5;
 }
 
 .corridor-alert-item.hwy-severance strong {
   color: #92400E;
 }
 
-.corridor-alert-item strong {
+.corridor-icon-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.corridor-icon-badge.red {
+  background: #FEE2E2;
+  color: #DC2626;
+}
+
+.corridor-icon-badge.amber {
+  background: #FEF3C7;
+  color: #D97706;
+}
+
+.corridor-alert-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.corridor-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.corridor-title-row strong {
   font-family: var(--font-title);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
-  display: block;
 }
 
-.corridor-alert-item p {
-  font-size: 10px;
+.threat-pill {
+  font-size: 9px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.threat-pill.critical {
+  background: #FEE2E2;
+  color: #DC2626;
+  border: 1px solid #FCA5A5;
+}
+
+.threat-pill.warning {
+  background: #FEF3C7;
+  color: #D97706;
+  border: 1px solid #FCD34D;
+}
+
+.corridor-alert-content p {
+  font-size: 11px;
   color: var(--text-secondary, #455A3F);
-  margin: 2px 0 0;
-  line-height: 1.35;
-}
-
-/* Evaluator Pitch Insight Box */
-.pitch-tip-box {
-  background: #FEF9EE;
-  border: 1px solid #FDE68A;
-  padding: 10px;
-}
-
-.pitch-note {
-  font-size: 10.5px;
-  color: #455A3F;
-  line-height: 1.45;
-  font-style: italic;
   margin: 0;
-  font-weight: 500;
+  line-height: 1.45;
 }
 
 /* ==========================================================================
@@ -884,59 +1095,22 @@
 }
 
 /* ==========================================================================
-   6. GLOBAL TOPBAR SIMULATION TAB HARMONIZATION
+   6. RESPONSIVE DESIGN (1280px, 1366px, 1440px, 1600px+)
    ========================================================================== */
-.nav-link-btn.sim-nav-btn {
-  background: rgba(220, 38, 38, 0.06) !important;
-  border: 1px solid rgba(239, 68, 68, 0.25) !important;
-  color: #B91C1C !important;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  position: relative;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.nav-link-btn.sim-nav-btn:hover {
-  background: rgba(220, 38, 38, 0.12) !important;
-  border-color: #EF4444 !important;
-  color: #991B1B !important;
-  transform: translateY(-1px);
-}
-
-.nav-link-btn.sim-nav-btn.active {
-  background: #1E2B18 !important;
-  color: #FFFFFF !important;
-  border-color: #1E2B18 !important;
-  box-shadow: 0 2px 10px rgba(30, 43, 24, 0.15) !important;
-}
-
-.nav-link-btn.sim-nav-btn.active .sim-nav-badge {
-  background: #EF4444 !important;
-  color: #FFFFFF !important;
-}
-
-.sim-nav-badge {
-  font-size: 9.5px;
-  font-weight: 800;
-  padding: 2px 7px;
-  border-radius: 9999px;
-  background: #EF4444;
-  color: #FFFFFF;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-/* ==========================================================================
-   7. RESPONSIVE DESIGN (1280px, 1366px, 1440px, 1600px+)
-   ========================================================================== */
-@media (max-width: 1366px) {
+@media (max-width: 1400px) {
+  .sim-main-workspace {
+    grid-template-columns: 1fr 400px;
+    gap: 10px;
+  }
   .sim-controls-strip {
-    grid-template-columns: 1.25fr 1fr 1.35fr;
+    grid-template-columns: 1.35fr 1fr 1.25fr;
     gap: 8px;
   }
+}
+
+@media (max-width: 1200px) {
   .sim-main-workspace {
-    grid-template-columns: 1fr 320px;
+    grid-template-columns: 1fr 360px;
     gap: 8px;
   }
 }
@@ -960,6 +1134,7 @@
     min-height: 800px;
   }
   .sim-map-frame {
-    min-height: 480px;
+    min-height: 440px;
+    height: 480px;
   }
 }

@@ -182,57 +182,77 @@ export const MonsoonSimulationPage: React.FC<MonsoonSimulationPageProps> = ({
             type="button"
           >
             <Send size={13} />
-            <span>{broadcastSent ? 'Broadcast Dispatched' : 'Dispatch Warning'}</span>
+            <span>{broadcastSent ? 'Broadcast Dispatched' : 'Dispatch Emergency Warning'}</span>
           </button>
         </div>
       </header>
 
-      {/* 2. Compact Simulation Control Center */}
+      {/* 2. Compact Simulation Control Center Strip */}
       <section className="sim-controls-strip">
-        {/* Panel 1: Monsoon Rainfall Benchmark */}
+        {/* Panel 1: Monsoon Rainfall Benchmark (Overview-Style Cards) */}
         <div className="sim-panel benchmark-panel">
           <div className="panel-header-mini">
-            <CloudRain size={13} />
-            <span>1. Rainfall Benchmark</span>
+            <span className="panel-header-title">
+              <CloudRain size={13} className="panel-title-icon" /> 1. RAINFALL BENCHMARK
+            </span>
+            <span className="panel-header-tag">Overview Scenarios</span>
           </div>
           <div className="benchmark-cards-grid">
             <button
-              className={`benchmark-card ${scenario === 'CLEAR_WEATHER' ? 'selected green' : ''}`}
+              className={`benchmark-card green-variant ${scenario === 'CLEAR_WEATHER' ? 'selected' : ''}`}
               onClick={() => handleScenarioSelect('CLEAR_WEATHER', 9)}
               type="button"
             >
-              <Sun size={14} className="icon-green" />
+              <div className="b-card-icon-wrap green">
+                <Sun size={15} />
+              </div>
               <div className="b-card-text">
                 <span className="b-name">Dry Season</span>
                 <span className="b-val">&lt;10mm • Safe Baseline</span>
               </div>
-              {scenario === 'CLEAR_WEATHER' && <CheckCircle2 size={13} className="check-icon" />}
+              {scenario === 'CLEAR_WEATHER' && (
+                <div className="b-active-indicator green">
+                  <CheckCircle2 size={13} />
+                </div>
+              )}
             </button>
 
             <button
-              className={`benchmark-card ${scenario === 'MODERATE_MONSOON' ? 'selected amber' : ''}`}
+              className={`benchmark-card amber-variant ${scenario === 'MODERATE_MONSOON' ? 'selected' : ''}`}
               onClick={() => handleScenarioSelect('MODERATE_MONSOON', 145)}
               type="button"
             >
-              <CloudRain size={14} className="icon-amber" />
+              <div className="b-card-icon-wrap amber">
+                <CloudRain size={15} />
+              </div>
               <div className="b-card-text">
                 <span className="b-name">Active Monsoon</span>
                 <span className="b-val">145mm • Saturated</span>
               </div>
-              {scenario === 'MODERATE_MONSOON' && <CheckCircle2 size={13} className="check-icon" />}
+              {scenario === 'MODERATE_MONSOON' && (
+                <div className="b-active-indicator amber">
+                  <CheckCircle2 size={13} />
+                </div>
+              )}
             </button>
 
             <button
-              className={`benchmark-card ${scenario === 'DISASTER_CLOUDBURST' ? 'selected red' : ''}`}
+              className={`benchmark-card red-variant ${scenario === 'DISASTER_CLOUDBURST' ? 'selected' : ''}`}
               onClick={() => handleScenarioSelect('DISASTER_CLOUDBURST', 310)}
               type="button"
             >
-              <AlertOctagon size={14} className="icon-red" />
+              <div className="b-card-icon-wrap red">
+                <AlertOctagon size={15} />
+              </div>
               <div className="b-card-text">
                 <span className="b-name">May 2022 Cloudburst</span>
                 <span className="b-val">310mm • Disaster Deluge</span>
               </div>
-              {scenario === 'DISASTER_CLOUDBURST' && <CheckCircle2 size={13} className="check-icon" />}
+              {scenario === 'DISASTER_CLOUDBURST' && (
+                <div className="b-active-indicator red">
+                  <CheckCircle2 size={13} />
+                </div>
+              )}
             </button>
           </div>
         </div>
@@ -240,8 +260,9 @@ export const MonsoonSimulationPage: React.FC<MonsoonSimulationPageProps> = ({
         {/* Panel 2: 72H Infiltration Slider */}
         <div className="sim-panel infiltration-panel">
           <div className="panel-header-mini">
-            <Sliders size={13} />
-            <span>2. 72H Infiltration</span>
+            <span className="panel-header-title">
+              <Sliders size={13} className="panel-title-icon" /> 2. 72H INFILTRATION
+            </span>
             <span className="infiltration-badge">{rainfallMm} mm</span>
           </div>
           <div className="slider-wrapper-mini">
@@ -256,12 +277,13 @@ export const MonsoonSimulationPage: React.FC<MonsoonSimulationPageProps> = ({
                 setRainfallMm(Number(e.target.value));
               }}
               className="compact-sim-slider"
+              aria-label="72H Rainfall Infiltration Depth"
             />
             <div className="slider-threshold-labels">
-              <span>Dry (10mm)</span>
-              <span>Warning (120mm)</span>
-              <span>Deluge (260mm)</span>
-              <span>Disaster (400mm+)</span>
+              <span className="marker-safe">Dry (10mm)</span>
+              <span className="marker-warn">Warning (120mm)</span>
+              <span className="marker-deluge">Deluge (260mm)</span>
+              <span className="marker-disaster">Disaster (400mm+)</span>
             </div>
           </div>
         </div>
@@ -269,8 +291,10 @@ export const MonsoonSimulationPage: React.FC<MonsoonSimulationPageProps> = ({
         {/* Panel 3: Fly to Hotspot */}
         <div className="sim-panel hotspot-panel">
           <div className="panel-header-mini">
-            <MapPin size={13} />
-            <span>3. Fly to Hotspot</span>
+            <span className="panel-header-title">
+              <MapPin size={13} className="panel-title-icon" /> 3. FLY TO HOTSPOT
+            </span>
+            <span className="hotspot-count-pill">{DIMA_HASAO_HOTSPOTS.length} Targets</span>
           </div>
           <div className="hotspot-chips-container">
             {DIMA_HASAO_HOTSPOTS.map(spot => (
@@ -288,9 +312,9 @@ export const MonsoonSimulationPage: React.FC<MonsoonSimulationPageProps> = ({
         </div>
       </section>
 
-      {/* 3. Main Workspace: Hero Interactive Map + Diagnostics & Severance */}
+      {/* 3. Main Workspace: Optimized Map Frame + Expanded Diagnostics Panel */}
       <main className="sim-main-workspace">
-        {/* Full Interactive Leaflet Simulation Canvas in Hero Frame */}
+        {/* Optimized Interactive Leaflet Simulation Canvas (85% Width, 90% Height Proportions) */}
         <div className="sim-map-frame">
           <div className="sim-map-header-toolbar">
             <div className="map-toolbar-left">
@@ -313,7 +337,7 @@ export const MonsoonSimulationPage: React.FC<MonsoonSimulationPageProps> = ({
                     handleHotspotClick(DIMA_HASAO_HOTSPOTS[0]);
                   }
                 }}
-                title="Fit to Dima Hasao Sector"
+                title="Fit and Recenter to Dima Hasao Sector"
                 type="button"
               >
                 <Crosshair size={12} /> Fit Area
@@ -337,74 +361,99 @@ export const MonsoonSimulationPage: React.FC<MonsoonSimulationPageProps> = ({
           </div>
         </div>
 
-        {/* Right Diagnostics & Critical Severance Panel */}
+        {/* Right Diagnostics & Critical Severance Panel (Expanded Width & Height) */}
         <aside className="sim-side-panel">
-          {/* Diagnostics Card */}
+          {/* Card 1: Geotechnical Diagnostics */}
           <div className="panel-card diagnostic-box">
             <div className="panel-card-header">
-              <Activity size={15} className="text-cyan" />
-              <h4>GEOTECHNICAL DIAGNOSTICS</h4>
-              <span className="ridge-subtitle">Borail Ridge</span>
+              <div className="header-icon-badge cyan">
+                <Activity size={16} />
+              </div>
+              <div className="header-text-group">
+                <h4>GEOTECHNICAL DIAGNOSTICS</h4>
+                <span className="ridge-subtitle">Borail Mountain Range • Sensor Section 04</span>
+              </div>
             </div>
+
             <div className="metric-diag-row">
               <div className="diag-item">
-                <span className="lbl">Pore Pressure</span>
+                <span className="lbl">Pore Pressure (u<sub>w</sub>)</span>
                 <span className="val">{rainfallMm > 200 ? '28.4 kPa' : '11.2 kPa'}</span>
                 <span className={`tag ${rainfallMm > 200 ? 'danger' : 'warning'}`}>
                   {rainfallMm > 200 ? 'Saturated' : 'Moderate'}
                 </span>
+                <span className="diag-footnote">Piezometric hydrostatic head</span>
               </div>
+
               <div className="diag-item">
-                <span className="lbl">Safety Factor</span>
+                <span className="lbl">Factor of Safety (FOS)</span>
                 <span className="val">{rainfallMm > 200 ? '0.78' : '1.34'}</span>
                 <span className={`tag ${rainfallMm > 200 ? 'danger' : 'safe'}`}>
                   {rainfallMm > 200 ? 'Failure Risk' : 'Stable'}
                 </span>
+                <span className="diag-footnote">Bishop limit equilibrium analysis</span>
               </div>
+
               <div className="diag-item">
-                <span className="lbl">Soil Clay</span>
+                <span className="lbl">Soil Clay Content</span>
                 <span className="val">32.4%</span>
                 <span className="tag neutral">ISRIC SoilGrids</span>
+                <span className="diag-footnote">High plasticity expandable clay</span>
               </div>
+
               <div className="diag-item">
-                <span className="lbl">Slope</span>
+                <span className="lbl">Slope Criticality</span>
                 <span className="val">34.6°</span>
                 <span className="tag warning">Steep Scarp</span>
+                <span className="diag-footnote">NASA SRTM 30m digital terrain</span>
               </div>
             </div>
           </div>
 
-          {/* Simulated Critical Severance Card */}
+          {/* Card 2: Simulated Critical Severance */}
           <div className="panel-card corridors-alert-box">
             <div className="panel-card-header">
-              <ShieldAlert size={15} className="text-red" />
-              <h4>SIMULATED CRITICAL SEVERANCE</h4>
-            </div>
-            <div className="corridor-alert-item rail-severance">
-              <Train size={15} className="text-red" />
-              <div>
-                <strong>Lumding–Badarpur Railway Line</strong>
-                <p>Track foundation wash-away threat between Daotuhaja and New Haflong (Km 52).</p>
+              <div className="header-icon-badge red">
+                <ShieldAlert size={16} />
               </div>
-            </div>
-            <div className="corridor-alert-item hwy-severance">
-              <Navigation size={15} className="text-amber" />
-              <div>
-                <strong>NH-27 Jatinga Mountain Pass</strong>
-                <p>Debris flows and boulder falls blocking 4-lane East-West highway corridor.</p>
+              <div className="header-text-group">
+                <h4>SIMULATED CRITICAL SEVERANCE</h4>
+                <span className="ridge-subtitle">Infrastructure Breach Forecast</span>
               </div>
+              <span className="active-breach-count">2 Corridors Impacted</span>
             </div>
-          </div>
 
-          {/* Evaluator Pitch Highlight Card */}
-          <div className="panel-card pitch-tip-box">
-            <div className="panel-card-header">
-              <Sparkles size={14} className="text-amber" />
-              <h4>INSIGHT • WHY THIS MATTERS</h4>
+            <div className="severance-items-container">
+              <div className="corridor-alert-item rail-severance">
+                <div className="corridor-icon-badge red">
+                  <Train size={16} />
+                </div>
+                <div className="corridor-alert-content">
+                  <div className="corridor-title-row">
+                    <strong>Lumding–Badarpur Railway Line</strong>
+                    <span className="threat-pill critical">CRITICAL THREAT</span>
+                  </div>
+                  <p>
+                    Track foundation wash-away threat between Daotuhaja and New Haflong (Km 52). Ballast subgrade liquefaction and slope subsidence detected.
+                  </p>
+                </div>
+              </div>
+
+              <div className="corridor-alert-item hwy-severance">
+                <div className="corridor-icon-badge amber">
+                  <Navigation size={16} />
+                </div>
+                <div className="corridor-alert-content">
+                  <div className="corridor-title-row">
+                    <strong>NH-27 Jatinga Mountain Pass</strong>
+                    <span className="threat-pill warning">HIGHWAY CLOSURE</span>
+                  </div>
+                  <p>
+                    Debris flows and boulder falls blocking 4-lane East-West highway corridor. Active geotechnical slide movement encroaching upon roadway.
+                  </p>
+                </div>
+              </div>
             </div>
-            <p className="pitch-note">
-              "Judges, during dry months, the live GIS stays green. But when intense monsoon cloudbursts strike Dima Hasao, our multi-parameter ML engine uses SRTM slope, ISRIC clay, and precipitation to forecast slope failures 72 hours before disaster strikes."
-            </p>
           </div>
         </aside>
       </main>
