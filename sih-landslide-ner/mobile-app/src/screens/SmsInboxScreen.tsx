@@ -13,19 +13,12 @@ import {
 import {
   EmergencySmsAlert,
   SupportedLanguage,
+  LANGUAGE_TABS,
   smsService
 } from '../services/smsService';
 import { getThreatTheme, APP_COLORS } from '../constants/theme';
 import { ThreatBadge } from '../components/ThreatBadge';
 import { InjuryFirstAidModal, VALID_HELPLINES } from '../components/InjuryFirstAidModal';
-
-const LANGUAGE_TABS: { key: SupportedLanguage; label: string; flag: string }[] = [
-  { key: 'en', label: 'English', flag: '🇬🇧' },
-  { key: 'as', label: 'অসমীয়া', flag: '🇮🇳' },
-  { key: 'bn', label: 'বাংলা', flag: '🇮🇳' },
-  { key: 'hi', label: 'हिंदी', flag: '🇮🇳' },
-  { key: 'dimasa', label: 'Dimasa', flag: '🏔️' }
-];
 
 type FilterCategory = 'ALL' | 'CRITICAL' | 'UNREAD';
 

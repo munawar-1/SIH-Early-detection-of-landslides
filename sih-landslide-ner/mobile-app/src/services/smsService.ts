@@ -4,6 +4,14 @@ import { ThreatLevel } from '../constants/theme';
 
 export type SupportedLanguage = 'en' | 'as' | 'bn' | 'hi' | 'dimasa';
 
+export const LANGUAGE_TABS: { key: SupportedLanguage; label: string; flag: string }[] = [
+  { key: 'en', label: 'English', flag: '🇬🇧' },
+  { key: 'as', label: 'অসমীয়া', flag: '🇮🇳' },
+  { key: 'bn', label: 'বাংলা', flag: '🇮🇳' },
+  { key: 'hi', label: 'हिंदी', flag: '🇮🇳' },
+  { key: 'dimasa', label: 'Dimasa', flag: '🏔️' }
+];
+
 export interface EmergencySmsAlert {
   id: string;
   senderTag: string; // e.g. "[DEMO] DDMA-HAFLONG"
