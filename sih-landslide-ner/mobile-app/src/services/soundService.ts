@@ -106,6 +106,10 @@ class SoundService {
     }
   }
 
+  public startEmergencySiren() {
+    this.playEmergencySiren();
+  }
+
   public getIsPlaying(): boolean {
     return this.isPlaying;
   }

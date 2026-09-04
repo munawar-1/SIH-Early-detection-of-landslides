@@ -50,9 +50,9 @@ public class AlertDispatchService {
      */
     @Transactional
     public AlertCheckResponseDto checkAndDispatch(UserMobile user, double lat, double lng) {
-        // Buffer settings in meters: CRITICAL = 5000m, HIGH = 2500m (covers 1.1km grid spacing without dead zones)
-        double highBufferMeters = 2500.0;
-        double criticalBufferMeters = 5000.0;
+        // Buffer settings calibrated to 1.1km grid spacing: CRITICAL = 1200m, HIGH = 800m
+        double highBufferMeters = 800.0;
+        double criticalBufferMeters = 1200.0;
 
         List<RiskZone> matchedZones = riskZoneRepository.findHazardMatch(
                 lat, lng, highBufferMeters, criticalBufferMeters);
@@ -229,5 +229,79 @@ public class AlertDispatchService {
                 Math.sin(dLon / 2) * Math.sin(dLon / 2);
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return R * c;
+    }
+
+    // =========================================================================
+    // DUAL ALERT ROUTING: SEPARATE SIMULATOR & LIVE MONITORING DISPATCH PATHS
+    // =========================================================================
+
+    private static volatile Map<String, Object> latestSimulatorBroadcast = null;
+    private static volatile long latestSimulatorTimestamp = 0;
+
+    private static volatile Map<String, Object> latestLiveBroadcast = null;
+    private static volatile long latestLiveTimestamp = 0;
+
+    /**
+     * Dispatches a test/demo alert from the Monsoon Disaster Simulator.
+     * Tagged with source = "SIMULATOR". Delivered ONLY to phones in Demo Mode.
+     */
+    public Map<String, Object> dispatchSimulatorAlert(Map<String, Object> payload) {
+        Map<String, Object> alert = new HashMap<>(payload);
+        alert.put("source", "SIMULATOR");
+        alert.put("active", true);
+        alert.put("broadcast_id", System.currentTimeMillis());
+        alert.put("timestamp", LocalDateTime.now().toString());
+
+        latestSimulatorBroadcast = alert;
+        latestSimulatorTimestamp = System.currentTimeMillis();
+
+        logger.info("🧪 [SIMULATOR DISPATCH] Dispatched simulator demo alert ID #{}. Tagged source: SIMULATOR",
+                alert.get("broadcast_id"));
+        return alert;
+    }
+
+    public Map<String, Object> getActiveSimulatorAlert() {
+        if (latestSimulatorBroadcast != null && (System.currentTimeMillis() - latestSimulatorTimestamp < 600000)) {
+            return latestSimulatorBroadcast;
+        }
+        return Map.of("active", false);
+    }
+
+    public void dismissSimulatorAlert() {
+        latestSimulatorBroadcast = null;
+        latestSimulatorTimestamp = 0;
+        logger.info("🧪 [SIMULATOR DISPATCH] Dismissed active simulator broadcast.");
+    }
+
+    /**
+     * Dispatches a live emergency alert from the Real-time Monitoring Dashboard.
+     * Tagged with source = "LIVE_MONITORING". Delivered ONLY to phones in Live (non-demo) Mode.
+     */
+    public Map<String, Object> dispatchLiveMonitoringAlert(Map<String, Object> payload) {
+        Map<String, Object> alert = new HashMap<>(payload);
+        alert.put("source", "LIVE_MONITORING");
+        alert.put("active", true);
+        alert.put("broadcast_id", System.currentTimeMillis());
+        alert.put("timestamp", LocalDateTime.now().toString());
+
+        latestLiveBroadcast = alert;
+        latestLiveTimestamp = System.currentTimeMillis();
+
+        logger.info("🚨 [LIVE MONITORING DISPATCH] Broadcasted live emergency alert ID #{}. Tagged source: LIVE_MONITORING",
+                alert.get("broadcast_id"));
+        return alert;
+    }
+
+    public Map<String, Object> getActiveLiveMonitoringAlert() {
+        if (latestLiveBroadcast != null && (System.currentTimeMillis() - latestLiveTimestamp < 600000)) {
+            return latestLiveBroadcast;
+        }
+        return Map.of("active", false);
+    }
+
+    public void dismissLiveMonitoringAlert() {
+        latestLiveBroadcast = null;
+        latestLiveTimestamp = 0;
+        logger.info("🚨 [LIVE MONITORING DISPATCH] Dismissed active live monitoring broadcast.");
     }
 }

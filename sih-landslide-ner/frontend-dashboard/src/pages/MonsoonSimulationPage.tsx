@@ -46,7 +46,7 @@ interface MonsoonSimulationPageProps {
 
 export const MonsoonSimulationPage: React.FC<MonsoonSimulationPageProps> = ({
   baseGridPoints,
-  onNavigateToAlerts,
+  onNavigateToAlerts: _onNavigateToAlerts,
   onSelectPoint
 }) => {
   // Simulation Scenario State
@@ -54,6 +54,7 @@ export const MonsoonSimulationPage: React.FC<MonsoonSimulationPageProps> = ({
   const [rainfallMm, setRainfallMm] = useState<number>(310);
   const [focusedHotspot, setFocusedHotspot] = useState<HotspotPreset | null>(null);
   const [activeHotspotId, setActiveHotspotId] = useState<string>('jatinga_ridge');
+  const [isDispatching, setIsDispatching] = useState<boolean>(false);
   const [broadcastSent, setBroadcastSent] = useState<boolean>(false);
 
   // Map Filter State for Simulation
@@ -105,11 +106,47 @@ export const MonsoonSimulationPage: React.FC<MonsoonSimulationPageProps> = ({
     setFocusedHotspot(spot);
   };
 
-  const handleDispatchSimulationAlert = () => {
-    setBroadcastSent(true);
-    setTimeout(() => setBroadcastSent(false), 5000);
-    if (onNavigateToAlerts) {
-      setTimeout(() => onNavigateToAlerts(), 1200);
+  const handleDispatchEmergencyMessage = async () => {
+    setIsDispatching(true);
+    const backendBase = (import.meta.env.VITE_API_BASE_URL || 'https://ner-landslide-backend.onrender.com').replace(/\/$/, '');
+    const mlBase = (import.meta.env.VITE_ML_API_BASE_URL || 'https://sih-early-detection-of-landslides.onrender.com').replace(/\/$/, '');
+
+    const simulatorPayload = JSON.stringify({
+      source: 'SIMULATOR',
+      threatLevel: highRiskCount > 0 ? 'CRITICAL' : 'HIGH',
+      district: 'Dima Hasao',
+      targetLat: 25.18,
+      targetLng: 92.76,
+      targetRadiusKm: 50.0,
+      title: '🚨 MONSOON DISASTER SIMULATOR ALERT',
+      body: `[SIMULATOR DEMO TEST] Severe rainfall deluge simulation active (${rainfallMm}mm - ${scenario.replace(/_/g, ' ')}). High-risk slope instability simulated for Dima Hasao sector. Evacuate active hazard coordinates immediately.`,
+      dispatchedBy: 'Monsoon Disaster Simulator (Isolated Demo Engine)',
+      scenario,
+      rainfallMm,
+      timestamp: new Date().toISOString()
+    });
+
+    try {
+      const endpoints = [
+        `${backendBase}/api/alerts/simulator-dispatch`,
+        `${mlBase}/api/alerts/simulator-dispatch`
+      ];
+
+      await Promise.allSettled(
+        endpoints.map(url =>
+          fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: simulatorPayload
+          })
+        )
+      );
+    } catch (err) {
+      console.warn('Simulator dispatch error:', err);
+    } finally {
+      setIsDispatching(false);
+      setBroadcastSent(true);
+      setTimeout(() => setBroadcastSent(false), 5000);
     }
   };
 
@@ -176,13 +213,20 @@ export const MonsoonSimulationPage: React.FC<MonsoonSimulationPageProps> = ({
           </div>
 
           <button 
-            className={`btn-sim-dispatch ${broadcastSent ? 'sent' : ''}`}
-            onClick={handleDispatchSimulationAlert}
+            className={`btn-sim-dispatch ${broadcastSent ? 'sent' : ''} ${isDispatching ? 'sending' : ''}`}
+            onClick={handleDispatchEmergencyMessage}
+            disabled={isDispatching}
             title="Dispatch Automated Cell Broadcast to Dima Hasao Sector"
             type="button"
           >
-            <Send size={13} />
-            <span>{broadcastSent ? 'Broadcast Dispatched' : 'Dispatch Emergency Warning'}</span>
+            <Send size={13} className={isDispatching ? 'animate-fly' : ''} />
+            <span>
+              {isDispatching
+                ? 'Dispatching...'
+                : broadcastSent
+                ? 'Broadcast Dispatched'
+                : 'Dispatch Emergency Warning'}
+            </span>
           </button>
         </div>
       </header>

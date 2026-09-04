@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -9,17 +9,31 @@ import {
   RefreshControl,
   Alert,
   Platform,
-  Linking
+  Linking,
+  TextInput,
+  Modal
 } from 'react-native';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { checkAlert, updateLocation, fetchActiveBroadcast, dismissActiveBroadcast, AlertCheckResponse } from '../services/apiService';
+import { 
+  checkAlert, 
+  updateLocation, 
+  fetchActiveBroadcast, 
+  dismissActiveBroadcast,
+  fetchLiveAlert,
+  dismissLiveAlert,
+  predictCoordinateRisk,
+  checkBackendOnlineStatus,
+  AlertCheckResponse 
+} from '../services/apiService';
+import { EmergencyAlertModal } from '../components/EmergencyAlertModal';
 import { performOfflineGeofenceCheck, syncRiskZonesToCache } from '../services/offlineRiskEngine';
 import { smsService, EmergencySmsAlert } from '../services/smsService';
 import { ACTIVE_COORD_KEY, SavedCoordinate } from './PitchSimulationScreen';
 import { getThreatTheme, APP_COLORS, ThreatLevel } from '../constants/theme';
 import { ThreatBadge } from '../components/ThreatBadge';
 import { InjuryFirstAidModal, VALID_HELPLINES } from '../components/InjuryFirstAidModal';
+import { soundService } from '../services/soundService';
 
 interface HomeScreenProps {
   onOpenSmsInbox: () => void;
@@ -46,22 +60,133 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const [unreadSmsCount, setUnreadSmsCount] = useState<number>(0);
   const [firstAidModalVisible, setFirstAidModalVisible] = useState<boolean>(false);
 
+  // Online Coordinate Entry & Dynamic ML State
+  const [coordModalVisible, setCoordModalVisible] = useState<boolean>(false);
+  const [coordLatInput, setCoordLatInput] = useState<string>('');
+  const [coordLngInput, setCoordLngInput] = useState<string>('');
+  const [coordNameInput, setCoordNameInput] = useState<string>('');
+  const [evaluatingCoord, setEvaluatingCoord] = useState<boolean>(false);
+  const [backendOnline, setBackendOnline] = useState<boolean>(true);
+
+  const lastAckBroadcastIdRef = useRef<number>(0);
+  const isPollingRef = useRef<boolean>(false);
+
+  // Emergency Alert Modal State
+  const [emergencyModalVisible, setEmergencyModalVisible] = useState<boolean>(false);
+  const [emergencyModalData, setEmergencyModalData] = useState<{
+    title?: string;
+    advisory?: string;
+    district?: string;
+    riskLevel?: string;
+    locationName?: string;
+    source?: 'LIVE_MONITORING';
+  } | null>(null);
+
+  const handleAcknowledgeEmergencyAlert = async () => {
+    soundService.stopEmergencySiren();
+    setEmergencyModalVisible(false);
+    await dismissLiveAlert();
+  };
+
+  const handleEvaluateCoordinate = async (customLat?: string, customLng?: string, customName?: string) => {
+    const latStr = customLat ?? coordLatInput;
+    const lngStr = customLng ?? coordLngInput;
+    const nameStr = customName ?? (coordNameInput.trim() || `Coordinate (${parseFloat(latStr).toFixed(3)}°, ${parseFloat(lngStr).toFixed(3)}°)`);
+
+    const lat = parseFloat(latStr);
+    const lng = parseFloat(lngStr);
+
+    if (isNaN(lat) || isNaN(lng)) {
+      Alert.alert('Invalid Input', 'Please enter valid numerical Latitude and Longitude values.');
+      return;
+    }
+
+    setEvaluatingCoord(true);
+    try {
+      // Direct navigation of coordinates to backend & ML service
+      const result = await predictCoordinateRisk(lat, lng, nameStr);
+      setIsOffline(Boolean(result.isOfflineFallback));
+
+      const effectiveRisk = result.risk_level;
+      const isRisk = (effectiveRisk === 'CRITICAL' || effectiveRisk === 'HIGH') && result.in_risk_zone;
+
+      // Save active coordinate for monitoring
+      const payload: SavedCoordinate = {
+        id: Date.now().toString(),
+        name: nameStr,
+        lat,
+        lng,
+        district: result.district || 'Dima Hasao Sector',
+        risk_level: effectiveRisk,
+        probability: result.probability,
+        primary_hazard_driver: result.primary_hazard_driver,
+        advisory: result.advisory,
+        action_required: result.action_required,
+        evaluated_by: result.evaluated_by
+      };
+      await AsyncStorage.setItem(ACTIVE_COORD_KEY, JSON.stringify(payload));
+      setActivePitchCoord(payload);
+      setCurrentCoords({ lat, lng, districtName: nameStr });
+      setAlertStatus(result);
+
+      setCoordModalVisible(false);
+
+      if (isRisk) {
+        // High Risk detected by ML model:
+        // 1. Play emergency siren
+        soundService.startEmergencySiren();
+
+        // 2. Add SMS alert to official emergency inbox
+        await smsService.addIncomingAlert({
+          threatLevel: effectiveRisk === 'CRITICAL' ? 'CRITICAL' : 'HIGH',
+          senderTag: 'DDMA / ML EARLY WARNING',
+          locationName: nameStr,
+          bodyEnglish: result.advisory || `EMERGENCY ALERT: Severe slope failure risk predicted at ${nameStr}. Evacuate vulnerable slopes immediately.`
+        });
+
+        // 3. Show full emergency alert modal
+        setEmergencyModalData({
+          title: `🚨 ${effectiveRisk} LANDSLIDE HAZARD DETECTED`,
+          advisory: result.advisory || `AI Geotechnical Engine predicts imminent slope destabilization near ${nameStr}.`,
+          district: result.district || 'Dima Hasao Sector',
+          riskLevel: effectiveRisk,
+          locationName: nameStr,
+          source: 'LIVE_MONITORING'
+        });
+        setEmergencyModalVisible(true);
+      } else {
+        // Safe or Moderate detected: silence siren & close modal
+        soundService.stopEmergencySiren();
+        setEmergencyModalVisible(false);
+      }
+    } catch (err) {
+      Alert.alert('Evaluation Error', 'Could not evaluate coordinates via backend ML service.');
+    } finally {
+      setEvaluatingCoord(false);
+    }
+  };
+
   useEffect(() => {
     initApp();
 
-    const unsubscribe = smsService.subscribe((alerts, unread) => {
+    const unsubscribeSms = smsService.subscribe((alerts, unread) => {
       if (alerts.length > 0) {
         setLatestSms(alerts[0]);
       }
       setUnreadSmsCount(unread);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeSms();
+    };
   }, []);
 
-  // Poll for higher authority emergency broadcast triggers from web dashboard
+  // Poll for official live emergency broadcasts with strict deduplication
   useEffect(() => {
     const interval = setInterval(async () => {
+      if (isPollingRef.current) return;
+      isPollingRef.current = true;
+
       try {
         let currLat = 17.385;
         let currLng = 78.486;
@@ -79,55 +204,82 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           currDistrict = currentCoords.districtName;
         }
 
-        const broadcast = await fetchActiveBroadcast();
-        if (broadcast && broadcast.active && broadcast.broadcast_id && broadcast.broadcast_id !== lastAckBroadcastId) {
-          // Dynamically check if the user's active coordinate is evaluated as a risk zone
+        const broadcast = await fetchLiveAlert();
+
+        if (
+          broadcast &&
+          broadcast.active &&
+          broadcast.broadcast_id &&
+          broadcast.broadcast_id !== lastAckBroadcastIdRef.current
+        ) {
+          // Record broadcast_id to guarantee NO duplicate firing/siren looping
+          lastAckBroadcastIdRef.current = broadcast.broadcast_id;
+          setLastAckBroadcastId(broadcast.broadcast_id);
+
+          // Check if current tracked position is evaluated as a risk zone
           const dynamicCheck = await performOfflineGeofenceCheck(currLat, currLng);
 
-          const isInsideRiskZone =
+          const isUserInRiskZone =
             dynamicCheck.risk_level === 'CRITICAL' ||
             dynamicCheck.risk_level === 'HIGH' ||
-            dynamicCheck.in_risk_zone ||
-            broadcast.threatLevel === 'CRITICAL' ||
-            broadcast.threatLevel === 'HIGH';
+            dynamicCheck.in_risk_zone;
 
-          if (isInsideRiskZone) {
-            const evaluatedRisk =
-              dynamicCheck.risk_level === 'CRITICAL' || dynamicCheck.risk_level === 'HIGH'
-                ? dynamicCheck.risk_level
-                : (broadcast.threatLevel || 'HIGH');
-
-            console.log(`🚨 [DANGER POINT MATCHED] Coord (${currLat}, ${currLng}) evaluated as ${evaluatedRisk}. Triggering alert & siren.`);
-            setLastAckBroadcastId(broadcast.broadcast_id);
-            setAlertStatus({
-              in_risk_zone: true,
-              risk_level: evaluatedRisk,
-              district: dynamicCheck.district || currDistrict,
-              probability: dynamicCheck.probability || 0.94,
-              advisory: broadcast.body || dynamicCheck.advisory || 'Extreme slope destabilization detected near active coordinate.',
-              action_required: dynamicCheck.action_required || 'IMMEDIATE EVACUATION: Move away from steep slopes.',
-              alert_dispatched: true,
-              checked_at: new Date().toISOString()
-            });
-
-            // Dispatch to SMS Inbox and trigger non-blocking banner with siren
-            await smsService.addIncomingAlert({
-              threatLevel: evaluatedRisk,
-              senderTag: 'DDMA DIMA HASAO',
-              locationName: currDistrict,
-              bodyEnglish: broadcast.body || `EMERGENCY ALERT: Severe landslide hazard detected near ${currDistrict}. Evacuate vulnerable slopes immediately.`
-            });
-
-            dismissActiveBroadcast();
-          } else {
-            console.log(`🛡️ [SAFE POINT MATCHED] Coord (${currLat}, ${currLng}) evaluated as SAFE.`);
+          // SAFE COORDINATE CHECK:
+          // If the user coordinate is SAFE, DO NOT trigger emergency modal and DO NOT sound siren!
+          if (!isUserInRiskZone) {
+            console.log(`🛡️ [COORDINATE SAFE] User is in safe zone (${currDistrict}). Suppressing emergency modal & siren.`);
+            soundService.stopEmergencySiren();
+            setEmergencyModalVisible(false);
+            setAlertStatus(dynamicCheck);
+            await dismissLiveAlert();
+            return;
           }
+
+          // User IS in a danger zone (CRITICAL or HIGH)
+          const effectiveRisk = dynamicCheck.risk_level;
+          console.log(`🚨 [ALERT MATCHED] Source: LIVE_MONITORING, Danger Level: ${effectiveRisk}`);
+
+          setAlertStatus({
+            in_risk_zone: true,
+            risk_level: dynamicCheck.risk_level,
+            district: dynamicCheck.district || broadcast.district || currDistrict,
+            probability: dynamicCheck.probability || 0.94,
+            advisory: broadcast.body || dynamicCheck.advisory || 'Extreme slope destabilization detected near active coordinate.',
+            action_required: dynamicCheck.action_required || 'IMMEDIATE EVACUATION: Move away from steep slopes.',
+            alert_dispatched: true,
+            checked_at: new Date().toISOString()
+          });
+
+          // Trigger EmergencyAlertModal ONLY for users in risk zone
+          setEmergencyModalData({
+            title: broadcast.title || '🚨 OFFICIAL DISASTER BROADCAST',
+            advisory: broadcast.body || dynamicCheck.advisory || 'Extreme slope destabilization detected in sector.',
+            district: broadcast.district || dynamicCheck.district || currDistrict,
+            riskLevel: effectiveRisk,
+            locationName: currDistrict,
+            source: 'LIVE_MONITORING'
+          });
+          setEmergencyModalVisible(true);
+
+          // Dispatch to SMS Inbox and trigger banner with siren
+          await smsService.addIncomingAlert({
+            threatLevel: effectiveRisk,
+            senderTag: 'DDMA DIMA HASAO',
+            locationName: currDistrict,
+            bodyEnglish: broadcast.body || `EMERGENCY ALERT: Severe landslide hazard detected near ${currDistrict}. Evacuate vulnerable slopes immediately.`
+          });
+
+          // Dismiss from active queue on server
+          await dismissLiveAlert();
         }
-      } catch (err) {}
-    }, 1200);
+      } catch (err) {
+      } finally {
+        isPollingRef.current = false;
+      }
+    }, 2500);
 
     return () => clearInterval(interval);
-  }, [lastAckBroadcastId, currentCoords]);
+  }, [currentCoords]);
 
   const initApp = async () => {
     const count = await syncRiskZonesToCache();
@@ -152,28 +304,30 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
         let statusResult: AlertCheckResponse;
         try {
-          statusResult = await checkAlert(parsed.lat, parsed.lng);
+          statusResult = await predictCoordinateRisk(parsed.lat, parsed.lng, parsed.name);
           setIsOffline(Boolean(statusResult.isOfflineFallback));
         } catch (netErr) {
           setIsOffline(true);
           statusResult = await performOfflineGeofenceCheck(parsed.lat, parsed.lng);
         }
 
-        if (parsed.risk_level === 'CRITICAL' || parsed.risk_level === 'HIGH') {
-          statusResult.risk_level = parsed.risk_level as any;
-          statusResult.in_risk_zone = true;
-        }
-
         setAlertStatus(statusResult);
 
+        const isHazard = (statusResult.risk_level === 'CRITICAL' || statusResult.risk_level === 'HIGH') && statusResult.in_risk_zone;
+
         // If high risk or critical, trigger emergency alert banner and siren
-        if (statusResult.risk_level === 'CRITICAL' || statusResult.risk_level === 'HIGH') {
+        if (isHazard) {
+          soundService.startEmergencySiren();
           await smsService.addIncomingAlert({
-            threatLevel: statusResult.risk_level,
-            senderTag: 'DDMA DIMA HASAO',
+            threatLevel: statusResult.risk_level === 'CRITICAL' ? 'CRITICAL' : 'HIGH',
+            senderTag: 'DDMA / ML EARLY WARNING',
             locationName: parsed.name || 'Dima Hasao Sector',
             bodyEnglish: statusResult.advisory || `EMERGENCY ALERT: Severe landslide hazard detected near ${parsed.name}. Evacuate vulnerable slopes immediately.`
           });
+        } else {
+          // SAFE coordinate - immediately silence siren and close modal
+          soundService.stopEmergencySiren();
+          setEmergencyModalVisible(false);
         }
         return;
       }
@@ -228,6 +382,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           locationName: districtName,
           bodyEnglish: response.advisory || `EMERGENCY ALERT: Severe landslide hazard detected near ${districtName}. Evacuate vulnerable slopes immediately.`
         });
+      } else {
+        soundService.stopEmergencySiren();
+        setEmergencyModalVisible(false);
       }
     } finally {
       setLoading(false);
@@ -379,15 +536,15 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <TouchableOpacity
             style={[
               styles.smsTickerBar,
-              { borderLeftColor: getThreatTheme(latestSms.threatLevel).accent }
+              { borderLeftColor: isSafe ? '#22c55e' : getThreatTheme(latestSms.threatLevel).accent }
             ]}
             onPress={onOpenSmsInbox}
             accessibilityRole="button"
             accessibilityLabel={`Latest SMS Alert from ${latestSms.senderTag}. Tap to open SMS Alerts Inbox.`}
           >
-            {/* OFFICIAL EMERGENCY ALERT */}
-            <Text style={[styles.tickerTag, { color: getThreatTheme(latestSms.threatLevel).accent }]}>
-              OFFICIAL EMERGENCY ALERT
+            {/* OFFICIAL EMERGENCY ALERT / BULLETIN */}
+            <Text style={[styles.tickerTag, { color: isSafe ? '#22c55e' : getThreatTheme(latestSms.threatLevel).accent }]}>
+              {isSafe ? 'OFFICIAL DDMA BULLETIN' : 'OFFICIAL EMERGENCY ALERT'}
             </Text>
 
             {/* Source */}
@@ -427,25 +584,36 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </TouchableOpacity>
         )}
 
-        {/* Active Pitch Mode Banner if simulated */}
+        {/* Real-time Connection Status Indicator */}
+        <View style={[styles.connectionStatusBar, isOffline ? styles.connBarOffline : styles.connBarOnline]}>
+          <View style={styles.connectionStatusLeft}>
+            <View style={[styles.onlineDot, { backgroundColor: isOffline ? '#F59E0B' : '#10B981' }]} />
+            <Text style={styles.connectionStatusText}>
+              {isOffline ? '📡 Autonomous Geofence Mode' : '🟢 ONLINE • Backend & ML Engine Connected'}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.enterCoordHeaderBtn}
+            onPress={() => setCoordModalVisible(true)}
+            accessibilityRole="button"
+          >
+            <Text style={styles.enterCoordHeaderBtnText}>📍 Enter Coords</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Active Custom Coordinate Mode Banner */}
         {activePitchCoord && (
           <View style={styles.pitchActiveBanner}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.pitchActiveTitle}>🎯 Pitch Simulation Active</Text>
-              <Text style={styles.pitchActiveSub}>{activePitchCoord.name} ({activePitchCoord.lat.toFixed(3)}°, {activePitchCoord.lng.toFixed(3)}°)</Text>
+              <Text style={styles.pitchActiveTitle}>📍 Active Coordinates Under Assessment</Text>
+              <Text style={styles.pitchActiveSub}>{activePitchCoord.name} ({activePitchCoord.lat.toFixed(3)}°N, {activePitchCoord.lng.toFixed(3)}°E)</Text>
+              {activePitchCoord.evaluated_by && (
+                <Text style={styles.pitchActiveEngine}>🧠 {activePitchCoord.evaluated_by}</Text>
+              )}
             </View>
             <TouchableOpacity style={styles.resetGpsBtn} onPress={handleResetToRealGps}>
-              <Text style={styles.resetGpsBtnText}>📍 Use Real GPS</Text>
+              <Text style={styles.resetGpsBtnText}>📍 Revert to GPS</Text>
             </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Offline Cache Status Badge */}
-        {isOffline && (
-          <View style={styles.offlineBadge}>
-            <Text style={styles.offlineBadgeText}>
-              📡 Network Offline • Operating on Client Geofence Cache ({cachedCount} zones)
-            </Text>
           </View>
         )}
 
@@ -555,6 +723,34 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </View>
           <View style={styles.firstAidArrowBtn}>
             <Text style={styles.firstAidArrowText}>View ➔</Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* Prominent Enter Coordinates CTA Card */}
+        <TouchableOpacity
+          style={styles.enterCoordHeroCard}
+          onPress={() => setCoordModalVisible(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Enter coordinates for backend ML risk prediction"
+        >
+          <View style={styles.enterCoordLeft}>
+            <View style={styles.enterCoordIconWrap}>
+              <Text style={styles.enterCoordIcon}>📍</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <View style={styles.enterCoordTitleRow}>
+                <Text style={styles.enterCoordTitle}>Enter Coordinates for ML Risk</Text>
+                <View style={styles.onlinePill}>
+                  <Text style={styles.onlinePillText}>ONLINE ML</Text>
+                </View>
+              </View>
+              <Text style={styles.enterCoordSub}>
+                Input custom Lat/Lng to navigate coordinates to Backend & XGBoost ML Geotechnical Engine
+              </Text>
+            </View>
+          </View>
+          <View style={styles.enterCoordArrowBtn}>
+            <Text style={styles.enterCoordArrowText}>Check ➔</Text>
           </View>
         </TouchableOpacity>
 
@@ -676,10 +872,102 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         </View>
       </ScrollView>
 
+      {/* Enter Coordinates Modal for Dynamic ML Risk Evaluation */}
+      <Modal
+        visible={coordModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCoordModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.coordModalContent}>
+            <View style={styles.coordModalHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.coordModalTitle}>📍 Enter Coordinates for ML Risk</Text>
+                <Text style={styles.coordModalSub}>
+                  Directly navigates coordinates to Backend & XGBoost ML Model
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.coordModalCloseBtn}
+                onPress={() => setCoordModalVisible(false)}
+              >
+                <Text style={styles.coordModalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ maxHeight: 420 }} showsVerticalScrollIndicator={false}>
+              {/* Form Inputs */}
+              <Text style={styles.coordSectionLabel}>CUSTOM GEOGRAPHICAL COORDINATES</Text>
+
+              <Text style={styles.inputFieldLabel}>Location Name / Sector</Text>
+              <TextInput
+                style={styles.modalTextInput}
+                placeholder="e.g. Dima Hasao Hill Slope Section"
+                placeholderTextColor="#8FA48A"
+                value={coordNameInput}
+                onChangeText={setCoordNameInput}
+              />
+
+              <View style={styles.coordInputsRow}>
+                <View style={{ flex: 1, marginRight: 8 }}>
+                  <Text style={styles.inputFieldLabel}>Latitude (°N)</Text>
+                  <TextInput
+                    style={styles.modalTextInput}
+                    placeholder="e.g. 25.100"
+                    placeholderTextColor="#8FA48A"
+                    keyboardType="numeric"
+                    value={coordLatInput}
+                    onChangeText={setCoordLatInput}
+                  />
+                </View>
+                <View style={{ flex: 1, marginLeft: 8 }}>
+                  <Text style={styles.inputFieldLabel}>Longitude (°E)</Text>
+                  <TextInput
+                    style={styles.modalTextInput}
+                    placeholder="e.g. 92.750"
+                    placeholderTextColor="#8FA48A"
+                    keyboardType="numeric"
+                    value={coordLngInput}
+                    onChangeText={setCoordLngInput}
+                  />
+                </View>
+              </View>
+            </ScrollView>
+
+            <View style={styles.coordModalActions}>
+              <TouchableOpacity
+                style={styles.coordSubmitBtn}
+                onPress={() => handleEvaluateCoordinate()}
+                disabled={evaluatingCoord}
+              >
+                {evaluatingCoord ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.coordSubmitBtnText}>🧠 Predict Risk via Backend ML</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Injury First-Aid Protocol & Valid Helplines Modal */}
       <InjuryFirstAidModal
         visible={firstAidModalVisible}
         onClose={() => setFirstAidModalVisible(false)}
+      />
+
+      {/* Emergency Alert Modal with Dual Source Routing Indicator & Multilingual Directives */}
+      <EmergencyAlertModal
+        visible={emergencyModalVisible}
+        onClose={handleAcknowledgeEmergencyAlert}
+        district={emergencyModalData?.district}
+        riskLevel={emergencyModalData?.riskLevel}
+        locationName={emergencyModalData?.locationName}
+        title={emergencyModalData?.title}
+        advisory={emergencyModalData?.advisory}
+        source={emergencyModalData?.source}
       />
     </View>
   );
@@ -1239,5 +1527,358 @@ const styles = StyleSheet.create({
     marginTop: 2,
     textTransform: 'uppercase',
     textAlign: 'center'
+  },
+  modeStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderBottomWidth: 1
+  },
+  modeStripLive: {
+    backgroundColor: '#F0FDF4',
+    borderBottomColor: '#BBF7D0'
+  },
+  modeStripDemo: {
+    backgroundColor: '#FAF5FF',
+    borderBottomColor: '#E9D5FF'
+  },
+  modeStripLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 8
+  },
+  modeStripIcon: {
+    fontSize: 18
+  },
+  modeTextCol: {
+    flex: 1
+  },
+  modeTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6
+  },
+  modeStripTitle: {
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  modeTitleLive: {
+    color: '#166534'
+  },
+  modeTitleDemo: {
+    color: '#6B21A8'
+  },
+  modeTag: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6
+  },
+  modeTagLive: {
+    backgroundColor: '#DCFCE7'
+  },
+  modeTagDemo: {
+    backgroundColor: '#F3E8FF'
+  },
+  modeTagText: {
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.5
+  },
+  modeTagTextLive: {
+    color: '#15803D'
+  },
+  modeTagTextDemo: {
+    color: '#7E22CE'
+  },
+  modeStripSub: {
+    fontSize: 10,
+    color: '#64748B',
+    marginTop: 1
+  },
+  modeToggleBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginLeft: 8
+  },
+  modeToggleBtnLive: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#86EFAC'
+  },
+  modeToggleBtnDemo: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#D8B4FE'
+  },
+  modeToggleBtnText: {
+    fontSize: 11,
+    fontWeight: '800'
+  },
+  modeToggleTextLive: {
+    color: '#166534'
+  },
+  modeToggleTextDemo: {
+    color: '#6B21A8'
+  },
+
+  // Real-time Connection Status Styles
+  connectionStatusBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    marginHorizontal: 16,
+    marginTop: 8,
+    borderRadius: 10,
+    borderWidth: 1
+  },
+  connBarOnline: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#A7F3D0'
+  },
+  connBarOffline: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#FDE68A'
+  },
+  connectionStatusLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1
+  },
+  onlineDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 5
+  },
+  connectionStatusText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#065F46'
+  },
+  enterCoordHeaderBtn: {
+    backgroundColor: '#047857',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 6
+  },
+  enterCoordHeaderBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800'
+  },
+  pitchActiveEngine: {
+    fontSize: 11,
+    color: '#065F46',
+    fontWeight: '600',
+    marginTop: 2
+  },
+
+  // Enter Coordinates Hero Card
+  enterCoordHeroCard: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#34D399',
+    borderRadius: 14,
+    padding: 14,
+    marginHorizontal: 16,
+    marginTop: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3
+  },
+  enterCoordLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1
+  },
+  enterCoordIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#D1FAE5',
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  enterCoordIcon: {
+    fontSize: 22
+  },
+  enterCoordTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8
+  },
+  enterCoordTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#064E3B'
+  },
+  onlinePill: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6
+  },
+  onlinePillText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '900'
+  },
+  enterCoordSub: {
+    fontSize: 11,
+    color: '#047857',
+    marginTop: 2,
+    lineHeight: 15
+  },
+  enterCoordArrowBtn: {
+    backgroundColor: '#059669',
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginLeft: 10
+  },
+  enterCoordArrowText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800'
+  },
+
+  // Coordinate Input Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16
+  },
+  coordModalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 20,
+    width: '100%',
+    maxWidth: 480,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 10
+  },
+  coordModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    paddingBottom: 12,
+    marginBottom: 12
+  },
+  coordModalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A'
+  },
+  coordModalSub: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2
+  },
+  coordModalCloseBtn: {
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9'
+  },
+  coordModalCloseText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#64748B'
+  },
+  coordSectionLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#475569',
+    letterSpacing: 0.6,
+    marginTop: 10,
+    marginBottom: 6
+  },
+  coordPresetsRow: {
+    gap: 8,
+    marginBottom: 12
+  },
+  coordPresetChip: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1.5
+  },
+  presetChipRed: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA'
+  },
+  presetChipOrange: {
+    backgroundColor: '#FFF7ED',
+    borderColor: '#FFEDD5'
+  },
+  presetChipGreen: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#BBF7D0'
+  },
+  presetChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0F172A'
+  },
+  inputFieldLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#334155',
+    marginBottom: 4,
+    marginTop: 6
+  },
+  modalTextInput: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 14,
+    color: '#0F172A'
+  },
+  coordInputsRow: {
+    flexDirection: 'row',
+    marginBottom: 10
+  },
+  coordModalActions: {
+    marginTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    paddingTop: 14
+  },
+  coordSubmitBtn: {
+    backgroundColor: '#059669',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 3
+  },
+  coordSubmitBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800'
   }
 });

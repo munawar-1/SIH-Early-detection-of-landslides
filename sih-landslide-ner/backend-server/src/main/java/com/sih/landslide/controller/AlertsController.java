@@ -22,13 +22,16 @@ public class AlertsController {
     private final AlertDispatchService alertDispatchService;
     private final UserMobileRepository userMobileRepository;
     private final RiskZoneRepository riskZoneRepository;
+    private final PredictionController predictionController;
 
     public AlertsController(AlertDispatchService alertDispatchService,
                             UserMobileRepository userMobileRepository,
-                            RiskZoneRepository riskZoneRepository) {
+                            RiskZoneRepository riskZoneRepository,
+                            PredictionController predictionController) {
         this.alertDispatchService = alertDispatchService;
         this.userMobileRepository = userMobileRepository;
         this.riskZoneRepository = riskZoneRepository;
+        this.predictionController = predictionController;
     }
 
     @PostMapping("/check")
@@ -42,38 +45,116 @@ public class AlertsController {
         }
 
         AlertCheckResponseDto response = alertDispatchService.checkAndDispatch(user, dto.getLat(), dto.getLng());
+        if (!response.isInRiskZone() && dto.getLat() != null && dto.getLng() != null) {
+            // Dynamically evaluate coordinate using ML microservice & geotechnical database grid
+            return predictionController.evaluateCoordinate(dto);
+        }
         return ResponseEntity.ok(response);
     }
 
-    private static volatile Map<String, Object> latestBroadcast = null;
-    private static volatile long latestBroadcastTimestamp = 0;
+    // =========================================================================
+    // 1. MONSOON DISASTER SIMULATOR ENDPOINTS ("Dispatch Emergency Message")
+    // =========================================================================
+
+    @PostMapping({"/simulator-dispatch", "/simulator/dispatch"})
+    public ResponseEntity<Map<String, Object>> dispatchSimulatorAlert(@RequestBody Map<String, Object> payload) {
+        Map<String, Object> dispatched = alertDispatchService.dispatchSimulatorAlert(payload);
+        return ResponseEntity.ok(Map.of(
+            "status", "SUCCESS",
+            "source", "SIMULATOR",
+            "broadcast_id", dispatched.get("broadcast_id"),
+            "message", "Monsoon simulator emergency message dispatched to Demo phones."
+        ));
+    }
+
+    @GetMapping({"/simulator/active", "/active-simulator-broadcast"})
+    public ResponseEntity<Map<String, Object>> getActiveSimulatorAlert() {
+        return ResponseEntity.ok(alertDispatchService.getActiveSimulatorAlert());
+    }
+
+    @PostMapping({"/simulator/dismiss", "/dismiss-simulator-broadcast"})
+    public ResponseEntity<Map<String, String>> dismissSimulatorAlert() {
+        alertDispatchService.dismissSimulatorAlert();
+        return ResponseEntity.ok(Map.of("status", "DISMISSED", "source", "SIMULATOR"));
+    }
+
+    // =========================================================================
+    // 2. LIVE MONITORING DASHBOARD ENDPOINTS ("Broadcast SMS Alert")
+    // =========================================================================
+
+    @PostMapping({"/live-broadcast", "/live/broadcast"})
+    public ResponseEntity<Map<String, Object>> dispatchLiveAlert(@RequestBody Map<String, Object> payload) {
+        Map<String, Object> dispatched = alertDispatchService.dispatchLiveMonitoringAlert(payload);
+        return ResponseEntity.ok(Map.of(
+            "status", "SUCCESS",
+            "source", "LIVE_MONITORING",
+            "broadcast_id", dispatched.get("broadcast_id"),
+            "message", "Real-time monitoring emergency alert broadcasted to Live phones."
+        ));
+    }
+
+    @GetMapping({"/live/active", "/active-live-broadcast"})
+    public ResponseEntity<Map<String, Object>> getActiveLiveAlert() {
+        return ResponseEntity.ok(alertDispatchService.getActiveLiveMonitoringAlert());
+    }
+
+    @PostMapping({"/live/dismiss", "/dismiss-live-broadcast"})
+    public ResponseEntity<Map<String, String>> dismissLiveAlert() {
+        alertDispatchService.dismissLiveMonitoringAlert();
+        return ResponseEntity.ok(Map.of("status", "DISMISSED", "source", "LIVE_MONITORING"));
+    }
+
+    // =========================================================================
+    // 3. BACKWARD COMPATIBILITY ENDPOINTS
+    // =========================================================================
 
     @PostMapping("/broadcast")
     public ResponseEntity<Map<String, Object>> broadcastAlert(@RequestBody Map<String, Object> payload) {
-        java.util.Map<String, Object> alert = new java.util.HashMap<>(payload);
-        alert.put("active", true);
-        alert.put("broadcast_id", System.currentTimeMillis());
-        alert.put("timestamp", java.time.LocalDateTime.now().toString());
-        latestBroadcast = alert;
-        latestBroadcastTimestamp = System.currentTimeMillis();
+        String source = (String) payload.getOrDefault("source", "LIVE_MONITORING");
+        Map<String, Object> dispatched;
+        if ("SIMULATOR".equalsIgnoreCase(source)) {
+            dispatched = alertDispatchService.dispatchSimulatorAlert(payload);
+        } else {
+            dispatched = alertDispatchService.dispatchLiveMonitoringAlert(payload);
+        }
         return ResponseEntity.ok(Map.of(
             "status", "SUCCESS",
+            "source", dispatched.get("source"),
+            "broadcast_id", dispatched.get("broadcast_id"),
             "message", "Emergency broadcast dispatched successfully."
         ));
     }
 
     @GetMapping("/active-broadcast")
-    public ResponseEntity<Map<String, Object>> getActiveBroadcast() {
-        if (latestBroadcast != null && (System.currentTimeMillis() - latestBroadcastTimestamp < 600000)) {
-            return ResponseEntity.ok(latestBroadcast);
+    public ResponseEntity<Map<String, Object>> getActiveBroadcast(@RequestParam(value = "source", required = false) String source) {
+        if ("SIMULATOR".equalsIgnoreCase(source)) {
+            return ResponseEntity.ok(alertDispatchService.getActiveSimulatorAlert());
+        } else if ("LIVE_MONITORING".equalsIgnoreCase(source)) {
+            return ResponseEntity.ok(alertDispatchService.getActiveLiveMonitoringAlert());
+        }
+
+        // If no source param provided, return active live alert first; if none, check simulator
+        Map<String, Object> live = alertDispatchService.getActiveLiveMonitoringAlert();
+        if (Boolean.TRUE.equals(live.get("active"))) {
+            return ResponseEntity.ok(live);
+        }
+        Map<String, Object> sim = alertDispatchService.getActiveSimulatorAlert();
+        if (Boolean.TRUE.equals(sim.get("active"))) {
+            return ResponseEntity.ok(sim);
         }
         return ResponseEntity.ok(Map.of("active", false));
     }
 
     @PostMapping("/dismiss-broadcast")
-    public ResponseEntity<Map<String, String>> dismissBroadcast() {
-        latestBroadcast = null;
-        latestBroadcastTimestamp = 0;
+    public ResponseEntity<Map<String, String>> dismissBroadcast(@RequestParam(value = "source", required = false) String source) {
+        if ("SIMULATOR".equalsIgnoreCase(source)) {
+            alertDispatchService.dismissSimulatorAlert();
+        } else if ("LIVE_MONITORING".equalsIgnoreCase(source)) {
+            alertDispatchService.dismissLiveMonitoringAlert();
+        } else {
+            alertDispatchService.dismissSimulatorAlert();
+            alertDispatchService.dismissLiveMonitoringAlert();
+        }
         return ResponseEntity.ok(Map.of("status", "DISMISSED"));
     }
 }

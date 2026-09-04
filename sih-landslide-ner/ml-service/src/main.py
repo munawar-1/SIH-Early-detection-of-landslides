@@ -1,9 +1,10 @@
 import os
+import time
 import joblib
 import pandas as pd
 import numpy as np
 
-from fastapi import FastAPI, HTTPException, Response, status
+from fastapi import FastAPI, HTTPException, Response, status, Query
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
@@ -69,6 +70,34 @@ def load_artifact():
         print(f"⚠️ Model artifact not found at {target_path}")
 
 load_artifact()
+
+grid_df = None
+
+def load_grid_dataset():
+    global grid_df
+    candidate_paths = [
+        os.path.join(CURRENT_DIR, "..", "data", "Dima-Hasao_grid.csv"),
+        os.path.join(CURRENT_DIR, "..", "..", "backend-server", "src", "main", "resources", "data", "Dima-Hasao_grid.csv")
+    ]
+    for path in candidate_paths:
+        abs_path = os.path.abspath(path)
+        if os.path.exists(abs_path):
+            try:
+                grid_df = pd.read_csv(abs_path)
+                print(f"✅ Loaded {len(grid_df)} GIS terrain grid points from {abs_path}")
+                return
+            except Exception as e:
+                print(f"⚠️ Error reading grid dataset from {abs_path}: {e}")
+    print("⚠️ Grid dataset file not found in default locations.")
+
+load_grid_dataset()
+
+class CoordinatePredictionRequest(BaseModel):
+    latitude: float = Field(..., description="Latitude in decimal degrees (e.g. 25.100)")
+    longitude: float = Field(..., description="Longitude in decimal degrees (e.g. 92.750)")
+    rain_day_minus_1_mm: Optional[float] = Field(None, description="Recent 24h rainfall (mm)")
+    rain_3d_sum_mm: Optional[float] = Field(None, description="Recent 3-day cumulative rainfall (mm)")
+    location_name: Optional[str] = Field(None, description="Descriptive location name")
 
 # 12-Feature Geotechnical Input Schema (with smart physical defaults for backwards compatibility)
 class LandslideFeatures(BaseModel):
@@ -257,33 +286,260 @@ def predict_batch_risk(points: List[LandslideFeatures]):
         
     return {"results": results}
 
-# Real-time Broadcast State Hub for Web -> Mobile Pitch Demo
+# =============================================================================
+# DYNAMIC COORDINATE ML RISK PREDICTION ENDPOINTS
+# =============================================================================
+
+@app.post("/predict-coordinate")
+def predict_coordinate_risk_post(req: CoordinatePredictionRequest):
+    return process_coordinate_risk(
+        lat=req.latitude,
+        lng=req.longitude,
+        rain_day_minus_1_mm=req.rain_day_minus_1_mm,
+        rain_3d_sum_mm=req.rain_3d_sum_mm,
+        location_name=req.location_name
+    )
+
+@app.get("/predict-coordinate")
+def predict_coordinate_risk_get(
+    latitude: float = Query(..., description="Latitude in decimal degrees"),
+    longitude: float = Query(..., description="Longitude in decimal degrees"),
+    location_name: Optional[str] = Query(None, description="Location name"),
+    rain_day_minus_1_mm: Optional[float] = Query(None),
+    rain_3d_sum_mm: Optional[float] = Query(None)
+):
+    return process_coordinate_risk(
+        lat=latitude,
+        lng=longitude,
+        rain_day_minus_1_mm=rain_day_minus_1_mm,
+        rain_3d_sum_mm=rain_3d_sum_mm,
+        location_name=location_name
+    )
+
+def process_coordinate_risk(
+    lat: float,
+    lng: float,
+    rain_day_minus_1_mm: Optional[float] = None,
+    rain_3d_sum_mm: Optional[float] = None,
+    location_name: Optional[str] = None
+):
+    if model is None or features_list is None:
+        raise HTTPException(status_code=500, detail="ML model artifact not loaded.")
+        
+    is_inside_region = (24.0 <= lat <= 26.5) and (91.5 <= lng <= 94.0)
+    min_dist_km = 999.0
+    
+    if grid_df is not None and not grid_df.empty:
+        # Vectorized Euclidean distance calculation
+        dists = np.hypot(grid_df['latitude'] - lat, grid_df['longitude'] - lng)
+        nearest_idx = dists.idxmin()
+        min_dist_deg = dists[nearest_idx]
+        min_dist_km = float(min_dist_deg) * 111.0
+        nearest_row = grid_df.loc[nearest_idx]
+        
+        if min_dist_km <= 45.0:
+            slope = float(nearest_row.get('slope', 15.0))
+            elevation = float(nearest_row.get('elevation', 500.0))
+            aspect = float(nearest_row.get('aspect', 180.0))
+            clay = float(nearest_row.get('clay_percent', nearest_row.get('clay_percentage', 32.0)))
+            sand = float(nearest_row.get('sand_percent', 34.0))
+            silt = float(nearest_row.get('silt_percent', 34.0))
+            bulk_density = float(nearest_row.get('bulk_density', 1.18))
+        else:
+            slope = 2.0
+            elevation = 150.0
+            aspect = 180.0
+            clay = 28.0
+            sand = 36.0
+            silt = 36.0
+            bulk_density = 1.25
+    else:
+        slope = 28.0 if is_inside_region else 2.0
+        elevation = 650.0 if is_inside_region else 150.0
+        aspect = 145.0
+        clay = 32.0
+        sand = 30.0
+        silt = 38.0
+        bulk_density = 1.26
+
+    r1 = rain_day_minus_1_mm if rain_day_minus_1_mm is not None else (25.0 if (is_inside_region or min_dist_km <= 45.0) else 5.0)
+    r3d = rain_3d_sum_mm if rain_3d_sum_mm is not None else (r1 * 2.8)
+    
+    features = LandslideFeatures(
+        slope=slope,
+        elevation=elevation,
+        aspect=aspect,
+        clay_percent=clay,
+        sand_percent=sand,
+        silt_percent=silt,
+        bulk_density=bulk_density,
+        rain_day_minus_1_mm=r1,
+        rain_3d_sum_mm=r3d
+    )
+    
+    pred_res = predict_risk(features)
+    prob = pred_res["landslide_probability"]
+    risk_level = pred_res["risk_level"]
+    
+    # If the coordinate is far out in safe low-gradient plains
+    if not is_inside_region and min_dist_km > 50.0:
+        prob = 0.02
+        risk_level = "SAFE"
+        pred_res["primary_hazard_driver"] = "Low-Gradient Valley / Stable Plains"
+        
+    is_risk = (risk_level in ["CRITICAL", "HIGH"]) or (prob >= 0.40)
+    
+    loc_label = location_name if location_name else f"Sector ({lat:.3f}°N, {lng:.3f}°E)"
+    
+    if risk_level == "CRITICAL":
+        advisory = f"🚨 CRITICAL LANDSLIDE DANGER: Extreme destabilization hazard ({prob*100:.1f}%) detected near {loc_label}."
+        action = "IMMEDIATE EVACUATION: Move away from steep slopes, hill cuttings, and stream beds."
+    elif risk_level == "HIGH":
+        advisory = f"⚠️ HIGH RISK: Saturated steep terrain ({prob*100:.1f}%) near {loc_label}. Potential localized slope failure."
+        action = "Prepare emergency go-bag, avoid vulnerable cuttings, and monitor official bulletins."
+    elif risk_level == "MODERATE":
+        advisory = f"⚠️ MODERATE ADVISORY: Moderate slope gradient at {loc_label}. Watch for drainage blockage."
+        action = "Maintain seasonal vigilance; avoid parking under exposed cuts during heavy rains."
+    else:
+        advisory = f"🛡️ SAFE AREA: No active landslide threat at {loc_label}. Stable terrain conditions."
+        action = "No emergency action required. Continuous monitoring active."
+        
+    return {
+        "status": "SUCCESS",
+        "latitude": round(lat, 5),
+        "longitude": round(lng, 5),
+        "district": "Dima Hasao" if is_inside_region else "Plains / Lowland",
+        "location_name": loc_label,
+        "nearest_grid_distance_m": round(min_dist_km * 1000.0, 1),
+        "landslide_probability": round(prob, 4),
+        "risk_level": risk_level,
+        "in_risk_zone": is_risk,
+        "primary_hazard_driver": pred_res.get("primary_hazard_driver", "Stable Slope & Soil Drainage"),
+        "geotechnical_metrics": pred_res.get("geotechnical_metrics", {}),
+        "advisory": advisory,
+        "action_required": action,
+        "evaluated_by": "FastAPI Geotechnical ML Microservice (Calibrated XGBoost Engine)",
+        "timestamp": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+    }
+
+# Real-time Broadcast State Hub for Dual Alert Routing (Simulator vs Live Monitoring)
+latest_simulator_broadcast = {}
+latest_live_broadcast = {}
 latest_broadcast = {}
 
-@app.post("/api/alerts/broadcast")
-def trigger_broadcast(payload: dict):
-    global latest_broadcast
+# =============================================================================
+# 1. MONSOON DISASTER SIMULATOR ENDPOINTS ("Dispatch Emergency Message")
+# =============================================================================
+
+@app.post("/api/alerts/simulator-dispatch")
+@app.post("/api/alerts/simulator/dispatch")
+def trigger_simulator_dispatch(payload: dict):
+    global latest_simulator_broadcast
     import time
-    latest_broadcast = {
+    latest_simulator_broadcast = {
         **payload,
+        "source": "SIMULATOR",
         "active": True,
         "broadcast_id": int(time.time() * 1000),
         "timestamp": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
     }
-    return {"status": "SUCCESS", "message": "Emergency alert broadcasted to all citizen mobiles."}
+    return {
+        "status": "SUCCESS",
+        "source": "SIMULATOR",
+        "broadcast_id": latest_simulator_broadcast["broadcast_id"],
+        "message": "Monsoon simulator emergency message dispatched to Demo phones."
+    }
+
+@app.get("/api/alerts/simulator/active")
+@app.get("/api/alerts/active-simulator-broadcast")
+def get_active_simulator_alert():
+    global latest_simulator_broadcast
+    import time
+    if latest_simulator_broadcast and latest_simulator_broadcast.get("active"):
+        if time.time() * 1000 - latest_simulator_broadcast.get("broadcast_id", 0) < 900000:
+            return latest_simulator_broadcast
+    return {"active": False}
+
+@app.post("/api/alerts/simulator/dismiss")
+@app.post("/api/alerts/dismiss-simulator-broadcast")
+def dismiss_simulator_alert():
+    global latest_simulator_broadcast
+    latest_simulator_broadcast = {"active": False}
+    return {"status": "DISMISSED", "source": "SIMULATOR"}
+
+# =============================================================================
+# 2. LIVE MONITORING DASHBOARD ENDPOINTS ("Broadcast SMS Alert")
+# =============================================================================
+
+@app.post("/api/alerts/live-broadcast")
+@app.post("/api/alerts/live/broadcast")
+def trigger_live_broadcast(payload: dict):
+    global latest_live_broadcast
+    import time
+    latest_live_broadcast = {
+        **payload,
+        "source": "LIVE_MONITORING",
+        "active": True,
+        "broadcast_id": int(time.time() * 1000),
+        "timestamp": time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+    }
+    return {
+        "status": "SUCCESS",
+        "source": "LIVE_MONITORING",
+        "broadcast_id": latest_live_broadcast["broadcast_id"],
+        "message": "Real-time monitoring emergency alert broadcasted to Live phones."
+    }
+
+@app.get("/api/alerts/live/active")
+@app.get("/api/alerts/active-live-broadcast")
+def get_active_live_alert():
+    global latest_live_broadcast
+    import time
+    if latest_live_broadcast and latest_live_broadcast.get("active"):
+        if time.time() * 1000 - latest_live_broadcast.get("broadcast_id", 0) < 900000:
+            return latest_live_broadcast
+    return {"active": False}
+
+@app.post("/api/alerts/live/dismiss")
+@app.post("/api/alerts/dismiss-live-broadcast")
+def dismiss_live_alert():
+    global latest_live_broadcast
+    latest_live_broadcast = {"active": False}
+    return {"status": "DISMISSED", "source": "LIVE_MONITORING"}
+
+# =============================================================================
+# 3. BACKWARD COMPATIBILITY ENDPOINTS
+# =============================================================================
+
+@app.post("/api/alerts/broadcast")
+def trigger_broadcast(payload: dict):
+    source = payload.get("source", "LIVE_MONITORING")
+    if source == "SIMULATOR":
+        return trigger_simulator_dispatch(payload)
+    return trigger_live_broadcast(payload)
 
 @app.get("/api/alerts/active-broadcast")
-def get_active_broadcast():
-    global latest_broadcast
-    import time
-    if latest_broadcast and latest_broadcast.get("active"):
-        # Valid for 15 minutes
-        if time.time() * 1000 - latest_broadcast.get("broadcast_id", 0) < 900000:
-            return latest_broadcast
+def get_active_broadcast(source: str = None):
+    if source == "SIMULATOR":
+        return get_active_simulator_alert()
+    elif source == "LIVE_MONITORING":
+        return get_active_live_alert()
+    
+    live = get_active_live_alert()
+    if live.get("active"):
+        return live
+    sim = get_active_simulator_alert()
+    if sim.get("active"):
+        return sim
     return {"active": False}
 
 @app.post("/api/alerts/dismiss-broadcast")
-def dismiss_broadcast():
-    global latest_broadcast
-    latest_broadcast = {"active": False}
+def dismiss_broadcast(source: str = None):
+    if source == "SIMULATOR":
+        dismiss_simulator_alert()
+    elif source == "LIVE_MONITORING":
+        dismiss_live_alert()
+    else:
+        dismiss_simulator_alert()
+        dismiss_live_alert()
     return {"status": "DISMISSED"}

@@ -169,6 +169,7 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
     const latency = Math.floor(35 + Math.random() * 45);
 
     const broadcastPayload = JSON.stringify({
+      source: 'LIVE_MONITORING',
       threatLevel: highRiskPoints.length > 0 ? 'CRITICAL' : 'HIGH',
       district: 'Dima Hasao',
       targetLat: 25.18,
@@ -186,6 +187,8 @@ export const AlertsPage: React.FC<AlertsPageProps> = ({
 
     try {
       const broadcastEndpoints = [
+        `${backendBase}/api/alerts/live-broadcast`,
+        `${mlBase}/api/alerts/live-broadcast`,
         `${backendBase}/api/alerts/broadcast`,
         `${mlBase}/api/alerts/broadcast`
       ];

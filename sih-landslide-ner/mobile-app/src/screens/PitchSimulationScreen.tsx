@@ -10,8 +10,9 @@ import {
   Platform
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { checkAlert } from '../services/apiService';
+import { checkAlert, predictCoordinateRisk } from '../services/apiService';
 import { performOfflineGeofenceCheck } from '../services/offlineRiskEngine';
+import { soundService } from '../services/soundService';
 import { APP_COLORS } from '../constants/theme';
 
 export interface SavedCoordinate {
@@ -21,6 +22,11 @@ export interface SavedCoordinate {
   lng: number;
   district: string;
   risk_level?: string;
+  probability?: number;
+  primary_hazard_driver?: string;
+  advisory?: string;
+  action_required?: string;
+  evaluated_by?: string;
 }
 
 export const ACTIVE_COORD_KEY = 'active_pitch_coordinate';
@@ -33,7 +39,6 @@ export const PitchSimulationScreen: React.FC<PitchSimulationScreenProps> = ({ on
   const [latInput, setLatInput] = useState<string>('');
   const [lngInput, setLngInput] = useState<string>('');
   const [locNameInput, setLocNameInput] = useState<string>('');
-  const [hazardLevel, setHazardLevel] = useState<'AUTO' | 'CRITICAL' | 'HIGH' | 'SAFE'>('AUTO');
   const [loading, setLoading] = useState<boolean>(false);
 
   useEffect(() => {
@@ -48,19 +53,16 @@ export const PitchSimulationScreen: React.FC<PitchSimulationScreenProps> = ({ on
         setLatInput(parsed.lat?.toString() || '');
         setLngInput(parsed.lng?.toString() || '');
         setLocNameInput(parsed.name || '');
-        if (parsed.risk_level) {
-          setHazardLevel(parsed.risk_level as any);
-        }
       }
     } catch (e) {
-      console.warn('Could not load current pitch coordinate');
+      console.warn('Could not load current active coordinate');
     }
   };
 
   const handleSaveCoordinate = async () => {
     const lat = parseFloat(latInput);
     const lng = parseFloat(lngInput);
-    const name = locNameInput.trim() || `Custom (${lat.toFixed(3)}, ${lng.toFixed(3)})`;
+    const name = locNameInput.trim() || `Coordinate (${lat.toFixed(3)}°, ${lng.toFixed(3)}°)`;
 
     if (isNaN(lat) || isNaN(lng)) {
       Alert.alert('Invalid Input', 'Please enter valid numerical Latitude and Longitude.');
@@ -75,15 +77,9 @@ export const PitchSimulationScreen: React.FC<PitchSimulationScreenProps> = ({ on
     setLoading(true);
 
     try {
-      // 1. Evaluate risk level of this coordinate
-      let riskResult;
-      try {
-        riskResult = await checkAlert(lat, lng);
-      } catch (err) {
-        riskResult = await performOfflineGeofenceCheck(lat, lng);
-      }
-
-      const effectiveRiskLevel = hazardLevel !== 'AUTO' ? hazardLevel : riskResult.risk_level;
+      // Evaluate risk level of this coordinate dynamically via Calibrated Geotechnical ML Engine
+      const riskResult = await predictCoordinateRisk(lat, lng, name);
+      const effectiveRiskLevel = riskResult.risk_level;
 
       const payload: SavedCoordinate = {
         id: Date.now().toString(),
@@ -91,20 +87,42 @@ export const PitchSimulationScreen: React.FC<PitchSimulationScreenProps> = ({ on
         lat,
         lng,
         district: riskResult.district || 'Custom Location',
-        risk_level: effectiveRiskLevel
+        risk_level: effectiveRiskLevel,
+        probability: riskResult.probability,
+        primary_hazard_driver: riskResult.primary_hazard_driver,
+        advisory: riskResult.advisory,
+        action_required: riskResult.action_required,
+        evaluated_by: riskResult.evaluated_by
       };
 
-      // 2. Save active coordinate for monitoring
+      // Save active coordinate for monitoring
       await AsyncStorage.setItem(ACTIVE_COORD_KEY, JSON.stringify(payload));
 
-      const isRisk = effectiveRiskLevel === 'CRITICAL' || effectiveRiskLevel === 'HIGH';
+      const isRisk = (effectiveRiskLevel === 'CRITICAL' || effectiveRiskLevel === 'HIGH') && riskResult.in_risk_zone;
+
+      // If SAFE or MODERATE coordinate, immediately silence any siren
+      if (!isRisk) {
+        soundService.stopEmergencySiren();
+      }
+
+      const probText = typeof riskResult.probability === 'number'
+        ? ` (${(riskResult.probability * 100).toFixed(1)}%)`
+        : '';
+      const driverText = riskResult.primary_hazard_driver
+        ? `\nHazard Driver: ${riskResult.primary_hazard_driver}`
+        : '';
+      const engineText = riskResult.evaluated_by
+        ? `\nEngine: ${riskResult.evaluated_by}`
+        : '';
 
       Alert.alert(
-        '💾 Coordinates Saved!',
-        `Location: ${name}\nCoordinates: ${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E\nAI Risk Status: ${effectiveRiskLevel} ${isRisk ? '🚨' : '✅'}\n\n${
+        '💾 Coordinates Evaluated & Activated!',
+        `Location: ${name}\nCoordinates: ${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E\nAI Risk Status: ${effectiveRiskLevel}${probText} ${isRisk ? '🚨' : effectiveRiskLevel === 'MODERATE' ? '⚠️' : '✅'}${driverText}${engineText}\n\n${
           isRisk
             ? 'This coordinate is in a HIGH-RISK HAZARD ZONE. The app will trigger an incoming emergency alert SMS and sounding siren.'
-            : 'This coordinate is in a SAFE ZONE. Alert banners and siren will remain quiet under normal conditions.'
+            : effectiveRiskLevel === 'MODERATE'
+            ? 'This coordinate is in a MODERATE ADVISORY ZONE. Cautionary status is displayed.'
+            : 'This coordinate is in a SAFE ZONE. Normal monitoring is active and siren remains quiet.'
         }`,
         [
           {
@@ -114,41 +132,21 @@ export const PitchSimulationScreen: React.FC<PitchSimulationScreenProps> = ({ on
         ]
       );
     } catch (err) {
-      Alert.alert('Error', 'Failed to save coordinate.');
+      Alert.alert('Error', 'Failed to evaluate and activate coordinates.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleClearCoordinate = async () => {
+    soundService.stopEmergencySiren();
     await AsyncStorage.removeItem(ACTIVE_COORD_KEY);
     setLatInput('');
     setLngInput('');
     setLocNameInput('');
-    Alert.alert('Cleared', 'Simulated coordinates removed. App will now use physical phone GPS.', [
+    Alert.alert('Cleared', 'Custom coordinate removed. App is now monitoring your physical GPS location.', [
       { text: 'OK', onPress: onBackToHome }
     ]);
-  };
-
-  const setPresetJatinga = () => {
-    setLocNameInput('Jatinga Ridge (NH-27 Pass)');
-    setLatInput('25.180');
-    setLngInput('92.760');
-    setHazardLevel('CRITICAL');
-  };
-
-  const setPresetHaflong = () => {
-    setLocNameInput('Haflong Ghat Road Corridor');
-    setLatInput('25.080');
-    setLngInput('92.840');
-    setHazardLevel('HIGH');
-  };
-
-  const setPresetSafe = () => {
-    setLocNameInput('Silchar Plain Sector (Safe)');
-    setLatInput('24.833');
-    setLngInput('92.778');
-    setHazardLevel('SAFE');
   };
 
   return (
@@ -158,45 +156,27 @@ export const PitchSimulationScreen: React.FC<PitchSimulationScreenProps> = ({ on
         <TouchableOpacity style={styles.backBtn} onPress={onBackToHome}>
           <Text style={styles.backBtnText}>⬅ Back to Monitor</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Pitch Simulation Studio</Text>
+        <Text style={styles.headerTitle}>Custom Coordinate Studio</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Instruction Banner */}
         <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>📍 Real-Time Coordinate Sandbox</Text>
+          <Text style={styles.infoTitle}>📍 Geographical Coordinate Assessment</Text>
           <Text style={styles.infoSub}>
-            Set simulated coordinates to demonstrate how the geofence engine triggers incoming SMS dispatches and banner alerts with emergency siren when entering danger zones.
+            Enter custom coordinates to evaluate real geotechnical landslide susceptibility with calibrated satellite DEM terrain data and live XGBoost ML predictions.
           </Text>
-        </View>
-
-        {/* Quick Presets */}
-        <View style={styles.formCard}>
-          <Text style={styles.formTitle}>Quick Pilot Corridor Presets</Text>
-          <View style={styles.presetRow}>
-            <TouchableOpacity style={[styles.presetBtn, styles.presetBtnRed]} onPress={setPresetJatinga}>
-              <Text style={styles.presetBtnText}>🚨 Jatinga (Critical)</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={[styles.presetBtn, styles.presetBtnOrange]} onPress={setPresetHaflong}>
-              <Text style={styles.presetBtnText}>⚠️ Haflong (High)</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={[styles.presetBtn, styles.presetBtnGreen]} onPress={setPresetSafe}>
-              <Text style={styles.presetBtnText}>✅ Silchar (Safe)</Text>
-            </TouchableOpacity>
-          </View>
         </View>
 
         {/* Coordinate Input Form */}
         <View style={styles.formCard}>
           <Text style={styles.formTitle}>Enter Custom Location Coordinates</Text>
 
-          <Text style={styles.inputLabel}>Location Name / Description</Text>
+          <Text style={styles.inputLabel}>Location Name / Sector</Text>
           <TextInput
             style={styles.textInput}
-            placeholder="e.g. Selected Point from GIS Map"
+            placeholder="e.g. Dima Hasao Hill Sector"
             placeholderTextColor="#8FA48A"
             value={locNameInput}
             onChangeText={setLocNameInput}
@@ -207,7 +187,7 @@ export const PitchSimulationScreen: React.FC<PitchSimulationScreenProps> = ({ on
               <Text style={styles.inputLabel}>Latitude (°N)</Text>
               <TextInput
                 style={styles.textInput}
-                placeholder="e.g. 25.180"
+                placeholder="e.g. 25.100"
                 placeholderTextColor="#8FA48A"
                 keyboardType="numeric"
                 value={latInput}
@@ -218,7 +198,7 @@ export const PitchSimulationScreen: React.FC<PitchSimulationScreenProps> = ({ on
               <Text style={styles.inputLabel}>Longitude (°E)</Text>
               <TextInput
                 style={styles.textInput}
-                placeholder="e.g. 92.760"
+                placeholder="e.g. 92.750"
                 placeholderTextColor="#8FA48A"
                 keyboardType="numeric"
                 value={lngInput}
@@ -227,53 +207,13 @@ export const PitchSimulationScreen: React.FC<PitchSimulationScreenProps> = ({ on
             </View>
           </View>
 
-          {/* Risk Level Override Selector */}
-          <Text style={styles.inputLabel}>Risk Level Classification</Text>
-          <View style={styles.riskSelectorGrid}>
-            <TouchableOpacity
-              style={[styles.riskChip, hazardLevel === 'AUTO' && styles.riskChipActiveAuto]}
-              onPress={() => setHazardLevel('AUTO')}
-            >
-              <Text style={[styles.riskChipText, hazardLevel === 'AUTO' && styles.riskChipTextActiveAuto]}>
-                🤖 Auto-Detect
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.riskChip, hazardLevel === 'CRITICAL' && styles.riskChipActiveRed]}
-              onPress={() => setHazardLevel('CRITICAL')}
-            >
-              <Text style={[styles.riskChipText, hazardLevel === 'CRITICAL' && styles.riskChipTextActiveRed]}>
-                🚨 Critical
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.riskChip, hazardLevel === 'HIGH' && styles.riskChipActiveOrange]}
-              onPress={() => setHazardLevel('HIGH')}
-            >
-              <Text style={[styles.riskChipText, hazardLevel === 'HIGH' && styles.riskChipTextActiveOrange]}>
-                ⚠️ High Risk
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.riskChip, hazardLevel === 'SAFE' && styles.riskChipActiveGreen]}
-              onPress={() => setHazardLevel('SAFE')}
-            >
-              <Text style={[styles.riskChipText, hazardLevel === 'SAFE' && styles.riskChipTextActiveGreen]}>
-                🛡️ Safe
-              </Text>
-            </TouchableOpacity>
-          </View>
-
           <TouchableOpacity
             style={styles.primarySaveBtn}
             onPress={handleSaveCoordinate}
             disabled={loading}
           >
             <Text style={styles.primarySaveBtnText}>
-              {loading ? 'Evaluating Spatial Risk...' : '💾 Save & Activate Coordinates'}
+              {loading ? 'Evaluating Spatial Risk...' : '🧠 Evaluate & Activate Coordinates'}
             </Text>
           </TouchableOpacity>
 
@@ -281,7 +221,7 @@ export const PitchSimulationScreen: React.FC<PitchSimulationScreenProps> = ({ on
             style={styles.clearBtn}
             onPress={handleClearCoordinate}
           >
-            <Text style={styles.clearBtnText}>🗑️ Clear & Revert to Physical GPS</Text>
+            <Text style={styles.clearBtnText}>📍 Clear & Revert to Physical GPS</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -515,5 +455,76 @@ const styles = StyleSheet.create({
   riskChipTextActiveGreen: {
     color: '#15803D',
     fontWeight: '800'
+  },
+  demoCard: {
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1.5
+  },
+  demoCardActive: {
+    backgroundColor: '#FAF5FF',
+    borderColor: '#C084FC'
+  },
+  demoCardLive: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#86EFAC'
+  },
+  demoCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12
+  },
+  demoCardTitleCol: {
+    flex: 1
+  },
+  demoBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4
+  },
+  demoCardIcon: {
+    fontSize: 16
+  },
+  demoCardBadge: {
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 0.5
+  },
+  demoBadgeTextActive: {
+    color: '#6B21A8'
+  },
+  demoBadgeTextLive: {
+    color: '#15803D'
+  },
+  demoCardDesc: {
+    fontSize: 11,
+    color: '#64748B',
+    lineHeight: 16
+  },
+  demoToggleBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    backgroundColor: '#FFFFFF'
+  },
+  demoToggleBtnActive: {
+    borderColor: '#A855F7'
+  },
+  demoToggleBtnLive: {
+    borderColor: '#22C55E'
+  },
+  demoToggleText: {
+    fontSize: 12,
+    fontWeight: '800'
+  },
+  demoToggleTextActive: {
+    color: '#7E22CE'
+  },
+  demoToggleTextLive: {
+    color: '#16A34A'
   }
 });

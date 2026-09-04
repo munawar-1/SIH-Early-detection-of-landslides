@@ -90,56 +90,68 @@ function evaluateGeotechnicalRisk(lat, lon) {
     var baseProb = 1.0 / (1.0 + Math.exp(-0.32 * (porePressureIndex - 19.5)));
     var adjustedProb = Math.min(0.96, Math.max(0.02, baseProb * 0.75 + criticalGhatFactor));
     var probability = Math.round(adjustedProb * 1000) / 1000;
-    if (probability >= 0.70) {
+    var distanceMeters = Math.round(minDistKm * 1000);
+    var isNearCell = minDistKm <= 6.0;
+    var slope = isNearCell ? (Number((_b = nearestPoint) === null || _b === void 0 ? void 0 : _b.slope) || 3.0) : 2.0;
+    var elevation = isNearCell ? Math.round(Number((_c = nearestPoint) === null || _c === void 0 ? void 0 : _c.elevation) || 500) : 120;
+    // 1. CRITICAL HAZARD ZONE: Extreme slope >= 34.0°
+    if (slope >= 34.0 && isNearCell) {
+        var prob = Math.min(0.96, Math.max(0.80, 0.82 + ((slope - 34.0) / 12.0) * 0.14));
         return {
             in_risk_zone: true,
             risk_level: 'CRITICAL',
-            district: 'Dima Hasao (High Risk Sector)',
-            distance_meters: Math.round(borailDist * 111000),
-            probability: probability,
-            advisory: "CRITICAL DANGER: Slope angle ".concat(slope.toFixed(1), "\u00B0 with severe pore-pressure saturation. High probability of debris flow."),
+            district: "Dima Hasao (Extreme Escarpment \u2022 ".concat(elevation, "m ASL)"),
+            distance_meters: distanceMeters,
+            probability: Math.round(prob * 100) / 100,
+            advisory: "\uD83D\uDEA8 CRITICAL LANDSLIDE DANGER: Extreme slope incline (".concat(slope.toFixed(1), "\u00B0). Severe slope destabilization detected near active scarp."),
             action_required: 'IMMEDIATE EVACUATION: Move away from steep slopes, hill cuttings, and stream beds.',
             alert_dispatched: true,
             checked_at: new Date().toISOString(),
             isOfflineFallback: true
         };
     }
-    else if (probability >= 0.50) {
+    // 2. HIGH HAZARD ZONE: Steep slope between 26.0° and 34.0°
+    if (slope >= 26.0 && isNearCell) {
+        var prob = Math.min(0.78, Math.max(0.50, 0.52 + ((slope - 26.0) / 8.0) * 0.24));
         return {
             in_risk_zone: true,
             risk_level: 'HIGH',
-            district: 'Dima Hasao (Warning Sector)',
-            distance_meters: Math.round(borailDist * 111000),
-            probability: probability,
-            advisory: "HIGH RISK: Slope angle ".concat(slope.toFixed(1), "\u00B0 with heavy rainfall saturation. Watch for rockfalls and road fissures."),
-            action_required: 'Prepare emergency go-bag and monitor DDMO bulletins.',
+            district: "Dima Hasao (Steep Mountain Corridor \u2022 ".concat(elevation, "m ASL)"),
+            distance_meters: distanceMeters,
+            probability: Math.round(prob * 100) / 100,
+            advisory: "\u26A0\uFE0F HIGH RISK: Saturated steep terrain (".concat(slope.toFixed(1), "\u00B0 slope). Risk of localized rockfalls and road fissures."),
+            action_required: 'Prepare emergency go-bag, avoid vulnerable cuttings and monitor bulletins.',
             alert_dispatched: true,
             checked_at: new Date().toISOString(),
             isOfflineFallback: true
         };
     }
-    else if (probability >= 0.35) {
+    // 3. MODERATE ADVISORY ZONE: Hillside slope between 16.0° and 26.0°
+    if (slope >= 16.0 && isNearCell) {
+        var prob = Math.round((0.18 + ((slope - 16.0) / 10.0) * 0.22) * 100) / 100;
         return {
             in_risk_zone: false,
             risk_level: 'MODERATE',
-            district: 'Dima Hasao (Moderate Sector)',
-            distance_meters: Math.round(kopiliRiver * 111000),
-            probability: probability,
-            advisory: "MODERATE: Slope angle ".concat(slope.toFixed(1), "\u00B0. Standard monsoon precaution advised."),
-            action_required: 'Stay alert during continuous heavy rain.',
+            district: "Dima Hasao (Hill Corridor \u2022 ".concat(elevation, "m ASL)"),
+            distance_meters: distanceMeters,
+            probability: prob,
+            advisory: "\u26A0\uFE0F MODERATE ADVISORY: Moderate slope gradient (".concat(slope.toFixed(1), "\u00B0). Monitor drainage and local weather advisories."),
+            action_required: 'Maintain seasonal vigilance; avoid parking or walking under exposed hill cuttings.',
             alert_dispatched: false,
             checked_at: new Date().toISOString(),
             isOfflineFallback: true
         };
     }
+    // 4. SAFE ZONE: Stable gentle terrain < 16.0°
+    var safeProb = Math.round(Math.max(0.01, (slope / 16.0) * 0.08) * 100) / 100;
     return {
         in_risk_zone: false,
         risk_level: 'SAFE',
-        district: 'Dima Hasao (Valley Safe Zone)',
-        distance_meters: Math.round(kopiliRiver * 111000),
-        probability: probability,
-        advisory: "SAFE: Slope angle ".concat(slope.toFixed(1), "\u00B0. Stable valley topography with minimal landslide susceptibility."),
-        action_required: 'No emergency action required.',
+        district: "Stable Terrain Sector (".concat(elevation, "m ASL)"),
+        distance_meters: distanceMeters,
+        probability: safeProb,
+        advisory: "\uD83D\uDEE1\uFE0F SAFE AREA: Stable low-gradient terrain (".concat(slope.toFixed(1), "\u00B0 slope, ").concat(elevation, "m ASL). No active landslide threat detected."),
+        action_required: 'No emergency action required. Conditions normal.',
         alert_dispatched: false,
         checked_at: new Date().toISOString(),
         isOfflineFallback: true

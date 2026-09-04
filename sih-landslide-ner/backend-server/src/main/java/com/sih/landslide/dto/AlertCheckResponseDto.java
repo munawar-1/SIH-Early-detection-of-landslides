@@ -35,8 +35,17 @@ public class AlertCheckResponseDto {
     @JsonProperty("action_required")
     private String actionRequired;
 
+    @JsonProperty("location_name")
+    private String locationName;
+
+    @JsonProperty("primary_hazard_driver")
+    private String primaryHazardDriver;
+
     @JsonProperty("alert_dispatched")
     private boolean alertDispatched;
+
+    @JsonProperty("evaluated_by")
+    private String evaluatedBy;
 
     @JsonProperty("checked_at")
     @Builder.Default

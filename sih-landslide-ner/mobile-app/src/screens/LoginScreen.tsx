@@ -23,7 +23,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const [otp, setOtp] = useState<string>('123456');
   const [step, setStep] = useState<'MOBILE' | 'OTP'>('MOBILE');
   const [loading, setLoading] = useState<boolean>(false);
-  const [infoMsg, setInfoMsg] = useState<string | null>('Demo Test Mode: Any 10-digit phone accepted. Code: 123456');
+  const [infoMsg, setInfoMsg] = useState<string | null>('Enter your 10-digit mobile number. Test code: 123456');
 
   const handleRequestOtp = async () => {
     const cleaned = mobileNumber.replace(/[^0-9]/g, '');
@@ -42,18 +42,18 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
 
   const handleVerifyOtp = async () => {
     if (!otp || otp.trim().length < 4) {
-      Alert.alert('Invalid OTP', 'Please enter the 6-digit test code (123456).');
+      Alert.alert('Invalid OTP', 'Please enter the 6-digit code (123456).');
       return;
     }
 
     setLoading(true);
     setTimeout(async () => {
       setLoading(false);
-      const dummyToken = 'demo_jwt_token_' + Date.now();
+      const dummyToken = 'citizen_jwt_token_' + Date.now();
       await saveAuthToken(dummyToken);
       await saveUserData({
         mobile_number: '+91' + mobileNumber.replace(/[^0-9]/g, ''),
-        name: 'Citizen Demo User',
+        name: 'Citizen User',
         role: 'ROLE_CITIZEN',
         district: 'Dima Hasao'
       });
@@ -128,7 +128,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                 value={otp}
                 onChangeText={setOtp}
               />
-              <Text style={styles.otpHint}>Demo test code: 123456</Text>
+              <Text style={styles.otpHint}>Standard test code: 123456</Text>
             </View>
           )}
 
