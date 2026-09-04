@@ -17,7 +17,7 @@ import { checkAlert, updateLocation, fetchActiveBroadcast, dismissActiveBroadcas
 import { performOfflineGeofenceCheck, syncRiskZonesToCache } from '../services/offlineRiskEngine';
 import { smsService, EmergencySmsAlert } from '../services/smsService';
 import { ACTIVE_COORD_KEY, SavedCoordinate } from './PitchSimulationScreen';
-import { getThreatTheme, APP_COLORS } from '../constants/theme';
+import { getThreatTheme, APP_COLORS, ThreatLevel } from '../constants/theme';
 import { ThreatBadge } from '../components/ThreatBadge';
 import { InjuryFirstAidModal, VALID_HELPLINES } from '../components/InjuryFirstAidModal';
 
@@ -260,7 +260,66 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     );
   };
 
-  const theme = getThreatTheme(alertStatus?.risk_level);
+  // Derived coherent risk presentation states to prevent contradictory UI
+  const currentRiskLevel: ThreatLevel = (alertStatus?.risk_level as ThreatLevel) || 'SAFE';
+  const isSafe = currentRiskLevel === 'SAFE';
+  const isCritical = currentRiskLevel === 'CRITICAL';
+  const isHigh = currentRiskLevel === 'HIGH';
+  const isModerate = currentRiskLevel === 'MODERATE';
+
+  const statusIndicatorText = isSafe
+    ? 'MONITORING NORMAL'
+    : isCritical
+    ? 'CRITICAL HAZARD ALERT'
+    : isHigh
+    ? 'HIGH HAZARD WARNING'
+    : 'MODERATE ADVISORY';
+
+  const statusHeading = isCritical
+    ? 'CRITICAL HAZARD ZONE'
+    : isHigh
+    ? 'HIGH WARNING HAZARD ZONE'
+    : isModerate
+    ? 'MODERATE ADVISORY ZONE'
+    : 'SAFE ZONE VERIFIED';
+
+  const statusSubLabel = isSafe
+    ? 'No imminent landslide threat detected at your current coordinates.'
+    : isCritical
+    ? 'Immediate danger: Severe slope instability & critical debris-flow threat.'
+    : isHigh
+    ? 'High hazard detected: Heavy soil saturation & elevated rockfall potential.'
+    : 'Moderate slope alert: Saturated ground conditions monitored in sector.';
+
+  const probabilityPercent = alertStatus?.probability !== undefined
+    ? Math.round(alertStatus.probability * 100)
+    : isCritical
+    ? 94
+    : isHigh
+    ? 75
+    : isModerate
+    ? 45
+    : 8;
+
+  const riskScoreLabel = isSafe
+    ? `${probabilityPercent}% Low`
+    : isCritical
+    ? `${probabilityPercent}% Critical`
+    : isHigh
+    ? `${probabilityPercent}% High`
+    : `${probabilityPercent}% Moderate`;
+
+  const citizenActionText = alertStatus?.action_required || (
+    isCritical
+      ? 'Move away from steep slopes, cliff edges, and natural drainage paths immediately.'
+      : isHigh
+      ? 'Stay vigilant for ground movement, bulging retaining walls, and localized rockfalls.'
+      : isModerate
+      ? 'Monitor weather forecasts and avoid non-essential hillside corridor transit.'
+      : 'Normal conditions verified. Maintain standard situational awareness during monsoon.'
+  );
+
+  const theme = getThreatTheme(currentRiskLevel);
 
   return (
     <View style={styles.container}>
@@ -304,30 +363,48 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         {/* Latest Incoming Alert SMS Ticker Strip */}
         {latestSms && (
           <TouchableOpacity
-            style={styles.smsTickerBar}
+            style={[
+              styles.smsTickerBar,
+              { borderLeftColor: getThreatTheme(latestSms.threatLevel).accent }
+            ]}
             onPress={onOpenSmsInbox}
             accessibilityRole="button"
             accessibilityLabel={`Latest SMS Alert from ${latestSms.senderTag}. Tap to open SMS Alerts Inbox.`}
           >
-            <View style={styles.tickerHeaderRow}>
-              <View style={styles.tickerBadgeCol}>
-                <Text style={styles.tickerTag}>📩 OFFICIAL ALERT SMS</Text>
-                <Text style={styles.tickerSender}>{latestSms.senderTag}</Text>
+            {/* Row 1: Source Tag, Sender, and Unread Count */}
+            <View style={styles.tickerTopRow}>
+              <View style={styles.tickerSourceCol}>
+                <Text style={[styles.tickerTag, { color: getThreatTheme(latestSms.threatLevel).accent }]}>
+                  OFFICIAL EMERGENCY ALERT
+                </Text>
+                <Text style={styles.tickerSender} numberOfLines={1}>
+                  {latestSms.senderTag}
+                </Text>
               </View>
+              {unreadSmsCount > 0 && (
+                <View style={styles.tickerUnreadChip}>
+                  <Text style={styles.tickerUnreadText}>{unreadSmsCount} new</Text>
+                </View>
+              )}
+            </View>
+
+            {/* Row 2: Threat Badge and Location metadata */}
+            <View style={styles.tickerMetaRow}>
               <ThreatBadge level={latestSms.threatLevel} size="small" />
+              {latestSms.locationName && (
+                <Text style={styles.tickerLocationText} numberOfLines={1}>
+                  📍 {latestSms.locationName}
+                </Text>
+              )}
             </View>
 
             <Text style={styles.tickerBody} numberOfLines={2}>
               {latestSms.bodyEnglish}
             </Text>
 
+            {/* Row 3: Call-To-Action Link */}
             <View style={styles.tickerFooterRow}>
               <Text style={styles.tickerLinkText}>Open Emergency SMS Inbox ➔</Text>
-              {unreadSmsCount > 0 && (
-                <View style={styles.tickerUnreadChip}>
-                  <Text style={styles.tickerUnreadText}>{unreadSmsCount} new</Text>
-                </View>
-              )}
             </View>
           </TouchableOpacity>
         )}
@@ -361,38 +438,26 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             <View style={styles.statusIndicatorWrapper}>
               <View style={[styles.statusDot, { backgroundColor: theme.accent }]} />
               <Text style={[styles.statusIndicatorText, { color: theme.text }]}>
-                {alertStatus?.risk_level === 'SAFE' ? 'MONITORING NORMAL' : 'HAZARD ELEVATED'}
+                {statusIndicatorText}
               </Text>
             </View>
-            <ThreatBadge level={alertStatus?.risk_level || 'SAFE'} size="medium" />
+            <ThreatBadge level={currentRiskLevel} size="medium" />
           </View>
 
           {/* Primary Risk Heading */}
           <Text style={[styles.statusHeading, { color: theme.text }]}>
-            {alertStatus?.risk_level === 'CRITICAL' ? 'CRITICAL HAZARD ZONE' :
-             alertStatus?.risk_level === 'HIGH' ? 'HIGH WARNING HAZARD ZONE' :
-             alertStatus?.risk_level === 'MODERATE' ? 'MODERATE ADVISORY ZONE' : 'SAFE ZONE VERIFIED'}
+            {statusHeading}
           </Text>
 
           <Text style={styles.statusSubLabel}>
-            {alertStatus?.risk_level === 'SAFE'
-              ? 'No imminent landslide threat detected at your current coordinates.'
-              : 'AI risk model detected high soil saturation & severe slope instability.'}
+            {statusSubLabel}
           </Text>
 
           {/* Recommended Action Callout */}
           <View style={[styles.actionCalloutBox, { borderColor: theme.badgeBorder, backgroundColor: theme.badgeBg }]}>
             <Text style={[styles.actionCalloutTag, { color: theme.text }]}>RECOMMENDED CITIZEN ACTION</Text>
             <Text style={[styles.actionCalloutText, { color: theme.text }]}>
-              {alertStatus?.action_required || (
-                alertStatus?.risk_level === 'CRITICAL'
-                  ? 'Move away from steep slopes, cliff edges, and natural drainage paths immediately.'
-                  : alertStatus?.risk_level === 'HIGH'
-                  ? 'Stay vigilant for ground movement, bulging retaining walls, and localized rockfalls.'
-                  : alertStatus?.risk_level === 'MODERATE'
-                  ? 'Monitor weather forecasts and avoid non-essential hillside corridor transit.'
-                  : 'Normal conditions verified. Maintain standard situational awareness during monsoon.'
-              )}
+              {citizenActionText}
             </Text>
           </View>
 
@@ -400,6 +465,25 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <Text style={styles.advisorySummary}>
             {alertStatus?.advisory || 'Continuous slope stability & rainfall monitoring active...'}
           </Text>
+
+          {/* Command-Center Visual Risk Saturation Meter */}
+          <View style={styles.riskMeterBox}>
+            <View style={styles.riskMeterHeader}>
+              <Text style={styles.riskMeterLabel}>SLOPE SATURATION INDEX</Text>
+              <Text style={[styles.riskMeterValue, { color: theme.text }]}>{riskScoreLabel}</Text>
+            </View>
+            <View style={styles.riskMeterTrack}>
+              <View
+                style={[
+                  styles.riskMeterFill,
+                  {
+                    width: `${Math.min(100, Math.max(5, probabilityPercent))}%`,
+                    backgroundColor: theme.accent
+                  }
+                ]}
+              />
+            </View>
+          </View>
 
           <View style={styles.divider} />
 
@@ -415,21 +499,21 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             <View style={styles.telemetryItem}>
               <Text style={styles.telemetryLabel}>Coordinates</Text>
               <Text style={styles.telemetryValue} numberOfLines={1} ellipsizeMode="tail">
-                {currentCoords ? `${currentCoords.lat.toFixed(3)}°, ${currentCoords.lng.toFixed(3)}°` : 'Acquiring GPS...'}
+                {currentCoords ? `${currentCoords.lat.toFixed(3)}°N, ${currentCoords.lng.toFixed(3)}°E` : 'Acquiring GPS...'}
               </Text>
             </View>
 
             <View style={styles.telemetryItem}>
-              <Text style={styles.telemetryLabel}>Risk Saturation</Text>
+              <Text style={styles.telemetryLabel}>Saturation Status</Text>
               <Text style={styles.telemetryValue} numberOfLines={1} ellipsizeMode="tail">
-                {alertStatus?.probability ? `${Math.round(alertStatus.probability * 100)}% Index` : alertStatus?.risk_level === 'SAFE' ? '8% Low' : '85% Elevated'}
+                {riskScoreLabel}
               </Text>
             </View>
 
             <View style={styles.telemetryItem}>
               <Text style={styles.telemetryLabel}>Last Assessment</Text>
               <Text style={styles.telemetryValue} numberOfLines={1} ellipsizeMode="tail">
-                {alertStatus?.checked_at ? new Date(alertStatus.checked_at).toLocaleTimeString() : 'Just now'}
+                {alertStatus?.checked_at ? new Date(alertStatus.checked_at).toLocaleTimeString() : 'Live Fix'}
               </Text>
             </View>
           </View>
@@ -657,7 +741,8 @@ const styles = StyleSheet.create({
     fontSize: 18
   },
   scrollContent: {
-    padding: 16
+    padding: 16,
+    paddingBottom: 110
   },
   smsTickerBar: {
     backgroundColor: '#FFFFFF',
@@ -674,14 +759,15 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 2
   },
-  tickerHeaderRow: {
+  tickerTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4
+    alignItems: 'flex-start',
+    marginBottom: 6
   },
-  tickerBadgeCol: {
-    flex: 1
+  tickerSourceCol: {
+    flex: 1,
+    marginRight: 8
   },
   tickerTag: {
     color: '#059669',
@@ -693,7 +779,19 @@ const styles = StyleSheet.create({
     color: APP_COLORS.textPrimary,
     fontSize: 13,
     fontWeight: '800',
-    marginTop: 1
+    marginTop: 2
+  },
+  tickerMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6
+  },
+  tickerLocationText: {
+    color: APP_COLORS.textMuted,
+    fontSize: 11,
+    fontWeight: '600',
+    maxWidth: '55%'
   },
   tickerBody: {
     color: APP_COLORS.textSecondary,
@@ -702,10 +800,10 @@ const styles = StyleSheet.create({
     marginVertical: 4
   },
   tickerFooterRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 4
+    marginTop: 6,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: APP_COLORS.borderSubtle
   },
   tickerLinkText: {
     color: '#166534',
@@ -840,6 +938,39 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     marginBottom: 12,
     fontWeight: '500'
+  },
+  riskMeterBox: {
+    backgroundColor: 'rgba(15, 36, 23, 0.04)',
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    marginBottom: 12
+  },
+  riskMeterHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 5
+  },
+  riskMeterLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: APP_COLORS.textMuted,
+    letterSpacing: 0.4
+  },
+  riskMeterValue: {
+    fontSize: 11,
+    fontWeight: '800'
+  },
+  riskMeterTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(15, 36, 23, 0.08)',
+    overflow: 'hidden'
+  },
+  riskMeterFill: {
+    height: '100%',
+    borderRadius: 3
   },
   divider: {
     height: 1,

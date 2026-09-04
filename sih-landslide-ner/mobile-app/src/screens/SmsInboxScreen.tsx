@@ -129,9 +129,9 @@ export const SmsInboxScreen: React.FC<SmsInboxScreenProps> = ({ onOpenSos }) => 
         </Text>
       </View>
 
-      {/* Screen Title & Action Bar */}
+      {/* Screen Title & Action Bar with Zero Overlap */}
       <View style={styles.topBar}>
-        <View>
+        <View style={styles.topBarTitleCol}>
           <Text style={styles.pageTitle}>Emergency SMS Inbox</Text>
           <Text style={styles.pageSub}>
             {unreadCount > 0
@@ -140,7 +140,7 @@ export const SmsInboxScreen: React.FC<SmsInboxScreenProps> = ({ onOpenSos }) => 
           </Text>
         </View>
 
-        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+        <View style={styles.topBarActions}>
           <TouchableOpacity
             style={styles.firstAidPillBtn}
             onPress={() => setFirstAidModalVisible(true)}
@@ -163,56 +163,52 @@ export const SmsInboxScreen: React.FC<SmsInboxScreenProps> = ({ onOpenSos }) => 
         </View>
       </View>
 
-      {/* Filter Category Chips */}
-      <View style={styles.filterContainer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterScroll}
-        >
+      {/* Segmented Filter Tab Controls */}
+      <View style={styles.segmentedFilterWrapper}>
+        <View style={styles.segmentedFilterContainer}>
           <TouchableOpacity
-            style={[styles.filterChip, filter === 'ALL' && styles.filterChipActive]}
+            style={[styles.segmentedTab, filter === 'ALL' && styles.segmentedTabActive]}
             onPress={() => setFilter('ALL')}
             accessibilityRole="tab"
             accessibilityState={{ selected: filter === 'ALL' }}
           >
-            <Text style={[styles.filterChipText, filter === 'ALL' && styles.filterChipTextActive]}>
+            <Text style={[styles.segmentedTabText, filter === 'ALL' && styles.segmentedTabTextActive]}>
               All Alerts ({alerts.length})
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.filterChip, filter === 'CRITICAL' && styles.filterChipActive]}
+            style={[styles.segmentedTab, filter === 'CRITICAL' && styles.segmentedTabActive]}
             onPress={() => setFilter('CRITICAL')}
             accessibilityRole="tab"
             accessibilityState={{ selected: filter === 'CRITICAL' }}
           >
-            <Text style={[styles.filterChipText, filter === 'CRITICAL' && styles.filterChipTextActive]}>
-              Critical Red ({alerts.filter((a) => a.threatLevel === 'CRITICAL').length})
+            <Text style={[styles.segmentedTabText, filter === 'CRITICAL' && styles.segmentedTabTextActive]}>
+              Critical ({alerts.filter((a) => a.threatLevel === 'CRITICAL').length})
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.filterChip, filter === 'UNREAD' && styles.filterChipActive]}
+            style={[styles.segmentedTab, filter === 'UNREAD' && styles.segmentedTabActive]}
             onPress={() => setFilter('UNREAD')}
             accessibilityRole="tab"
             accessibilityState={{ selected: filter === 'UNREAD' }}
           >
-            <Text style={[styles.filterChipText, filter === 'UNREAD' && styles.filterChipTextActive]}>
+            <Text style={[styles.segmentedTabText, filter === 'UNREAD' && styles.segmentedTabTextActive]}>
               Unread ({unreadCount})
             </Text>
           </TouchableOpacity>
-        </ScrollView>
+        </View>
       </View>
 
-      {/* Language Selector Bar */}
+      {/* Fully Visible Multilingual Selector Bar */}
       <View style={styles.langSelectorBar}>
-        <Text style={styles.langBarLabel}>Language:</Text>
+        <Text style={styles.langBarLabel}>LANGUAGE</Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          style={{ flex: 1 }}
-          contentContainerStyle={styles.langScroll}
+          style={styles.langScrollWrapper}
+          contentContainerStyle={styles.langScrollContent}
         >
           {LANGUAGE_TABS.map((item) => {
             const isSelected = item.key === selectedLang;
@@ -224,8 +220,9 @@ export const SmsInboxScreen: React.FC<SmsInboxScreenProps> = ({ onOpenSos }) => 
                 accessibilityRole="button"
                 accessibilityLabel={`Translate to ${item.label}`}
               >
-                <Text style={[styles.langChipText, isSelected && styles.langChipTextActive]}>
-                  {item.flag} {item.label}
+                <Text style={styles.langFlagText}>{item.flag}</Text>
+                <Text style={[styles.langNameText, isSelected && styles.langNameTextActive]}>
+                  {item.label}
                 </Text>
               </TouchableOpacity>
             );
@@ -249,12 +246,20 @@ export const SmsInboxScreen: React.FC<SmsInboxScreenProps> = ({ onOpenSos }) => 
             const isExpanded = expandedAlertId === item.id;
             const theme = getThreatTheme(item.threatLevel);
             const localizedBody = item.translations[selectedLang] || item.bodyEnglish;
+            const borderAccent = item.threatLevel === 'CRITICAL'
+              ? '#DC2626'
+              : item.threatLevel === 'HIGH'
+              ? '#D97706'
+              : item.threatLevel === 'MODERATE'
+              ? '#EAB308'
+              : '#059669';
 
             return (
               <TouchableOpacity
                 key={item.id}
                 style={[
                   styles.alertCard,
+                  { borderLeftColor: borderAccent, borderLeftWidth: 4 },
                   !item.isRead && styles.alertCardUnread,
                   { borderColor: isExpanded ? theme.badgeBorder : APP_COLORS.borderDefault }
                 ]}
@@ -263,24 +268,34 @@ export const SmsInboxScreen: React.FC<SmsInboxScreenProps> = ({ onOpenSos }) => 
                 accessibilityRole="button"
                 accessibilityLabel={`Alert from ${item.senderTag}, Level ${item.threatLevel}. Tap to toggle details.`}
               >
-                {/* Header Row */}
+                {/* Header: Clean Stacked Hierarchy with Zero Overlap */}
                 <View style={styles.cardHeader}>
-                  <View style={styles.senderCol}>
-                    <View style={styles.senderBadgeRow}>
-                      <Text style={styles.senderBadgeText}>{item.senderTag}</Text>
-                      {!item.isRead && <View style={styles.unreadDot} />}
-                    </View>
-                    {item.locationName && (
-                      <Text style={styles.locationSubText} numberOfLines={1}>
-                        📍 {item.locationName}
-                      </Text>
+                  {/* Row 1: Source & Unread Badge */}
+                  <View style={styles.cardSourceRow}>
+                    <Text style={styles.senderBadgeText} numberOfLines={2}>
+                      {item.senderTag}
+                    </Text>
+                    {!item.isRead && (
+                      <View style={styles.unreadTag}>
+                        <Text style={styles.unreadTagText}>NEW</Text>
+                      </View>
                     )}
                   </View>
 
-                  <View style={styles.cardMetaRight}>
+                  {/* Row 2: Severity Badge & Timestamp */}
+                  <View style={styles.cardMetaRow}>
                     <ThreatBadge level={item.threatLevel} size="small" />
                     <Text style={styles.cardTimeText}>{getRelativeTime(item.timestampISO)}</Text>
                   </View>
+
+                  {/* Row 3: Location Pin (if available) */}
+                  {item.locationName && (
+                    <View style={styles.cardLocationRow}>
+                      <Text style={styles.locationSubText} numberOfLines={2}>
+                        📍 {item.locationName}
+                      </Text>
+                    </View>
+                  )}
                 </View>
 
                 {/* SMS Body Text */}
@@ -403,13 +418,20 @@ const styles = StyleSheet.create({
   },
   topBar: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 12,
+    paddingBottom: 10,
     backgroundColor: '#FFFFFF',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: APP_COLORS.borderDefault
+  },
+  topBarTitleCol: {
+    width: '100%',
+    marginBottom: 8
+  },
+  topBarActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8
   },
   pageTitle: {
     fontSize: 18,
@@ -455,87 +477,116 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700'
   },
-  filterContainer: {
+  segmentedFilterWrapper: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: APP_COLORS.borderSubtle
   },
-  filterScroll: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    gap: 8,
+  segmentedFilterContainer: {
     flexDirection: 'row',
-    alignItems: 'center'
+    backgroundColor: '#EEF2EE',
+    borderRadius: 12,
+    padding: 3
   },
-  filterChip: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    backgroundColor: APP_COLORS.bgCardSubtle,
-    borderWidth: 1,
-    borderColor: APP_COLORS.borderDefault,
-    minHeight: 34,
+  segmentedTab: {
+    flex: 1,
+    paddingVertical: 7,
+    paddingHorizontal: 2,
+    borderRadius: 9,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center'
+    minHeight: 34
   },
-  filterChipActive: {
-    backgroundColor: APP_COLORS.buttonPrimaryBg,
-    borderColor: APP_COLORS.buttonPrimaryBg
+  segmentedTabActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#0F2417',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2
   },
-  filterChipText: {
-    color: APP_COLORS.textSecondary,
-    fontSize: 12,
-    fontWeight: '700'
+  segmentedTabText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: APP_COLORS.textSecondary
   },
-  filterChipTextActive: {
-    color: '#FFFFFF'
+  segmentedTabTextActive: {
+    fontWeight: '800',
+    color: APP_COLORS.textPrimary
   },
   langSelectorBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingTop: 10,
+    paddingBottom: 8,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: APP_COLORS.borderDefault
   },
   langBarLabel: {
     color: APP_COLORS.textMuted,
-    fontSize: 11,
-    fontWeight: '700',
-    marginRight: 8,
+    fontSize: 10.5,
+    fontWeight: '800',
     textTransform: 'uppercase',
-    letterSpacing: 0.3
+    letterSpacing: 0.6,
+    marginBottom: 6
   },
-  langScroll: {
-    gap: 6,
-    paddingRight: 8
+  langScrollWrapper: {
+    width: '100%'
+  },
+  langScrollContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingRight: 16
   },
   langChip: {
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 7,
+    paddingHorizontal: 13,
+    borderRadius: 20,
     backgroundColor: APP_COLORS.bgCardSubtle,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: APP_COLORS.borderDefault,
-    minHeight: 32,
-    justifyContent: 'center'
+    marginRight: 8,
+    minHeight: 38,
+    flexShrink: 0
   },
   langChipActive: {
     backgroundColor: '#DCFCE7',
-    borderColor: '#86EFAC'
+    borderColor: '#16A34A'
   },
-  langChipText: {
+  langFlagText: {
+    fontSize: 14,
+    marginRight: 6
+  },
+  langNameText: {
     color: APP_COLORS.textSecondary,
-    fontSize: 11,
-    fontWeight: '600'
+    fontSize: 12,
+    fontWeight: '700',
+    includeFontPadding: false
   },
-  langChipTextActive: {
+  langNameTextActive: {
     color: '#166534',
     fontWeight: '800'
   },
+  unreadTag: {
+    backgroundColor: '#DC2626',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginLeft: 6
+  },
+  unreadTagText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.3
+  },
   scrollContent: {
-    padding: 16
+    padding: 16,
+    paddingBottom: 110
   },
   emptyState: {
     padding: 32,
@@ -581,45 +632,40 @@ const styles = StyleSheet.create({
     borderLeftColor: '#DC2626'
   },
   cardHeader: {
+    marginBottom: 8
+  },
+  cardSourceRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 10
+    marginBottom: 6
   },
-  senderCol: {
-    flex: 1,
-    marginRight: 8
-  },
-  senderBadgeRow: {
+  cardMetaRow: {
     flexDirection: 'row',
-    alignItems: 'center'
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4
+  },
+  cardLocationRow: {
+    marginTop: 2,
+    marginBottom: 2
   },
   senderBadgeText: {
     color: APP_COLORS.textPrimary,
     fontSize: 14,
-    fontWeight: '800'
-  },
-  unreadDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#DC2626',
-    marginLeft: 6
+    fontWeight: '800',
+    flex: 1,
+    marginRight: 8
   },
   locationSubText: {
     color: APP_COLORS.textMuted,
     fontSize: 11,
-    marginTop: 2,
-    fontWeight: '500'
-  },
-  cardMetaRight: {
-    alignItems: 'flex-end',
-    gap: 3
+    fontWeight: '600'
   },
   cardTimeText: {
     color: APP_COLORS.textMuted,
-    fontSize: 10,
-    fontWeight: '500'
+    fontSize: 11,
+    fontWeight: '600'
   },
   messageBox: {
     borderRadius: 10,

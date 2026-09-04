@@ -152,34 +152,44 @@ export const SosSmsScreen: React.FC = () => {
 
         {/* Live Diagnostics Card */}
         <View style={styles.diagnosticsCard}>
-          <View style={styles.diagHeaderRow}>
+          <View style={styles.diagHeaderBlock}>
             <Text style={styles.diagTitle}>📍 Real-Time Location & Device Diagnostics</Text>
-            {locating ? (
-              <ActivityIndicator size="small" color="#1E2B18" />
-            ) : (
-              <TouchableOpacity onPress={fetchCurrentPosition} accessibilityLabel="Refresh GPS coordinates">
-                <Text style={styles.refreshGpsText}>🔄 Refresh Fix</Text>
-              </TouchableOpacity>
-            )}
+            <View style={styles.diagSubRow}>
+              <Text style={styles.diagSubText}>GNSS Satellites & Shelter Proximity</Text>
+              {locating ? (
+                <ActivityIndicator size="small" color="#15803D" />
+              ) : (
+                <TouchableOpacity
+                  style={styles.refreshBtn}
+                  onPress={fetchCurrentPosition}
+                  accessibilityRole="button"
+                  accessibilityLabel="Refresh GPS coordinates"
+                >
+                  <Text style={styles.refreshGpsText}>🔄 Refresh Fix</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
           <View style={styles.diagGrid}>
-            <View style={styles.diagItem}>
-              <Text style={styles.diagLabel}>Coordinates</Text>
-              <Text style={styles.diagValue}>{lat}°N, {lng}°E</Text>
+            <View style={styles.diagRow}>
+              <View style={styles.diagItem}>
+                <Text style={styles.diagLabel}>Coordinates</Text>
+                <Text style={styles.diagValue}>{lat}°N, {lng}°E</Text>
+              </View>
+
+              <View style={styles.diagItem}>
+                <Text style={styles.diagLabel}>Estimated Elevation</Text>
+                <Text style={styles.diagValue}>~{alt} meters</Text>
+              </View>
             </View>
 
-            <View style={styles.diagItem}>
-              <Text style={styles.diagLabel}>Estimated Elevation</Text>
-              <Text style={styles.diagValue}>~{alt} meters</Text>
-            </View>
-
-            <View style={styles.diagItem}>
+            <View style={styles.diagItemFull}>
               <Text style={styles.diagLabel}>Battery Level</Text>
               <Text style={styles.diagValue}>{batteryPct}% Power</Text>
             </View>
 
-            <View style={[styles.diagItem, styles.diagItemFull]}>
+            <View style={styles.diagItemFull}>
               <Text style={styles.diagLabel}>Nearest Refuge / Safe Shelter</Text>
               <Text style={styles.diagValue}>{nearestShelter}</Text>
             </View>
@@ -208,33 +218,50 @@ export const SosSmsScreen: React.FC = () => {
         {/* Direct Helpline Calling Buttons */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>📞 Direct Emergency Helplines</Text>
-          <View style={styles.helplineGrid}>
+
+          {/* Row 1: 1077 DDMA & 108 Ambulance */}
+          <View style={styles.helplineRow}>
             <TouchableOpacity
               style={styles.helplineBtn}
               onPress={() => handleCallHelpline('1077', 'DDMA Dima Hasao')}
+              accessibilityRole="button"
+              accessibilityLabel="Call DDMA 1077"
             >
-              <Text style={styles.helplineBtnText}>🏔️ DDMA: 1077</Text>
+              <Text style={styles.helplineBtnNum}>1077</Text>
+              <Text style={styles.helplineBtnSub}>DDMA CONTROL</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.helplineBtn, styles.helplineBtnAmb]}
               onPress={() => handleCallHelpline('108', '108 Ambulance')}
+              accessibilityRole="button"
+              accessibilityLabel="Call Ambulance 108"
             >
-              <Text style={styles.helplineBtnText}>🚑 Ambulance: 108</Text>
+              <Text style={[styles.helplineBtnNum, styles.helplineBtnNumAmb]}>108</Text>
+              <Text style={styles.helplineBtnSub}>AMBULANCE</Text>
             </TouchableOpacity>
+          </View>
 
+          {/* Row 2: 1070 ASDMA & 112 Unified */}
+          <View style={styles.helplineRow}>
             <TouchableOpacity
               style={styles.helplineBtn}
               onPress={() => handleCallHelpline('1070', 'ASDMA State Control')}
+              accessibilityRole="button"
+              accessibilityLabel="Call ASDMA 1070"
             >
-              <Text style={styles.helplineBtnText}>🚨 ASDMA: 1070</Text>
+              <Text style={styles.helplineBtnNum}>1070</Text>
+              <Text style={styles.helplineBtnSub}>ASDMA</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.helplineBtn}
               onPress={() => handleCallHelpline('112', '112 Unified Emergency')}
+              accessibilityRole="button"
+              accessibilityLabel="Call Unified 112"
             >
-              <Text style={styles.helplineBtnText}>🚓 Police/Fire: 112</Text>
+              <Text style={styles.helplineBtnNum}>112</Text>
+              <Text style={styles.helplineBtnSub}>UNIFIED 112</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -257,7 +284,7 @@ export const SosSmsScreen: React.FC = () => {
             <Text style={styles.activeContactLabel}>Selected Recipient:</Text>
             <Text style={styles.activeContactNumber}>{activeRecipient}</Text>
             <Text style={styles.activeContactHint}>
-              Configurable family / team test contact number.
+              Configurable family / emergency team test contact number.
             </Text>
           </View>
 
@@ -274,7 +301,10 @@ export const SosSmsScreen: React.FC = () => {
 
         {/* Pre-Filled Message Preview Card */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Generated Distress Message Preview</Text>
+          <View style={styles.transmissionHeader}>
+            <Text style={styles.transmissionTag}>OFFICIAL TRANSMISSION PAYLOAD</Text>
+            <Text style={styles.cardTitle}>Distress Message Preview</Text>
+          </View>
           <View style={styles.previewBox}>
             <Text style={styles.previewText}>{generatedSosBody}</Text>
           </View>
@@ -289,10 +319,13 @@ export const SosSmsScreen: React.FC = () => {
           style={styles.primarySosBtn}
           onPress={handleLaunchComposer}
           accessibilityRole="button"
-          accessibilityLabel="Open Native SMS Composer"
+          accessibilityLabel="Open Pre-Filled Native SMS App"
         >
           <Text style={styles.primarySosBtnText}>
-            📤 Open Pre-Filled Native SMS App
+            🚨 Open Pre-Filled Native SMS App
+          </Text>
+          <Text style={styles.primarySosBtnSubText}>
+            No cellular internet required • Direct carrier dispatch
           </Text>
         </TouchableOpacity>
 
@@ -376,7 +409,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2
   },
   content: {
-    padding: 16
+    padding: 16,
+    paddingBottom: 110
   },
   header: {
     marginBottom: 14
@@ -406,39 +440,60 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2
   },
-  diagHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10
+  diagHeaderBlock: {
+    marginBottom: 12
   },
   diagTitle: {
     color: APP_COLORS.textPrimary,
-    fontSize: 13,
-    fontWeight: '800'
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 4
+  },
+  diagSubRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  diagSubText: {
+    color: APP_COLORS.textMuted,
+    fontSize: 11,
+    fontWeight: '600'
+  },
+  refreshBtn: {
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    backgroundColor: '#DCFCE7',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#86EFAC'
   },
   refreshGpsText: {
-    color: '#059669',
-    fontSize: 12,
-    fontWeight: '700'
+    color: '#15803D',
+    fontSize: 11,
+    fontWeight: '800'
   },
   diagGrid: {
+    gap: 8
+  },
+  diagRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8
   },
   diagItem: {
     flex: 1,
-    minWidth: '45%',
     backgroundColor: APP_COLORS.bgCardSubtle,
-    padding: 12,
+    padding: 11,
     borderRadius: 10,
     borderWidth: 1,
     borderColor: APP_COLORS.borderSubtle
   },
   diagItemFull: {
     width: '100%',
-    minWidth: '100%'
+    backgroundColor: APP_COLORS.bgCardSubtle,
+    padding: 11,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: APP_COLORS.borderSubtle
   },
   diagLabel: {
     color: APP_COLORS.textMuted,
@@ -517,31 +572,34 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     marginBottom: 10
   },
-  helplineGrid: {
+  helplineRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8
+    gap: 8,
+    marginBottom: 8
   },
   helplineBtn: {
     flex: 1,
-    minWidth: '46%',
     backgroundColor: '#DCFCE7',
-    paddingVertical: 11,
+    paddingVertical: 10,
     borderRadius: 10,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#86EFAC',
     alignItems: 'center',
-    minHeight: 44,
-    justifyContent: 'center'
+    justifyContent: 'center',
+    minHeight: 56
   },
   helplineBtnAmb: {
     backgroundColor: '#FEE2E2',
     borderColor: '#FCA5A5'
   },
-  helplineBtnText: {
-    color: APP_COLORS.textPrimary,
-    fontSize: 12,
-    fontWeight: '800'
+  helplineBtnNum: {
+    color: '#15803D',
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: 0.2
+  },
+  helplineBtnNumAmb: {
+    color: '#DC2626'
   },
   recipientHeaderRow: {
     flexDirection: 'row',
@@ -628,24 +686,48 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginTop: 8
   },
+  helplineBtnSub: {
+    color: APP_COLORS.textSecondary,
+    fontSize: 10,
+    fontWeight: '700',
+    marginTop: 2,
+    textTransform: 'uppercase'
+  },
+  transmissionHeader: {
+    marginBottom: 8
+  },
+  transmissionTag: {
+    color: '#D97706',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    marginBottom: 2
+  },
   primarySosBtn: {
     backgroundColor: '#DC2626',
-    height: 52,
+    minHeight: 56,
+    paddingVertical: 10,
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 14,
     shadowColor: '#DC2626',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.28,
+    shadowOpacity: 0.3,
     shadowRadius: 10,
     elevation: 6
   },
   primarySosBtnText: {
     color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '800',
-    letterSpacing: 0.3
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 0.4
+  },
+  primarySosBtnSubText: {
+    color: 'rgba(255, 255, 255, 0.88)',
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 2
   },
   infoNotice: {
     backgroundColor: '#FFFFFF',
