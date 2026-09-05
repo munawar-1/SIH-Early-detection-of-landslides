@@ -25,6 +25,7 @@ __pycache__/
 dist/
 web-build/
 *.jsbundle
+*.apk
 
 # IDEs & System Files
 .DS_Store
