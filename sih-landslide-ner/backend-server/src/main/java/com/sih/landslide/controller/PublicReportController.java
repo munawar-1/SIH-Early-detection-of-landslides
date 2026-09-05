@@ -118,9 +118,16 @@ public class PublicReportController {
      */
     @PatchMapping("/{id}/verify")
     public ResponseEntity<?> verifyReport(@PathVariable Long id, Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated() ||
+                authentication.getAuthorities().stream().noneMatch(a ->
+                        "ROLE_AUTHORITY".equals(a.getAuthority()) || "ROLE_ADMIN".equals(a.getAuthority()))) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Access Denied: Only authorized District/Admin officials can verify public reports."));
+        }
+
         try {
             String verifiedBy = "District Disaster Management Official";
-            if (authentication != null && authentication.getName() != null) {
+            if (authentication.getName() != null) {
                 verifiedBy = "Official (" + authentication.getName() + ")";
             }
 
