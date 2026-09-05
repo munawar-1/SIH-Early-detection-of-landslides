@@ -109,15 +109,14 @@ export function applyDimaHasaoMonsoonSimulation(
     const dLng = (p.longitude - epicenterLng);
     const distSq = dLat * dLat + dLng * dLng;
 
-    // Radius of heavy storm cell is ~12-15 km; outside it drops off to normal mountain rainfall
-    const stormCellFactor = Math.exp(-distSq / (2 * 0.075 * 0.075));
-    
-    // Background ambient rainfall (gentle outside storm cell)
-    const ambientRain1 = scenario === 'CLEAR_WEATHER' ? 2.0 : (scenario === 'MODERATE_MONSOON' ? 12.0 : 18.0);
-    const ambientRain2 = scenario === 'CLEAR_WEATHER' ? 3.0 : (scenario === 'MODERATE_MONSOON' ? 16.0 : 22.0);
-    const ambientRain3 = scenario === 'CLEAR_WEATHER' ? 2.0 : (scenario === 'MODERATE_MONSOON' ? 14.0 : 18.0);
+    // Radius of heavy storm cell is ~14 km; ambient mountain infiltration across Dima Hasao
+    const stormCellFactor = Math.exp(-distSq / (2 * 0.12 * 0.12));
+    const ambientRatio = scenario === 'CLEAR_WEATHER' ? 0.80 : 0.45;
+    const ambientRain1 = Math.max(2.0, baseRain1 * ambientRatio);
+    const ambientRain2 = Math.max(3.0, baseRain2 * ambientRatio);
+    const ambientRain3 = Math.max(2.0, baseRain3 * ambientRatio);
 
-    // Peak localized cloudburst rain added only in storm cell
+    // Peak localized cloudburst rain added along storm track
     const rainDay1 = Math.round((ambientRain1 + (baseRain1 - ambientRain1) * stormCellFactor) * 10) / 10;
     const rainDay2 = Math.round((ambientRain2 + (baseRain2 - ambientRain2) * stormCellFactor) * 10) / 10;
     const rainDay3 = Math.round((ambientRain3 + (baseRain3 - ambientRain3) * stormCellFactor) * 10) / 10;
@@ -128,40 +127,29 @@ export function applyDimaHasaoMonsoonSimulation(
 
     const slopeDeg = typeof p.slope === 'number' ? p.slope : 15.0;
     const slopeRad = (slopeDeg * Math.PI) / 180.0;
-    const clay = typeof p.clayPercent === 'number' ? p.clayPercent : 32.0;
+    const clay = typeof p.clayPercent === 'number' ? p.clayPercent : 26.0;
     const sand = typeof p.sandPercent === 'number' ? p.sandPercent : 35.0;
     const bulkDensity = typeof p.bulkDensity === 'number' ? p.bulkDensity : 1.18;
 
     // Geotechnical pore water pressure index (u_w)
     const porePressureIndex = (Math.sin(slopeRad) * (rain7dApi * clay)) / (100.0 * bulkDensity * (1.0 + sand / 100.0));
 
-    // 2. Strict Multi-Factor Geotechnical Criteria:
-    // Landslides only trigger where steep slope (>28°), high clay (>32%), and intense rain storm (>130mm) converge!
+    // 2. Continuous Geotechnical S-Curve Model
     let probability = 0.05;
 
     if (scenario === 'CLEAR_WEATHER') {
-      // In dry weather, slopes are stable; even steep slopes have low probability
-      probability = Math.min(0.28, Math.max(0.02, (slopeDeg / 90.0) * 0.30));
+      // In dry weather, slopes are stable; even steep slopes have low probability (< 25%)
+      probability = Math.min(0.25, Math.max(0.01, (slopeDeg / 90.0) * 0.20));
     } else {
-      // S-curve geotechnical failure model
-      const isSteep = slopeDeg >= 28.0;
-      const isCriticalSlope = slopeDeg >= 34.0;
-      const isHighClay = clay >= 32.0;
-      const isStormHit = rain3dSum >= 120.0;
+      // Physical pore-pressure and gravity shear escalation under monsoon infiltration
+      const criticalBonus = slopeDeg >= 34.0 ? 0.38 : (slopeDeg >= 22.0 ? 0.22 : (slopeDeg >= 15.0 ? 0.08 : 0.0));
+      const stormBonus = rain3dSum >= 240.0 ? 0.22 : (rain3dSum >= 120.0 ? 0.12 : (rain3dSum >= 60.0 ? 0.05 : 0.0));
+      const baseProb = 1.0 / (1.0 + Math.exp(-0.22 * (porePressureIndex - 10.0)));
+      probability = Math.min(0.96, Math.max(0.02, baseProb * 0.55 + criticalBonus + stormBonus));
 
-      if (isCriticalSlope && isHighClay && isStormHit && porePressureIndex > 16.0) {
-        // Confirmed high failure zone (Red Alert): specific to steep cuttings under direct cloudburst
-        const severityBoost = (slopeDeg - 34.0) * 0.025 + (rain3dSum - 120.0) * 0.0015;
-        probability = Math.min(0.96, 0.72 + severityBoost);
-      } else if (isSteep && isStormHit && porePressureIndex > 11.0) {
-        // Moderate Warning Zone (Amber): steep slopes under storm, but clay or angle is slightly lower
-        probability = Math.min(0.68, Math.max(0.42, 0.44 + (porePressureIndex - 11.0) * 0.02));
-      } else if (isSteep || isStormHit) {
-        // Mild elevation (20% - 39% - Green/Low)
-        probability = Math.min(0.38, Math.max(0.12, 0.15 + (slopeDeg / 50.0) * 0.15));
-      } else {
-        // Flat valleys, plateaus, gentle hills (<15°) remain completely safe
-        probability = Math.min(0.12, Math.max(0.01, (slopeDeg / 60.0) * 0.10));
+      // Valleys, plateaus, gentle hills (< 12°) remain stable
+      if (slopeDeg < 12.0) {
+        probability = Math.min(0.18, Math.max(0.01, (slopeDeg / 20.0) * 0.12));
       }
     }
 
