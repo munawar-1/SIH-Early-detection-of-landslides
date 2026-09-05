@@ -15,6 +15,7 @@ import { performOfflineGeofenceCheck } from '../services/offlineRiskEngine';
 import { soundService } from '../services/soundService';
 import { APP_COLORS } from '../constants/theme';
 import { getRecentCachedEvaluations, CachedEvaluation, getCacheStatusSummary } from '../services/gridCacheService';
+import { setActiveMonitorCoordinate } from '../services/coordinateService';
 
 export interface SavedCoordinate {
   id: string;
@@ -109,6 +110,14 @@ export const PitchSimulationScreen: React.FC<PitchSimulationScreenProps> = ({ on
 
       // Save active coordinate for monitoring
       await AsyncStorage.setItem(ACTIVE_COORD_KEY, JSON.stringify(payload));
+      await setActiveMonitorCoordinate({
+        latitude: lat,
+        longitude: lng,
+        locationName: name,
+        accuracy: 5,
+        isCustom: true,
+        source: 'MONITOR_ASSESSMENT'
+      });
 
       const isRisk = (effectiveRiskLevel === 'CRITICAL' || effectiveRiskLevel === 'HIGH') && riskResult.in_risk_zone;
 

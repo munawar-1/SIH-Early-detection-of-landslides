@@ -14,6 +14,7 @@ import {
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { submitPublicReport } from '../services/apiService';
+import { getActiveMonitorCoordinate, setActiveMonitorCoordinate } from '../services/coordinateService';
 import { APP_COLORS, SPACING, RADIUS, SHADOWS, TYPOGRAPHY } from '../constants/theme';
 
 interface UploadReportScreenProps {
@@ -43,7 +44,9 @@ export const UploadReportScreen: React.FC<UploadReportScreenProps> = ({ onReport
     accuracy?: number | null;
   } | null>(null);
 
-  const [locationName, setLocationName] = useState<string>('Detecting GPS location...');
+  const [locationName, setLocationName] = useState<string>('Loading active coordinates...');
+  const [isCustomCoord, setIsCustomCoord] = useState<boolean>(false);
+  const [coordSource, setCoordSource] = useState<string>('Monitor Screen');
   const [description, setDescription] = useState<string>('');
   const [isLocating, setIsLocating] = useState<boolean>(false);
   const [isUploading, setIsUploading] = useState<boolean>(false);
@@ -51,10 +54,30 @@ export const UploadReportScreen: React.FC<UploadReportScreenProps> = ({ onReport
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchCurrentLocation();
+    loadActiveCoordinates();
   }, []);
 
-  const fetchCurrentLocation = async () => {
+  const loadActiveCoordinates = async () => {
+    setIsLocating(true);
+    setErrorMessage(null);
+    try {
+      const active = await getActiveMonitorCoordinate();
+      setCoords({
+        latitude: active.latitude,
+        longitude: active.longitude,
+        accuracy: active.accuracy ?? 5
+      });
+      setLocationName(active.locationName);
+      setIsCustomCoord(Boolean(active.isCustom));
+      setCoordSource(active.isCustom ? 'Active Assessment Sector' : 'Monitor Screen GPS');
+    } catch (err: any) {
+      setErrorMessage('Could not load active coordinates from monitor.');
+    } finally {
+      setIsLocating(false);
+    }
+  };
+
+  const fetchRealGpsLocation = async () => {
     setIsLocating(true);
     setErrorMessage(null);
 
@@ -78,8 +101,10 @@ export const UploadReportScreen: React.FC<UploadReportScreenProps> = ({ onReport
         longitude: lng,
         accuracy: loc.coords.accuracy
       });
+      setIsCustomCoord(false);
+      setCoordSource('Manual GPS Fix');
 
-      // Attempt reverse geocoding
+      let resolvedName = `GPS Point (${lat.toFixed(4)}°, ${lng.toFixed(4)}°), Dima Hasao`;
       try {
         const reverse = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
         if (reverse && reverse.length > 0) {
@@ -89,16 +114,21 @@ export const UploadReportScreen: React.FC<UploadReportScreenProps> = ({ onReport
             .filter((v, i, arr) => arr.indexOf(v) === i);
 
           if (nameParts.length > 0) {
-            setLocationName(nameParts.slice(0, 3).join(', '));
-          } else {
-            setLocationName(`GPS Point (${lat.toFixed(4)}°, ${lng.toFixed(4)}°), Dima Hasao`);
+            resolvedName = nameParts.slice(0, 3).join(', ');
           }
-        } else {
-          setLocationName(`GPS Point (${lat.toFixed(4)}°, ${lng.toFixed(4)}°), Dima Hasao`);
         }
       } catch (revErr) {
-        setLocationName(`Geo Point (${lat.toFixed(4)}°, ${lng.toFixed(4)}°), Dima Hasao`);
+        // fallback
       }
+      setLocationName(resolvedName);
+      await setActiveMonitorCoordinate({
+        latitude: lat,
+        longitude: lng,
+        locationName: resolvedName,
+        accuracy: loc.coords.accuracy,
+        isCustom: false,
+        source: 'GPS_DEVICE'
+      });
     } catch (err: any) {
       setErrorMessage(`Failed to obtain GPS location: ${err.message || 'Please enable device location'}`);
       setLocationName('Location Detection Failed');
@@ -243,7 +273,7 @@ export const UploadReportScreen: React.FC<UploadReportScreenProps> = ({ onReport
     setDescription('');
     setUploadSuccess(false);
     setErrorMessage(null);
-    fetchCurrentLocation();
+    loadActiveCoordinates();
   };
 
   if (uploadSuccess) {
@@ -367,13 +397,20 @@ export const UploadReportScreen: React.FC<UploadReportScreenProps> = ({ onReport
         )}
       </View>
 
-      {/* Step 3: Real Device GPS Location */}
+      {/* Step 3: Geo-Tag Coordinates from Monitor */}
       <View style={styles.sectionCard}>
         <View style={styles.locationHeaderRow}>
-          <Text style={styles.sectionTitle}>3. Real GPS Location Coordinates</Text>
+          <View style={{ flex: 1, marginRight: SPACING.sm }}>
+            <Text style={styles.sectionTitle}>3. Geo-Tag Coordinates</Text>
+            <Text style={styles.coordSourceTag}>
+              {isCustomCoord
+                ? '📍 Synced with Active Monitor Assessment'
+                : '🛰️ Synced with Monitor Location'}
+            </Text>
+          </View>
           <TouchableOpacity
             style={styles.refreshGpsBtn}
-            onPress={fetchCurrentLocation}
+            onPress={fetchRealGpsLocation}
             disabled={isLocating}
             activeOpacity={0.7}
           >
@@ -395,19 +432,19 @@ export const UploadReportScreen: React.FC<UploadReportScreenProps> = ({ onReport
                     {coords.latitude.toFixed(6)}° N, {coords.longitude.toFixed(6)}° E
                   </Text>
                   <Text style={styles.gpsAccuracy}>
-                    Accuracy: ±{coords.accuracy ? Math.round(coords.accuracy) : 5} meters
+                    Source: {coordSource} • Accuracy: ±{coords.accuracy ? Math.round(coords.accuracy) : 5}m
                   </Text>
                 </>
               ) : (
                 <Text style={styles.gpsDetecting}>
-                  {isLocating ? 'Acquiring satellite GPS fix...' : 'GPS coordinates not yet acquired.'}
+                  {isLocating ? 'Loading active monitor coordinates...' : 'Coordinates not yet loaded.'}
                 </Text>
               )}
             </View>
           </View>
 
           <View style={styles.locationNameBox}>
-            <Text style={styles.locationNameLabel}>RESOLVED LOCATION:</Text>
+            <Text style={styles.locationNameLabel}>RESOLVED SECTOR / LOCATION:</Text>
             <Text style={styles.locationNameText}>{locationName}</Text>
           </View>
         </View>
@@ -634,6 +671,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: SPACING.sm
+  },
+  coordSourceTag: {
+    ...TYPOGRAPHY.caption,
+    color: '#047857',
+    fontWeight: '700',
+    marginTop: 2
   },
   refreshGpsBtn: {
     paddingVertical: 4,

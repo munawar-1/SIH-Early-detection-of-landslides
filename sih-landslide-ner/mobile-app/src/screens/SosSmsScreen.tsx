@@ -16,6 +16,7 @@ import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { smsService, DEFAULT_PLACEHOLDER_CONTACT } from '../services/smsService';
 import { ACTIVE_COORD_KEY, SavedCoordinate } from './PitchSimulationScreen';
+import { getActiveMonitorCoordinate } from '../services/coordinateService';
 import { APP_COLORS } from '../constants/theme';
 import { InjuryFirstAidModal, VALID_HELPLINES } from '../components/InjuryFirstAidModal';
 
@@ -43,36 +44,17 @@ export const SosSmsScreen: React.FC = () => {
     setLocating(true);
 
     try {
-      // 1. Check if Pitch Studio coordinate is active
-      const savedPitch = await AsyncStorage.getItem(ACTIVE_COORD_KEY);
-      if (savedPitch) {
-        const parsed: SavedCoordinate = JSON.parse(savedPitch);
-        setGpsCoords({
-          lat: parsed.lat,
-          lng: parsed.lng,
-          altitude: 512
-        });
-        setNearestShelter(
-          parsed.lat === 25.18
-            ? 'Jatinga Forest Inspection Bungalow Shelter (~1.2 km)'
-            : 'Haflong Relief Shelter Camp (~2.4 km)'
-        );
-        setLocating(false);
-        return;
-      }
-
-      // 2. Otherwise get physical device GPS
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === 'granted') {
-        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-        setGpsCoords({
-          lat: loc.coords.latitude,
-          lng: loc.coords.longitude,
-          altitude: loc.coords.altitude ? Math.round(loc.coords.altitude) : 512
-        });
-      } else {
-        setGpsCoords({ lat: 25.180, lng: 92.760, altitude: 512 });
-      }
+      const active = await getActiveMonitorCoordinate();
+      setGpsCoords({
+        lat: active.latitude,
+        lng: active.longitude,
+        altitude: 512
+      });
+      setNearestShelter(
+        active.latitude >= 25.15 && active.latitude <= 25.22
+          ? 'Jatinga Forest Inspection Bungalow Shelter (~1.2 km)'
+          : 'Haflong Relief Shelter Camp (~2.4 km)'
+      );
     } catch (e) {
       setGpsCoords({ lat: 25.180, lng: 92.760, altitude: 512 });
     } finally {

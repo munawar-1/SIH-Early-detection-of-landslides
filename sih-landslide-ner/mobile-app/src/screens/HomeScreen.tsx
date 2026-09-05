@@ -33,6 +33,7 @@ import { EmergencyAlertModal } from '../components/EmergencyAlertModal';
 import { performOfflineGeofenceCheck, syncRiskZonesToCache } from '../services/offlineRiskEngine';
 import { smsService, EmergencySmsAlert } from '../services/smsService';
 import { ACTIVE_COORD_KEY, SavedCoordinate } from './PitchSimulationScreen';
+import { setActiveMonitorCoordinate } from '../services/coordinateService';
 import { getThreatTheme, APP_COLORS, ThreatLevel } from '../constants/theme';
 import { ThreatBadge } from '../components/ThreatBadge';
 import { InjuryFirstAidModal, VALID_HELPLINES } from '../components/InjuryFirstAidModal';
@@ -161,6 +162,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         evaluated_by: result.evaluated_by
       };
       await AsyncStorage.setItem(ACTIVE_COORD_KEY, JSON.stringify(payload));
+      await setActiveMonitorCoordinate({
+        latitude: lat,
+        longitude: lng,
+        locationName: nameStr,
+        accuracy: 5,
+        isCustom: true,
+        source: 'MONITOR_ASSESSMENT'
+      });
       setActivePitchCoord(payload);
       setCurrentCoords({ lat, lng, districtName: nameStr });
       setAlertStatus(result);
@@ -355,6 +364,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         const parsed: SavedCoordinate = JSON.parse(savedPitch);
         setActivePitchCoord(parsed);
         setCurrentCoords({ lat: parsed.lat, lng: parsed.lng, districtName: parsed.name });
+        await setActiveMonitorCoordinate({
+          latitude: parsed.lat,
+          longitude: parsed.lng,
+          locationName: parsed.name || 'Dima Hasao Sector',
+          accuracy: 5,
+          isCustom: true,
+          source: 'MONITOR_ASSESSMENT'
+        });
 
         let statusResult: AlertCheckResponse;
         try {
@@ -414,6 +431,14 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       }
 
       setCurrentCoords({ lat, lng, districtName });
+      await setActiveMonitorCoordinate({
+        latitude: lat,
+        longitude: lng,
+        locationName: districtName,
+        accuracy: 10,
+        isCustom: false,
+        source: 'GPS_DEVICE'
+      });
 
       let response: AlertCheckResponse;
       try {
