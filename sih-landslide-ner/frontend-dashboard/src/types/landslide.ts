@@ -28,10 +28,50 @@ export type ForecastHorizon = '24h' | '48h' | '72h';
 
 export type BaseMapType = 'dark' | 'satellite' | 'topo' | 'osm';
 
+export interface BlockedSubSegment {
+  id: string;
+  name: string;
+  kmStart: number;
+  kmEnd: number;
+  hazardProbability: number;
+  hazardReason: string;
+  coordinates: [number, number][];
+}
+
+export interface TrafficDiversion {
+  id: string;
+  sourceCorridorId: string;
+  sourceCorridorName: string;
+  hazardZoneName: string;
+  hazardKmStart: number;
+  hazardKmEnd: number;
+  hazardLengthKm: number;
+  hazardProbability: number;
+  hazardCoordinates: [number, number][]; // Localized blocked stretch (pulsing red)
+  diversionJunction: {
+    name: string;
+    coordinates: [number, number]; // [lat, lon]
+    junctionCode: string;
+    description: string;
+  };
+  bypassRouteId: string;
+  bypassRouteName: string;
+  bypassCoordinates: [number, number][]; // Alternative detour path
+  status: 'ACTIVE' | 'STANDBY';
+  advisory: string;
+  permittedVehicles: string;
+  additionalTravelTimeMinutes: number;
+  efficiencyRating?: 'OPTIMAL' | 'MODERATE' | 'EMERGENCY_ONLY';
+  detourDistanceKm?: number;
+  safetyAdvantagePct?: number; // e.g. 78% lower risk than the blocked slide zone
+  roadCapacityStatus?: string; // e.g. "Paved 2-lane ridge road, bridge load rating Class 70R"
+  heavyVehicleAdvice?: string; // e.g. "Freight >16T staged at Lumding/Jatinga truck bays"
+}
+
 export interface TransportSegment {
   id: string;
   name: string;
-  type: 'railway' | 'highway' | 'state_highway';
+  type: 'railway' | 'highway' | 'state_highway' | 'connecting_road';
   code: string;
   description: string;
   coordinates: [number, number][]; // [lat, lon]
@@ -45,6 +85,10 @@ export interface TransportSegment {
   advisory: string;
   speedLimitKmh?: number;
   recommendedSpeedKmh?: number;
+  // Dynamic Diversion & Bottleneck Isolation
+  hasActiveDiversion?: boolean;
+  diversionDetails?: TrafficDiversion;
+  blockedSubSegments?: BlockedSubSegment[];
 }
 
 export interface HighwayMicroSegment extends TransportSegment {

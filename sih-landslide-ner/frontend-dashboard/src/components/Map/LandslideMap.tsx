@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import type { GridPoint, FilterState, TransportSegment, StationNode, HighwayMicroSegment } from '../../types/landslide';
+import type { GridPoint, FilterState, TransportSegment, StationNode, HighwayMicroSegment, TrafficDiversion } from '../../types/landslide';
 import { HISTORICAL_LANDSLIDES } from '../../data/infrastructureData';
 import { DIMA_HASAO_POLYGON, DIMA_HASAO_BOUNDS, DIMA_HASAO_CENTER } from '../../data/dimaHasaoBoundary';
-import { Crosshair, ZoomIn, ZoomOut, ChevronDown } from 'lucide-react';
+import { Crosshair, ZoomIn, ZoomOut, ChevronDown, Navigation } from 'lucide-react';
 
 // Fix standard Leaflet icon paths
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -14,12 +14,13 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-export type TransportCategory = 'all' | 'railways' | 'highways' | 'railway' | 'highway';
+export type TransportCategory = 'all' | 'railways' | 'highways' | 'state_highways' | 'connecting_roads' | 'railway' | 'highway';
 
 interface LandslideMapProps {
   gridPoints: GridPoint[];
   railways: TransportSegment[];
   highways: TransportSegment[];
+  activeDiversions?: TrafficDiversion[];
   highwayMicroSegments?: HighwayMicroSegment[];
   stations: StationNode[];
   filters: FilterState;
@@ -37,6 +38,7 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
   gridPoints,
   railways,
   highways,
+  activeDiversions = [],
   highwayMicroSegments,
   stations,
   filters,
@@ -56,11 +58,13 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
   const pointsLayerGroupRef = useRef<L.LayerGroup | null>(null);
   const infrastructureLayerGroupRef = useRef<L.LayerGroup | null>(null);
   const boundaryLayerGroupRef = useRef<L.LayerGroup | null>(null);
+  const diversionsLayerGroupRef = useRef<L.LayerGroup | null>(null);
 
   const canvasRendererRef = useRef<L.Canvas | null>(null);
 
   const [currentZoom, setCurrentZoom] = useState<number>(10);
   const [isLegendOpen, setIsLegendOpen] = useState<boolean>(true);
+  const [isDiversionBannerVisible, setIsDiversionBannerVisible] = useState<boolean>(true);
   const heatmapLayerGroupRef = useRef<L.LayerGroup | null>(null);
 
   // 1. Initialize Map on mount and fit directly to Dima Hasao
@@ -85,6 +89,7 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
     pointsLayerGroupRef.current = L.layerGroup().addTo(map);
     boundaryLayerGroupRef.current = L.layerGroup().addTo(map);
     infrastructureLayerGroupRef.current = L.layerGroup().addTo(map);
+    diversionsLayerGroupRef.current = L.layerGroup().addTo(map);
     mapInstanceRef.current = map;
 
     const onZoomEnd = () => {
@@ -98,6 +103,7 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
       pointsLayerGroupRef.current?.clearLayers();
       boundaryLayerGroupRef.current?.clearLayers();
       infrastructureLayerGroupRef.current?.clearLayers();
+      diversionsLayerGroupRef.current?.clearLayers();
       map.remove();
       mapInstanceRef.current = null;
       canvasRendererRef.current = null;
@@ -383,7 +389,7 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
       : filters.showRailways;
 
     const showHighways = transportCategory
-      ? (transportCategory === 'all' || transportCategory === 'highways' || transportCategory === 'highway')
+      ? (transportCategory === 'all' || transportCategory === 'highways' || transportCategory === 'highway' || transportCategory === 'state_highways' || transportCategory === 'connecting_roads')
       : filters.showHighways;
 
     // A. RAILWAYS (Lumding–Badarpur Hill Section)
@@ -450,24 +456,79 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
       });
     }
 
-    // B. HIGHWAYS (NH-27, SH-20)
+    // B. ROAD NETWORKS (National Highways, State Highways, Main Connecting Roads)
     if (showHighways) {
       highways.forEach(hwy => {
+        // Filter by category if explicitly chosen
+        if (transportCategory === 'highways' || transportCategory === 'highway') {
+          if (hwy.type !== 'highway') return;
+        } else if (transportCategory === 'state_highways') {
+          if (hwy.type !== 'state_highway') return;
+        } else if (transportCategory === 'connecting_roads') {
+          if (hwy.type !== 'connecting_road') return;
+        }
+
         const isSelected = selectedTransport ? selectedTransport.id === hwy.id : false;
-        let hwyColor = '#10b981';
-        if (hwy.threatLevel === 'CRITICAL') hwyColor = '#dc2626';
-        else if (hwy.threatLevel === 'WARNING') hwyColor = '#ea580c';
-        else if (hwy.threatLevel === 'WATCH') hwyColor = '#ca8a04';
+
+        // Distinct styling and color scheme by road hierarchy:
+        // 1. National Highway: Vibrant Amber/Gold (#f59e0b)
+        // 2. State Highway: Royal Purple/Violet (#8b5cf6)
+        // 3. Main Connecting Road: Vibrant Teal/Cyan (#06b6d4)
+        let baseColor = '#f59e0b';
+        let glowColor = 'rgba(245, 158, 11, 0.35)';
+        let roadWeight = isSelected ? 6.0 : 4.8;
+        let glowWeight = isSelected ? 14 : 10;
+        let dashPattern: string | undefined = undefined;
+        let typeBadge = 'National Highway';
+        let iconPrefix = '🛣️';
+
+        if (hwy.type === 'state_highway') {
+          baseColor = '#8b5cf6';
+          glowColor = 'rgba(139, 92, 246, 0.35)';
+          roadWeight = isSelected ? 5.2 : 4.0;
+          glowWeight = isSelected ? 12 : 8;
+          typeBadge = 'State Highway';
+          iconPrefix = '🛣️';
+        } else if (hwy.type === 'connecting_road') {
+          baseColor = '#06b6d4';
+          glowColor = 'rgba(6, 182, 212, 0.35)';
+          roadWeight = isSelected ? 4.5 : 3.5;
+          glowWeight = isSelected ? 10 : 7;
+          dashPattern = '7, 4';
+          typeBadge = 'Connecting Road';
+          iconPrefix = '🚙';
+        }
+
+        let hwyColor = baseColor;
+        if (hwy.threatLevel === 'CRITICAL') {
+          hwyColor = '#dc2626';
+          glowColor = 'rgba(220, 38, 38, 0.65)';
+        } else if (hwy.threatLevel === 'WARNING') {
+          hwyColor = '#ea580c';
+          glowColor = 'rgba(234, 88, 12, 0.55)';
+        } else if (hwy.threatLevel === 'WATCH') {
+          if (hwy.type === 'state_highway') {
+            hwyColor = '#a855f7';
+            glowColor = 'rgba(168, 85, 247, 0.45)';
+          } else if (hwy.type === 'connecting_road') {
+            hwyColor = '#0ea5e9';
+            glowColor = 'rgba(14, 165, 233, 0.45)';
+          } else {
+            hwyColor = '#d97706';
+            glowColor = 'rgba(217, 119, 6, 0.45)';
+          }
+        }
 
         const glow = L.polyline(hwy.coordinates, {
-          color: hwyColor,
-          weight: isSelected ? 13 : 10,
-          opacity: isSelected ? 0.45 : 0.35
+          color: glowColor,
+          weight: glowWeight,
+          opacity: isSelected ? 0.7 : 0.4
         });
 
         const hwyLine = L.polyline(hwy.coordinates, {
           color: hwyColor,
-          weight: isSelected ? 5.5 : 4.5,
+          weight: roadWeight,
+          dashArray: dashPattern,
           opacity: 0.95
         });
 
@@ -477,8 +538,11 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
 
         hwyLine.bindTooltip(`
           <div class="gis-tooltip">
-            <strong style="color:${hwyColor}">🛣️ ${hwy.name}</strong><br/>
-            <span>Threat: <b>${hwy.threatLevel}</b> | Length: <b>${hwy.lengthKm} km</b></span>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+              <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:${baseColor}22;color:${baseColor};border:1px solid ${baseColor}66;">${typeBadge.toUpperCase()}</span>
+            </div>
+            <strong style="color:${hwyColor}">${iconPrefix} ${hwy.name}</strong><br/>
+            <span>Threat: <b style="color:${hwyColor}">${hwy.threatLevel}</b> | Length: <b>${hwy.lengthKm} km</b></span>
             ${isSelected ? `<br/><span style="color:${hwyColor};font-weight:bold">● SELECTED CORRIDOR</span>` : ''}
           </div>
         `, { sticky: true, className: 'gis-custom-tooltip' });
@@ -607,6 +671,175 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
 
   }, [railways, highways, highwayMicroSegments, stations, filters, transportCategory, selectedTransport, onSelectTransport, onSelectStation]);
 
+  // 5.5 Render Dynamic Traffic Diversions, Isolated Slide Closures, and Detour Junctions
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    const divGroup = diversionsLayerGroupRef.current;
+    if (!map || !divGroup) return;
+
+    divGroup.clearLayers();
+
+    // Check both explicit activeDiversions prop and diversions embedded in highways
+    const diversionsToRender: TrafficDiversion[] = [
+      ...(activeDiversions || []),
+      ...highways.filter(h => h.hasActiveDiversion && h.diversionDetails).map(h => h.diversionDetails!)
+    ].filter((div, index, self) => index === self.findIndex(t => t.id === div.id));
+
+    if (diversionsToRender.length === 0) return;
+
+    diversionsToRender.forEach(div => {
+      // 1. Render Localized Blocked Hazard Sub-Segment (in high-visibility pulsing red barricade line)
+      if (div.hazardCoordinates && div.hazardCoordinates.length > 0) {
+        const hazardGlow = L.polyline(div.hazardCoordinates, {
+          color: 'rgba(239, 68, 68, 0.85)',
+          weight: 14,
+          opacity: 0.95,
+          lineCap: 'round',
+          lineJoin: 'round',
+          className: 'pulse-danger-line'
+        });
+
+        const hazardCore = L.polyline(div.hazardCoordinates, {
+          color: '#dc2626',
+          weight: 6,
+          dashArray: '8, 6',
+          opacity: 1.0,
+          className: 'line-slide-closed'
+        });
+
+        hazardCore.bindTooltip(`
+          <div class="gis-tooltip" style="border-left: 4px solid #dc2626;">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+              <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:#fee2e2;color:#dc2626;border:1px solid #f87171;">⛔ CLOSED SLIDE ZONE</span>
+              <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:#dcfce7;color:#15803d;border:1px solid #86efac;">REST OF CORRIDOR OPEN</span>
+            </div>
+            <strong style="color: #dc2626; font-size: 13px;">⛔ ${div.hazardZoneName}</strong><br/>
+            <span>Blocked Length: <b>${div.hazardLengthKm} km</b> (Chainage: Km ${div.hazardKmStart}–${div.hazardKmEnd})</span><br/>
+            <span>Landslide Probability: <b style="color: #ef4444;">${Math.round(div.hazardProbability * 100)}%</b></span><br/>
+            <div style="margin-top:4px;padding-top:4px;border-top:1px solid #e5e7eb;color:#0369a1;">
+              <strong>🔀 Detour Active:</strong> Divert at <b>${div.diversionJunction.name}</b> via <b>${div.bypassRouteName}</b>
+            </div>
+          </div>
+        `, { sticky: true, className: 'gis-custom-tooltip' });
+
+        divGroup.addLayer(hazardGlow);
+        divGroup.addLayer(hazardCore);
+
+        // Barricade pins at entry and exit of the localized slide zone
+        const startPoint = div.hazardCoordinates[0];
+        const endPoint = div.hazardCoordinates[div.hazardCoordinates.length - 1];
+
+        const barricadeIcon = L.divIcon({
+          className: 'custom-barricade-pin',
+          html: `<div class="barricade-marker-bubble"><span>⛔</span></div>`,
+          iconSize: [26, 26],
+          iconAnchor: [13, 13]
+        });
+
+        const mStart = L.marker(startPoint, { icon: barricadeIcon }).bindTooltip(
+          `<strong>⛔ BARRICADE START: Km ${div.hazardKmStart}</strong><br/>Slide blockage entry point. Traffic prohibited.`,
+          { direction: 'top', offset: [0, -10], className: 'gis-custom-tooltip' }
+        );
+        const mEnd = L.marker(endPoint, { icon: barricadeIcon }).bindTooltip(
+          `<strong>⛔ BARRICADE END: Km ${div.hazardKmEnd}</strong><br/>Corridor resumes normal operation beyond this point.`,
+          { direction: 'top', offset: [0, -10], className: 'gis-custom-tooltip' }
+        );
+
+        divGroup.addLayer(mStart);
+        divGroup.addLayer(mEnd);
+      }
+
+      // 2. Render Strategic Diversion Junction Marker
+      if (div.diversionJunction && div.diversionJunction.coordinates) {
+        const diversionJunctionIcon = L.divIcon({
+          className: 'custom-diversion-marker',
+          html: `
+            <div class="diversion-marker-pin pulse-cyan">
+              <span class="jct-icon">🔀</span>
+            </div>
+          `,
+          iconSize: [34, 34],
+          iconAnchor: [17, 17]
+        });
+
+        const jctMarker = L.marker(div.diversionJunction.coordinates, { icon: diversionJunctionIcon });
+
+        jctMarker.bindTooltip(`
+          <div class="gis-tooltip" style="border-left: 4px solid #06b6d4;">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+              <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:#cffafe;color:#0e7490;border:1px solid #67e8f9;">🔀 DIVERSION POINT</span>
+              <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;">
+                {div.efficiencyRating === 'OPTIMAL' ? '🟢 OPTIMAL' : (div.efficiencyRating === 'MODERATE' ? '🟡 MODERATE' : '🔴 EMERGENCY')}
+              </span>
+            </div>
+            <strong style="color: #0891b2; font-size: 13px;">${div.diversionJunction.name}</strong><br/>
+            <span>Junction Code: <b>${div.diversionJunction.junctionCode}</b></span><br/>
+            <span>Detour Route: <b style="color: #059669;">${div.bypassRouteName}</b></span><br/>
+            <span>Detour Impact: <b>+${div.additionalTravelTimeMinutes} mins (${div.detourDistanceKm || 30} km)</b></span><br/>
+            <span>Safety Margin: <b style="color: #059669;">${div.safetyAdvantagePct || 75}% lower slide probability</b></span><br/>
+            <span style="font-size:11px;color:#475569;">${div.permittedVehicles}</span>
+          </div>
+        `, { direction: 'top', offset: [0, -14], className: 'gis-custom-tooltip' });
+
+        divGroup.addLayer(jctMarker);
+      }
+
+      // 3. Render Detour Bypass Polyline (glowing teal/cyan with animated dash)
+      if (div.bypassCoordinates && div.bypassCoordinates.length > 0) {
+        const detourGlow = L.polyline(div.bypassCoordinates, {
+          color: 'rgba(6, 182, 212, 0.45)',
+          weight: 12,
+          opacity: 0.85,
+          lineCap: 'round',
+          lineJoin: 'round'
+        });
+
+        const detourTrack = L.polyline(div.bypassCoordinates, {
+          color: '#06b6d4',
+          weight: 5,
+          dashArray: '10, 8',
+          opacity: 0.95,
+          className: 'detour-active-bypass'
+        });
+
+        detourTrack.bindTooltip(`
+          <div class="gis-tooltip" style="border-left: 4px solid #06b6d4;">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+              <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:#cffafe;color:#0e7490;border:1px solid #67e8f9;">🔀 DETOUR BYPASS</span>
+              <span style="font-size:10px;font-weight:700;padding:1px 6px;border-radius:4px;background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;">
+                ${div.efficiencyRating === 'OPTIMAL' ? '🟢 94% EFFICIENT' : '🟡 GHAT CAUTION'}
+              </span>
+            </div>
+            <strong style="color: #0891b2; font-size: 13px;">${div.bypassRouteName}</strong><br/>
+            <span>Rerouted from: <b>${div.sourceCorridorName}</b></span><br/>
+            <span>Detour Length: <b>${div.detourDistanceKm || 35} km (+${div.additionalTravelTimeMinutes} mins)</b></span><br/>
+            <span>Safety Advantage: <b style="color:#059669;">${div.safetyAdvantagePct || 75}% lower hazard than blocked slope</b></span><br/>
+            <span style="color:#059669;font-weight:600;">Safe verified alignment avoiding landslide debris zone</span>
+          </div>
+        `, { sticky: true, className: 'gis-custom-tooltip' });
+
+        divGroup.addLayer(detourGlow);
+        divGroup.addLayer(detourTrack);
+      }
+    });
+  }, [activeDiversions, highways]);
+
+  const handleFocusDiversion = (div: TrafficDiversion) => {
+    const map = mapInstanceRef.current;
+    if (!map) return;
+    try {
+      const allCoords = [
+        ...div.hazardCoordinates,
+        div.diversionJunction.coordinates,
+        ...div.bypassCoordinates.slice(0, 15)
+      ];
+      const bounds = L.latLngBounds(allCoords as L.LatLngExpression[]);
+      map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14, animate: true });
+    } catch (e) {
+      console.error('Error fitting to diversion:', e);
+    }
+  };
+
   // 6. Camera auto-pan and smooth fit bounds when selectedTransport changes
   useEffect(() => {
     if (!selectedTransport || !selectedTransport.coordinates || selectedTransport.coordinates.length === 0) return;
@@ -649,6 +882,46 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
         </div>
       )}
 
+      {/* Floating HUD Traffic Diversion Banner (Triggered when dynamic detour is active) */}
+      {activeDiversions && activeDiversions.length > 0 && isDiversionBannerVisible && (
+        <div className="map-diversion-hud-banner">
+          <div className="diversion-banner-content">
+            <div className="diversion-banner-icon-badge">
+              <span className="div-banner-icon">🔀</span>
+            </div>
+            <div className="diversion-banner-text">
+              <div className="diversion-banner-title-row">
+                <span className="diversion-hud-title">ACTIVE TRAFFIC DIVERSION</span>
+                <span className="diversion-hud-badge">HAZARD ISOLATION DETOUR</span>
+              </div>
+              <p className="diversion-hud-desc">
+                <strong>{activeDiversions[0].sourceCorridorName}</strong> slide isolated to <strong>Km {activeDiversions[0].hazardKmStart}–{activeDiversions[0].hazardKmEnd}</strong> ({activeDiversions[0].hazardLengthKm} km).
+                Pre-slide traffic diverted at <strong>{activeDiversions[0].diversionJunction.name}</strong> via <strong>{activeDiversions[0].bypassRouteName}</strong>. Rest of corridor remains open.
+              </p>
+            </div>
+            <div className="diversion-banner-actions">
+              <button
+                className="btn-focus-diversion"
+                onClick={() => handleFocusDiversion(activeDiversions[0])}
+                title="Focus map on isolated slide zone and detour bypass"
+                type="button"
+              >
+                <Navigation size={13} />
+                <span>Focus Detour</span>
+              </button>
+              <button
+                className="btn-dismiss-banner"
+                onClick={() => setIsDiversionBannerVisible(false)}
+                title="Dismiss banner"
+                type="button"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Floating Map HUD Legend */}
       <div className={`gis-map-legend ${isLegendOpen ? 'expanded' : 'collapsed'}`}>
         <button
@@ -662,7 +935,7 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
           <ChevronDown 
             size={15} 
             className={`legend-chevron-icon ${isLegendOpen ? 'open' : 'closed'}`} 
-          />
+            />
         </button>
 
         <div className="legend-body-collapse">
@@ -688,8 +961,29 @@ export const LandslideMap: React.FC<LandslideMapProps> = ({
             <span>Lumding–Badarpur Railway Line</span>
           </div>
           <div className="legend-row">
-            <span className="line-sample line-hwy-warn"></span>
-            <span>NH-27 Mountain Pass</span>
+            <span className="line-sample line-nh"></span>
+            <span>National Highway (NH-27 / NH-27A)</span>
+          </div>
+          <div className="legend-row">
+            <span className="line-sample line-sh"></span>
+            <span>State Highway (SH-20 / SH-19)</span>
+          </div>
+          <div className="legend-row">
+            <span className="line-sample line-connecting"></span>
+            <span>Main Connecting Road (MDR Lifelines)</span>
+          </div>
+          <div className="legend-divider" />
+          <div className="legend-row">
+            <span className="line-sample line-slide-blocked"></span>
+            <span>⛔ Blocked Slide Stretch (Isolated)</span>
+          </div>
+          <div className="legend-row">
+            <span className="line-sample line-detour-route"></span>
+            <span>🔀 Active Detour / Bypass Route</span>
+          </div>
+          <div className="legend-row">
+            <span className="dot dot-diversion-jct"></span>
+            <span>📍 Traffic Diversion Junction</span>
           </div>
         </div>
       </div>

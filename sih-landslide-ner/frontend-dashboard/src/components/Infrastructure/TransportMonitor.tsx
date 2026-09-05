@@ -22,8 +22,8 @@ interface TransportMonitorProps {
   selectedSegmentId?: string;
   mapSelectedSegmentId?: string | null;
   onClearMapSelected?: () => void;
-  activeCategory?: 'all' | 'railways' | 'highways';
-  onCategoryChange?: (category: 'all' | 'railways' | 'highways') => void;
+  activeCategory?: 'all' | 'railways' | 'highways' | 'state_highways' | 'connecting_roads';
+  onCategoryChange?: (category: 'all' | 'railways' | 'highways' | 'state_highways' | 'connecting_roads') => void;
 }
 
 export const TransportMonitor: React.FC<TransportMonitorProps> = ({
@@ -37,10 +37,10 @@ export const TransportMonitor: React.FC<TransportMonitorProps> = ({
   activeCategory,
   onCategoryChange
 }) => {
-  const [internalTab, setInternalTab] = useState<'all' | 'railways' | 'highways'>('all');
+  const [internalTab, setInternalTab] = useState<'all' | 'railways' | 'highways' | 'state_highways' | 'connecting_roads'>('all');
   const currentCategory = activeCategory ?? internalTab;
 
-  const handleTabChange = (cat: 'all' | 'railways' | 'highways') => {
+  const handleTabChange = (cat: 'all' | 'railways' | 'highways' | 'state_highways' | 'connecting_roads') => {
     if (onCategoryChange) {
       onCategoryChange(cat);
     } else {
@@ -86,10 +86,17 @@ export const TransportMonitor: React.FC<TransportMonitorProps> = ({
     }
   };
 
-  const filteredSegments = [
-    ...(currentCategory === 'highways' ? [] : railways),
-    ...(currentCategory === 'railways' ? [] : highways)
-  ].sort((a, b) => {
+  const nationalHighways = highways.filter(h => h.type === 'highway');
+  const stateHighways = highways.filter(h => h.type === 'state_highway');
+  const connectingRoads = highways.filter(h => h.type === 'connecting_road');
+
+  const filteredSegments = (
+    currentCategory === 'railways' ? railways :
+    currentCategory === 'highways' ? nationalHighways :
+    currentCategory === 'state_highways' ? stateHighways :
+    currentCategory === 'connecting_roads' ? connectingRoads :
+    [...railways, ...highways]
+  ).sort((a, b) => {
     const order = { CRITICAL: 0, WARNING: 1, WATCH: 2, SAFE: 3 };
     return order[a.threatLevel] - order[b.threatLevel];
   });
@@ -113,8 +120,22 @@ export const TransportMonitor: React.FC<TransportMonitorProps> = ({
       lines.push(`   Advisory: ${r.advisory}\n`);
     });
 
-    lines.push('-- NATIONAL HIGHWAY & ROADWAYS (NH-27 / SH-20) --');
-    highways.forEach(h => {
+    lines.push('-- NATIONAL HIGHWAYS (NH-27 / NH-27A) --');
+    nationalHighways.forEach(h => {
+      lines.push(`[${h.threatLevel}] ${h.name} (${h.code})`);
+      lines.push(`   Max Proximity Risk: ${(h.maxNearbyProbability * 100).toFixed(1)}% | High Risk Points Near: ${h.vulnerablePointsCount}`);
+      lines.push(`   Advisory: ${h.advisory}\n`);
+    });
+
+    lines.push('-- STATE HIGHWAYS (SH-20 / SH-19) --');
+    stateHighways.forEach(h => {
+      lines.push(`[${h.threatLevel}] ${h.name} (${h.code})`);
+      lines.push(`   Max Proximity Risk: ${(h.maxNearbyProbability * 100).toFixed(1)}% | High Risk Points Near: ${h.vulnerablePointsCount}`);
+      lines.push(`   Advisory: ${h.advisory}\n`);
+    });
+
+    lines.push('-- MAIN CONNECTING ROADS (MDR LIFELINES) --');
+    connectingRoads.forEach(h => {
       lines.push(`[${h.threatLevel}] ${h.name} (${h.code})`);
       lines.push(`   Max Proximity Risk: ${(h.maxNearbyProbability * 100).toFixed(1)}% | High Risk Points Near: ${h.vulnerablePointsCount}`);
       lines.push(`   Advisory: ${h.advisory}\n`);
@@ -199,13 +220,25 @@ export const TransportMonitor: React.FC<TransportMonitorProps> = ({
           className={`tab-btn ${currentCategory === 'railways' ? 'active' : ''}`}
           onClick={() => handleTabChange('railways')}
         >
-          <Train size={14} /> Railway &amp; Core Network ({railways.length})
+          <Train size={14} /> Railways ({railways.length})
         </button>
         <button 
           className={`tab-btn ${currentCategory === 'highways' ? 'active' : ''}`}
           onClick={() => handleTabChange('highways')}
         >
-          <Navigation size={14} /> National Highways ({highways.length})
+          <Navigation size={14} /> National Highways ({nationalHighways.length})
+        </button>
+        <button 
+          className={`tab-btn ${currentCategory === 'state_highways' ? 'active' : ''}`}
+          onClick={() => handleTabChange('state_highways')}
+        >
+          <Navigation size={14} /> State Highways ({stateHighways.length})
+        </button>
+        <button 
+          className={`tab-btn ${currentCategory === 'connecting_roads' ? 'active' : ''}`}
+          onClick={() => handleTabChange('connecting_roads')}
+        >
+          <Navigation size={14} /> Connecting Roads ({connectingRoads.length})
         </button>
       </div>
 
@@ -214,6 +247,26 @@ export const TransportMonitor: React.FC<TransportMonitorProps> = ({
         {filteredSegments.map(seg => {
           const isSelected = selectedSegmentId === seg.id;
           const isRail = seg.type === 'railway';
+          const isStateHwy = seg.type === 'state_highway';
+          const isConnectingRoad = seg.type === 'connecting_road';
+
+          let tagClass = 'hwy';
+          let tagLabel = 'NATIONAL HIGHWAY';
+          let TagIcon = Navigation;
+
+          if (isRail) {
+            tagClass = 'rail';
+            tagLabel = 'RAILWAY';
+            TagIcon = Train;
+          } else if (isStateHwy) {
+            tagClass = 'state-hwy';
+            tagLabel = 'STATE HIGHWAY';
+            TagIcon = Navigation;
+          } else if (isConnectingRoad) {
+            tagClass = 'connecting-road';
+            tagLabel = 'CONNECTING ROAD';
+            TagIcon = Navigation;
+          }
 
           return (
             <div 
@@ -225,9 +278,9 @@ export const TransportMonitor: React.FC<TransportMonitorProps> = ({
             >
               <div className="card-top">
                 <div className="route-identity">
-                  <span className={`type-tag ${isRail ? 'rail' : 'hwy'}`}>
-                    {isRail ? <Train size={12} /> : <Navigation size={12} />}
-                    {isRail ? 'RAILWAY' : 'HIGHWAY'}
+                  <span className={`type-tag ${tagClass}`}>
+                    <TagIcon size={12} />
+                    {tagLabel}
                   </span>
                   <span className="route-code">{seg.code}</span>
                 </div>
@@ -272,6 +325,51 @@ export const TransportMonitor: React.FC<TransportMonitorProps> = ({
                 )}
                 <span className="adv-text">{seg.advisory}</span>
               </div>
+
+              {/* Dynamic Localized Diversion Box */}
+              {seg.hasActiveDiversion && seg.diversionDetails && (
+                <div className="diversion-card-callout">
+                  <div className="diversion-callout-header">
+                    <span className="div-icon">🔀</span>
+                    <span className="div-title">LOCALIZED HAZARD ISOLATION &amp; DETOUR</span>
+                    <span className={`div-efficiency-badge ${seg.diversionDetails.efficiencyRating?.toLowerCase() || 'optimal'}`}>
+                      {seg.diversionDetails.efficiencyRating === 'OPTIMAL' ? '🟢 OPTIMAL DETOUR' : (seg.diversionDetails.efficiencyRating === 'MODERATE' ? '🟡 MODERATE (GHAT)' : '🔴 EMERGENCY ONLY')}
+                    </span>
+                  </div>
+                  <div className="diversion-callout-body">
+                    <div className="div-row">
+                      <span className="div-lbl">⛔ Blocked Zone:</span>
+                      <span className="div-val text-red">Km {seg.diversionDetails.hazardKmStart}–{seg.diversionDetails.hazardKmEnd} ({seg.diversionDetails.hazardLengthKm} km)</span>
+                    </div>
+                    <div className="div-row">
+                      <span className="div-lbl">🔀 Divert At:</span>
+                      <span className="div-val text-cyan">{seg.diversionDetails.diversionJunction.name}</span>
+                    </div>
+                    <div className="div-row">
+                      <span className="div-lbl">🛡️ Detour Via:</span>
+                      <span className="div-val text-amber">{seg.diversionDetails.bypassRouteName}</span>
+                    </div>
+                    <div className="div-row">
+                      <span className="div-lbl">⏱️ Travel Penalty:</span>
+                      <span className="div-val text-green">
+                        +{seg.diversionDetails.additionalTravelTimeMinutes} mins ({seg.diversionDetails.detourDistanceKm} km) • <strong>{seg.diversionDetails.safetyAdvantagePct}% lower slide risk</strong>
+                      </span>
+                    </div>
+                    {seg.diversionDetails.roadCapacityStatus && (
+                      <div className="div-row">
+                        <span className="div-lbl">🛣️ Road Class:</span>
+                        <span className="div-val text-purple">{seg.diversionDetails.roadCapacityStatus}</span>
+                      </div>
+                    )}
+                    {seg.diversionDetails.heavyVehicleAdvice && (
+                      <div className="div-row warning-note">
+                        <span className="div-lbl">🚛 Freight Rule:</span>
+                        <span className="div-val">{seg.diversionDetails.heavyVehicleAdvice}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="card-footer">
                 <span className="threat-points-tag">

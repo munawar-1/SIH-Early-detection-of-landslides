@@ -1,0 +1,74 @@
+{
+  "nh27a": {
+    "name": "NH-27A (Jatinga \u2013 Haflong Spur)",
+    "lengthKm": 28.5,
+    "nearPoints": 83,
+    "minElev": 211,
+    "maxElev": 1187,
+    "avgSlope": 29.5,
+    "maxSlope": 52.0,
+    "avgClay": 24.3,
+    "maxNearbyProbability": 0.458,
+    "highRiskPoints": 40
+  },
+  "sh19": {
+    "name": "SH-19 (Haflong \u2013 Mahur Arterial Highway)",
+    "lengthKm": 35.3,
+    "nearPoints": 81,
+    "minElev": 295,
+    "maxElev": 839,
+    "avgSlope": 18.8,
+    "maxSlope": 51.5,
+    "avgClay": 25.2,
+    "maxNearbyProbability": 0.453,
+    "highRiskPoints": 17
+  },
+  "mdr_umrangso_lanka": {
+    "name": "MDR-01 (Umrangso \u2013 Lanka Industrial & Hydel Link)",
+    "lengthKm": 54.7,
+    "nearPoints": 177,
+    "minElev": 71,
+    "maxElev": 727,
+    "avgSlope": 8.2,
+    "maxSlope": 44.2,
+    "avgClay": 25.1,
+    "maxNearbyProbability": 0.442,
+    "highRiskPoints": 6
+  },
+  "mdr_maibang_gunjung": {
+    "name": "MDR-02 (Maibang \u2013 Gunjung \u2013 Haflong Central Corridor)",
+    "lengthKm": 88.0,
+    "nearPoints": 179,
+    "minElev": 267,
+    "maxElev": 1127,
+    "avgSlope": 16.9,
+    "maxSlope": 51.5,
+    "avgClay": 25.6,
+    "maxNearbyProbability": 0.465,
+    "highRiskPoints": 27
+  },
+  "mdr_harangajao_ditokcherra": {
+    "name": "MDR-03 (Harangajao \u2013 Ditokcherra \u2013 Damcherra Southern Feeder)",
+    "lengthKm": 41.3,
+    "nearPoints": 82,
+    "minElev": 27,
+    "maxElev": 811,
+    "avgSlope": 29.7,
+    "maxSlope": 52.0,
+    "avgClay": 23.3,
+    "maxNearbyProbability": 0.436,
+    "highRiskPoints": 36
+  },
+  "sh20": {
+    "name": "SH-20 (Haflong \u2013 Umrangso Hill Highway)",
+    "lengthKm": 395.9,
+    "nearPoints": 459,
+    "minElev": 143,
+    "maxElev": 1273,
+    "avgSlope": 15.5,
+    "maxSlope": 52.0,
+    "avgClay": 24.9,
+    "maxNearbyProbability": 0.465,
+    "highRiskPoints": 67
+  }
+}

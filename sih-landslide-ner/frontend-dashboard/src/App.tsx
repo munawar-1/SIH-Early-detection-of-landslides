@@ -5,7 +5,8 @@ import type {
   TransportSegment,
   StationNode,
   SummaryStatsData,
-  HighwayMicroSegment
+  HighwayMicroSegment,
+  TrafficDiversion
 } from './types/landslide';
 import {
   RAILWAY_SECTIONS,
@@ -20,6 +21,7 @@ import {
   evaluateHighwayMicroSegments,
   computeSummaryStats
 } from './services/apiService';
+import { computeDynamicDiversions } from './services/diversionService';
 
 // Pages
 import { LandingPage } from './pages/LandingPage';
@@ -70,6 +72,7 @@ export const App: React.FC = () => {
   const [gridPoints, setGridPoints] = useState<GridPoint[]>([]);
   const [railways, setRailways] = useState<TransportSegment[]>(RAILWAY_SECTIONS);
   const [highways, setHighways] = useState<TransportSegment[]>(HIGHWAY_SECTIONS);
+  const [activeDiversions, setActiveDiversions] = useState<TrafficDiversion[]>([]);
   const [highwayMicroSegments, setHighwayMicroSegments] = useState<HighwayMicroSegment[]>([]);
   const [stations] = useState<StationNode[]>(CRITICAL_STATIONS);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
@@ -97,11 +100,13 @@ export const App: React.FC = () => {
     setIsBackendConnected(!result.isFallback);
 
     const evaluatedRailways = evaluateTransportVulnerability(RAILWAY_SECTIONS, result.data);
-    const evaluatedHighways = evaluateTransportVulnerability(HIGHWAY_SECTIONS, result.data);
+    const evaluatedHighwaysRaw = evaluateTransportVulnerability(HIGHWAY_SECTIONS, result.data);
+    const { evaluatedHighways, activeDiversions: computedDiversions } = computeDynamicDiversions(evaluatedHighwaysRaw, result.data);
     const evaluatedMicro = evaluateHighwayMicroSegments(NH_SEGMENTS_RAW, result.data);
     
     setRailways(evaluatedRailways);
     setHighways(evaluatedHighways);
+    setActiveDiversions(computedDiversions);
     setHighwayMicroSegments(evaluatedMicro);
 
     const calculatedStats = computeSummaryStats(result.data, evaluatedRailways, evaluatedHighways);
@@ -371,6 +376,7 @@ export const App: React.FC = () => {
                 gridPoints={gridPoints}
                 railways={railways}
                 highways={highways}
+                activeDiversions={activeDiversions}
                 highwayMicroSegments={highwayMicroSegments}
                 stations={stations}
                 filters={filters}
@@ -397,6 +403,7 @@ export const App: React.FC = () => {
                 gridPoints={gridPoints}
                 railways={railways}
                 highways={highways}
+                activeDiversions={activeDiversions}
                 highwayMicroSegments={highwayMicroSegments}
                 stations={stations}
                 filters={filters}

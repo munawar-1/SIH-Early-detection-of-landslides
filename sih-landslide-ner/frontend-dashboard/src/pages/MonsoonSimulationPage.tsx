@@ -14,6 +14,7 @@ import {
   evaluateTransportVulnerability, 
   evaluateHighwayMicroSegments 
 } from '../services/apiService';
+import { computeDynamicDiversions } from '../services/diversionService';
 import { 
   type SimulationScenario, 
   type HotspotPreset, 
@@ -83,8 +84,9 @@ export const MonsoonSimulationPage: React.FC<MonsoonSimulationPageProps> = ({
     return evaluateTransportVulnerability(RAILWAY_SECTIONS, simulatedPoints);
   }, [simulatedPoints]);
 
-  const simulatedHighways = useMemo(() => {
-    return evaluateTransportVulnerability(HIGHWAY_SECTIONS, simulatedPoints);
+  const { evaluatedHighways: simulatedHighways, activeDiversions: simulatedDiversions } = useMemo(() => {
+    const rawHighways = evaluateTransportVulnerability(HIGHWAY_SECTIONS, simulatedPoints);
+    return computeDynamicDiversions(rawHighways, simulatedPoints);
   }, [simulatedPoints]);
 
   const simulatedMicroHighways = useMemo(() => {
@@ -269,6 +271,7 @@ export const MonsoonSimulationPage: React.FC<MonsoonSimulationPageProps> = ({
               gridPoints={simulatedPoints}
               railways={simulatedRailways}
               highways={simulatedHighways}
+              activeDiversions={simulatedDiversions}
               highwayMicroSegments={simulatedMicroHighways}
               stations={CRITICAL_STATIONS}
               filters={simFilters}
@@ -488,10 +491,10 @@ export const MonsoonSimulationPage: React.FC<MonsoonSimulationPageProps> = ({
                 <div className="corridor-alert-content">
                   <div className="corridor-title-row">
                     <strong>NH-27 Jatinga Mountain Pass</strong>
-                    <span className="threat-pill warning">HIGHWAY CLOSURE</span>
+                    <span className="threat-pill warning">LOCALIZED DETOUR ACTIVE</span>
                   </div>
                   <p>
-                    Debris flows and boulder falls blocking 4-lane East-West highway corridor. Active geotechnical slide movement encroaching upon roadway.
+                    Slide blockage isolated to Km 12–16 (4 km). Pre-slide traffic rerouted at Jatinga Ridge Junction via NH-27A Haflong Town Bypass. Remainder of NH-27 corridor operational.
                   </p>
                 </div>
               </div>

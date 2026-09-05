@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { GridPoint, FilterState, TransportSegment, StationNode, HighwayMicroSegment } from '../types/landslide';
+import type { GridPoint, FilterState, TransportSegment, StationNode, HighwayMicroSegment, TrafficDiversion } from '../types/landslide';
 import { LandslideMap } from '../components/Map/LandslideMap';
 import { LayerControls } from '../components/Controls/LayerControls';
 import { 
@@ -14,6 +14,7 @@ interface MapPageProps {
   gridPoints: GridPoint[];
   railways: TransportSegment[];
   highways: TransportSegment[];
+  activeDiversions?: TrafficDiversion[];
   highwayMicroSegments?: HighwayMicroSegment[];
   stations: StationNode[];
   filters: FilterState;
@@ -30,6 +31,7 @@ export const MapPage: React.FC<MapPageProps> = ({
   gridPoints,
   railways,
   highways,
+  activeDiversions,
   highwayMicroSegments,
   stations,
   filters,
@@ -51,6 +53,7 @@ export const MapPage: React.FC<MapPageProps> = ({
           gridPoints={gridPoints}
           railways={railways}
           highways={highways}
+          activeDiversions={activeDiversions}
           highwayMicroSegments={highwayMicroSegments}
           stations={stations}
           filters={filters}

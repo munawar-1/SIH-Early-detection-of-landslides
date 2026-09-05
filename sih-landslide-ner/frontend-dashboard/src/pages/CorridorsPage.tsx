@@ -1,17 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { GridPoint, TransportSegment, StationNode, FilterState, HighwayMicroSegment } from '../types/landslide';
+import type { GridPoint, TransportSegment, StationNode, FilterState, HighwayMicroSegment, TrafficDiversion } from '../types/landslide';
 import { LandslideMap } from '../components/Map/LandslideMap';
 import { TransportMonitor } from '../components/Infrastructure/TransportMonitor';
 import { 
   Train, 
   Navigation, 
-  ShieldAlert
+  ShieldAlert,
+  CornerUpRight
 } from 'lucide-react';
 
 interface CorridorsPageProps {
   gridPoints: GridPoint[];
   railways: TransportSegment[];
   highways: TransportSegment[];
+  activeDiversions?: TrafficDiversion[];
   highwayMicroSegments?: HighwayMicroSegment[];
   stations: StationNode[];
   filters: FilterState;
@@ -23,6 +25,7 @@ export const CorridorsPage: React.FC<CorridorsPageProps> = ({
   gridPoints,
   railways,
   highways,
+  activeDiversions = [],
   highwayMicroSegments,
   stations,
   filters,
@@ -30,7 +33,7 @@ export const CorridorsPage: React.FC<CorridorsPageProps> = ({
   selectedTransport
 }) => {
   // Shared active corridor category passed to both TransportMonitor and LandslideMap
-  const [activeCategory, setActiveCategory] = useState<'all' | 'railways' | 'highways'>('all');
+  const [activeCategory, setActiveCategory] = useState<'all' | 'railways' | 'highways' | 'state_highways' | 'connecting_roads'>('all');
   
   // Active selected corridor state for synchronized highlighting and camera tracking
   const [selectedCorridor, setSelectedCorridor] = useState<TransportSegment | null>(
@@ -100,6 +103,12 @@ export const CorridorsPage: React.FC<CorridorsPageProps> = ({
         </div>
 
         <div className="header-stats-row">
+          {activeDiversions.length > 0 && (
+            <div className="stat-badge info" style={{ borderColor: 'rgba(6, 182, 212, 0.4)', background: 'rgba(6, 182, 212, 0.12)', color: '#06b6d4' }}>
+              <CornerUpRight size={15} />
+              <span><strong>{activeDiversions.length}</strong> Active Traffic Detours (Rest Open)</span>
+            </div>
+          )}
           <div className="stat-badge danger">
             <ShieldAlert size={15} />
             <span><strong>{criticalRailways.length}</strong> Vulnerable Rail Stretches</span>
@@ -139,12 +148,13 @@ export const CorridorsPage: React.FC<CorridorsPageProps> = ({
               gridPoints={gridPoints}
               railways={railways}
               highways={highways}
+              activeDiversions={activeDiversions}
               highwayMicroSegments={highwayMicroSegments}
               stations={stations}
               filters={{
                 ...filters,
                 showRailways: activeCategory === 'all' || activeCategory === 'railways',
-                showHighways: activeCategory === 'all' || activeCategory === 'highways',
+                showHighways: activeCategory === 'all' || activeCategory === 'highways' || activeCategory === 'state_highways' || activeCategory === 'connecting_roads',
                 showStations: true,
                 showGridPoints: true
               }}

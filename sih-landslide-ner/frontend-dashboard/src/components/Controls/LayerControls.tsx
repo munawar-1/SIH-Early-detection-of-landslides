@@ -148,7 +148,7 @@ export const LayerControls: React.FC<LayerControlsProps> = ({
             />
             <span className="toggle-custom" />
             <Navigation size={15} className="text-cyan" />
-            <span className="toggle-label">NH-27 Highway & State Roads</span>
+            <span className="toggle-label">Road Networks (NH, SH & Connecting Roads)</span>
           </label>
 
           <label className="toggle-item">

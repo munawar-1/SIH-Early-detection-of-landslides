@@ -62,7 +62,7 @@ import { saveGridPointsToCache, getCachedGridPoints } from './offlineStorageServ
 export async function fetchGridPredictions(): Promise<{ data: GridPoint[]; isFallback: boolean; isOfflineCache?: boolean }> {
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000);
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
 
     const response = await fetch(API_BASE_URL, {
       signal: controller.signal
@@ -249,8 +249,31 @@ export function evaluateTransportVulnerability(
     let slopeCount = 0;
     let maxSlope = 0;
 
+    // Fast bounding box pre-filter around the road polyline
+    let minLat = Infinity, maxLat = -Infinity;
+    let minLon = Infinity, maxLon = -Infinity;
+    if (seg.coordinates && seg.coordinates.length > 0) {
+      for (const [lat, lon] of seg.coordinates) {
+        if (lat < minLat) minLat = lat;
+        if (lat > maxLat) maxLat = lat;
+        if (lon < minLon) minLon = lon;
+        if (lon > maxLon) maxLon = lon;
+      }
+    }
+    const degPad = bufferKm / 111.0 + 0.015;
+    const bbMinLat = minLat - degPad;
+    const bbMaxLat = maxLat + degPad;
+    const bbMinLon = minLon - degPad;
+    const bbMaxLon = maxLon + degPad;
+
     for (const point of gridPoints) {
-      // Find minimum distance to any point along the polyline
+      // Reject points outside bounding box immediately
+      if (point.latitude < bbMinLat || point.latitude > bbMaxLat ||
+          point.longitude < bbMinLon || point.longitude > bbMaxLon) {
+        continue;
+      }
+
+      // Find minimum distance to any vertex along the polyline
       let minDistance = Infinity;
       for (const [sLat, sLon] of seg.coordinates) {
         const d = calculateHaversineKm(point.latitude, point.longitude, sLat, sLon);
@@ -259,7 +282,9 @@ export function evaluateTransportVulnerability(
 
       if (minDistance <= bufferKm) {
         if (point.probability > maxProb) maxProb = point.probability;
-        if (point.riskLevel === 'HIGH') highRiskNearCount++;
+        if (point.riskLevel === 'HIGH' || point.probability >= 0.70 || point.slope >= 34.0) {
+          highRiskNearCount++;
+        }
         totalSlope += point.slope;
         slopeCount++;
         if (point.slope > maxSlope) maxSlope = point.slope;
@@ -268,23 +293,61 @@ export function evaluateTransportVulnerability(
 
     const avgSlope = slopeCount > 0 ? Math.round((totalSlope / slopeCount) * 10) / 10 : seg.averageSlope;
 
-    let threatLevel: 'SAFE' | 'WATCH' | 'WARNING' | 'CRITICAL' = 'SAFE';
-    let advisory = 'Normal operations. Standard track monitoring.';
-    let recommendedSpeed = seg.speedLimitKmh || 60;
+    // Road classification specific calibration
+    const isRail = seg.type === 'railway';
+    const isNationalHwy = seg.type === 'highway';
+    const isStateHwy = seg.type === 'state_highway';
+    const isConnectingRoad = seg.type === 'connecting_road';
 
-    if (maxProb >= 0.75 || highRiskNearCount >= 30) {
+    let threatLevel: 'SAFE' | 'WATCH' | 'WARNING' | 'CRITICAL' = 'SAFE';
+    let advisory = 'Normal operations. Clear driving conditions.';
+    let speedFactor = 1.0;
+
+    // Calibrated point sensitivity thresholds based on corridor type & width
+    const critPointsThreshold = isConnectingRoad ? 15 : (isStateHwy ? 20 : (isNationalHwy ? 25 : 30));
+    const warnPointsThreshold = isConnectingRoad ? 6 : (isStateHwy ? 10 : (isNationalHwy ? 12 : 15));
+
+    if (maxProb >= 0.70 || highRiskNearCount >= critPointsThreshold) {
       threatLevel = 'CRITICAL';
-      advisory = 'CRITICAL: Severe landslide threat nearby. Restrict speeds and deploy emergency patrols.';
-      recommendedSpeed = Math.round((seg.speedLimitKmh || 60) * 0.4);
-    } else if (maxProb >= 0.50 || highRiskNearCount >= 10) {
+      speedFactor = 0.40;
+      if (isRail) {
+        advisory = 'CRITICAL: Severe track burial & ballast washout danger. Restrict speeds and deploy emergency patrols.';
+      } else if (isNationalHwy) {
+        advisory = 'CRITICAL: Multi-lane debris flow & boulder fall risk. Restrict heavy commercial trucks; standby bulldozers.';
+      } else if (isStateHwy) {
+        advisory = 'CRITICAL: Major cut-slope failure threat. Restrict passenger bus night movement; route diversions active.';
+      } else {
+        advisory = 'CRITICAL: High risk of total roadway washaway. Light emergency vehicles only; rural bypass standby.';
+      }
+    } else if (maxProb >= 0.50 || highRiskNearCount >= warnPointsThreshold) {
       threatLevel = 'WARNING';
-      advisory = 'WARNING: Saturated slopes along corridor. Restrict night trains and monitor culverts.';
-      recommendedSpeed = Math.round((seg.speedLimitKmh || 60) * 0.65);
-    } else if (maxProb >= 0.35) {
+      speedFactor = 0.65;
+      if (isRail) {
+        advisory = 'WARNING: Saturated slopes along rail corridor. Restrict night trains and inspect drainage culverts.';
+      } else if (isNationalHwy) {
+        advisory = 'WARNING: Saturated cut-slopes along highway. Single-lane debris watch; reduce freight speed.';
+      } else if (isStateHwy) {
+        advisory = 'WARNING: Hillside rockfall & minor slips detected. Commercial vehicle caution on hairpin bends.';
+      } else {
+        advisory = 'WARNING: Waterlogged roadbed and culvert overflow. Drive with extreme caution; avoid night trips.';
+      }
+    } else if (maxProb >= 0.35 || highRiskNearCount >= 3) {
       threatLevel = 'WATCH';
-      advisory = 'WATCH: Moderate rainfall accumulation. Enhanced vigilance required.';
-      recommendedSpeed = Math.round((seg.speedLimitKmh || 60) * 0.85);
+      speedFactor = 0.85;
+      if (isRail) {
+        advisory = 'WATCH: Moderate rainfall accumulation. Enhanced track patrol vigilance required.';
+      } else if (isNationalHwy) {
+        advisory = 'WATCH: Surface runoff and mountain mist. Maintain safe following distance on pass.';
+      } else if (isStateHwy) {
+        advisory = 'WATCH: Damp clay soil along slope cuts. Exercise caution on descending grades.';
+      } else {
+        advisory = 'WATCH: Active surface runoff on unpaved shoulders. Standard mountain caution.';
+      }
     }
+
+    const defaultSpeed = isNationalHwy ? 75 : (isRail ? 60 : (isStateHwy ? 50 : 45));
+    const baseSpeed = seg.speedLimitKmh || defaultSpeed;
+    const recommendedSpeed = Math.round(baseSpeed * speedFactor);
 
     return {
       ...seg,
@@ -294,6 +357,7 @@ export function evaluateTransportVulnerability(
       averageSlope: avgSlope,
       maxSlope: maxSlope > 0 ? Math.round(maxSlope * 10) / 10 : seg.maxSlope,
       advisory,
+      speedLimitKmh: baseSpeed,
       recommendedSpeedKmh: recommendedSpeed
     };
   });
