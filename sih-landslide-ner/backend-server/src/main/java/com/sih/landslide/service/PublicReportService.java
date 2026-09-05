@@ -31,15 +31,25 @@ public class PublicReportService {
 
     public PublicReportService(PublicReportRepository publicReportRepository) {
         this.publicReportRepository = publicReportRepository;
-        this.uploadStorageLocation = Paths.get("uploads", "reports").toAbsolutePath().normalize();
-        
+
+        Path primaryLocation = Paths.get("uploads", "reports").toAbsolutePath().normalize();
+        Path storagePath = primaryLocation;
         try {
-            Files.createDirectories(this.uploadStorageLocation);
-            logger.info("📁 Public reports media directory ready at: {}", this.uploadStorageLocation);
-        } catch (IOException ex) {
-            logger.error("Could not initialize upload storage location", ex);
-            throw new RuntimeException("Could not create upload directory", ex);
+            Files.createDirectories(primaryLocation);
+        } catch (Exception ex) {
+            // Fallback to writable OS temp directory in containerized environments (like Docker non-root users)
+            Path tempLocation = Paths.get(System.getProperty("java.io.tmpdir"), "ner-uploads", "reports").toAbsolutePath().normalize();
+            try {
+                Files.createDirectories(tempLocation);
+                storagePath = tempLocation;
+                logger.warn("Primary upload path /app/uploads was restricted, using container temp storage: {}", storagePath);
+            } catch (Exception e) {
+                logger.error("Could not initialize upload storage location in temp either", e);
+                storagePath = tempLocation;
+            }
         }
+        this.uploadStorageLocation = storagePath;
+        logger.info("📁 Public reports media directory ready at: {}", this.uploadStorageLocation);
     }
 
     @Transactional

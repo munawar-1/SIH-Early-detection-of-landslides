@@ -18,8 +18,10 @@ RUN mvn clean package -DskipTests -B
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
-# Create a non-privileged user and group for security
-RUN addgroup -S spring && adduser -S spring -G spring
+# Create a non-privileged user and group for security, and ensure /app and uploads directory are writable
+RUN addgroup -S spring && adduser -S spring -G spring \
+    && mkdir -p /app/uploads/reports \
+    && chown -R spring:spring /app
 USER spring:spring
 
 # Copy compiled JAR from build stage
