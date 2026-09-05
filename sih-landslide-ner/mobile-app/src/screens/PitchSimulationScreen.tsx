@@ -14,6 +14,7 @@ import { checkAlert, predictCoordinateRisk } from '../services/apiService';
 import { performOfflineGeofenceCheck } from '../services/offlineRiskEngine';
 import { soundService } from '../services/soundService';
 import { APP_COLORS } from '../constants/theme';
+import { getRecentCachedEvaluations, CachedEvaluation, getCacheStatusSummary } from '../services/gridCacheService';
 
 export interface SavedCoordinate {
   id: string;
@@ -40,6 +41,7 @@ export const PitchSimulationScreen: React.FC<PitchSimulationScreenProps> = ({ on
   const [lngInput, setLngInput] = useState<string>('');
   const [locNameInput, setLocNameInput] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
+  const [recentEvaluations, setRecentEvaluations] = useState<CachedEvaluation[]>([]);
 
   useEffect(() => {
     loadCurrentSavedCoord();
@@ -47,16 +49,26 @@ export const PitchSimulationScreen: React.FC<PitchSimulationScreenProps> = ({ on
 
   const loadCurrentSavedCoord = async () => {
     try {
-      const active = await AsyncStorage.getItem(ACTIVE_COORD_KEY);
+      const [active, history] = await Promise.all([
+        AsyncStorage.getItem(ACTIVE_COORD_KEY),
+        getRecentCachedEvaluations()
+      ]);
       if (active) {
         const parsed = JSON.parse(active);
         setLatInput(parsed.lat?.toString() || '');
         setLngInput(parsed.lng?.toString() || '');
         setLocNameInput(parsed.name || '');
       }
+      setRecentEvaluations(history);
     } catch (e) {
-      console.warn('Could not load current active coordinate');
+      console.warn('Could not load current active coordinate or history');
     }
+  };
+
+  const applyPreset = (name: string, lat: number, lng: number) => {
+    setLocNameInput(name);
+    setLatInput(lat.toFixed(3));
+    setLngInput(lng.toFixed(3));
   };
 
   const handleSaveCoordinate = async () => {
@@ -165,8 +177,36 @@ export const PitchSimulationScreen: React.FC<PitchSimulationScreenProps> = ({ on
         <View style={styles.infoCard}>
           <Text style={styles.infoTitle}>📍 Geographical Coordinate Assessment</Text>
           <Text style={styles.infoSub}>
-            Enter custom coordinates to evaluate real geotechnical landslide susceptibility with calibrated satellite DEM terrain data and live XGBoost ML predictions.
+            Enter custom coordinates or tap presets to evaluate real geotechnical landslide susceptibility with calibrated satellite DEM terrain data and live XGBoost ML predictions.
           </Text>
+        </View>
+
+        {/* Quick 1-Tap Field Presets */}
+        <View style={styles.presetsCard}>
+          <Text style={styles.presetsHeader}>⚡ Quick Terrain Presets (1-Tap Test)</Text>
+          <View style={styles.presetChipsRow}>
+            <TouchableOpacity
+              style={[styles.presetChip, styles.presetChipRed]}
+              onPress={() => applyPreset('Haflong Escarpment Zone', 24.990, 92.760)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.presetChipTextRed}>🚨 Extreme Slope (34°+)</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.presetChip, styles.presetChipAmber]}
+              onPress={() => applyPreset('Mahur Hill Corridor', 24.990, 92.780)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.presetChipTextAmber}>⚠️ Moderate Hill (31°)</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.presetChip, styles.presetChipGreen]}
+              onPress={() => applyPreset('Stable Valley Corridor', 24.970, 92.850)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.presetChipTextGreen}>🛡️ Safe Lowland (5°)</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Coordinate Input Form */}
@@ -224,6 +264,42 @@ export const PitchSimulationScreen: React.FC<PitchSimulationScreenProps> = ({ on
             <Text style={styles.clearBtnText}>📍 Clear & Revert to Physical GPS</Text>
           </TouchableOpacity>
         </View>
+
+        {/* Recent Cached Lookups in Phone Memory */}
+        {recentEvaluations.length > 0 && (
+          <View style={styles.historyCard}>
+            <View style={styles.historyHeaderRow}>
+              <Text style={styles.historyTitle}>📦 Local Cache Memory History</Text>
+              <Text style={styles.historySubBadge}>{recentEvaluations.length} Saved</Text>
+            </View>
+            <Text style={styles.historySubtitle}>
+              Previously queried coordinates cached in device storage for instant 0ms offline recall. Tap any to load.
+            </Text>
+            {recentEvaluations.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={styles.historyItem}
+                onPress={() => applyPreset(item.name, item.lat, item.lng)}
+                activeOpacity={0.7}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.historyItemName}>{item.name}</Text>
+                  <Text style={styles.historyItemCoords}>
+                    {item.lat.toFixed(3)}°N, {item.lng.toFixed(3)}°E • {item.evaluated_by}
+                  </Text>
+                </View>
+                <View style={[
+                  styles.historyBadge,
+                  item.risk_level === 'CRITICAL' ? styles.badgeRed :
+                  item.risk_level === 'HIGH' ? styles.badgeOrange :
+                  item.risk_level === 'MODERATE' ? styles.badgeYellow : styles.badgeGreen
+                ]}>
+                  <Text style={styles.historyBadgeText}>{item.risk_level}</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -526,5 +602,137 @@ const styles = StyleSheet.create({
   },
   demoToggleTextLive: {
     color: '#16A34A'
+  },
+  // Presets & Cache History Styles
+  presetsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: APP_COLORS.borderDefault
+  },
+  presetsHeader: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: APP_COLORS.textPrimary,
+    marginBottom: 10
+  },
+  presetChipsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap'
+  },
+  presetChip: {
+    flex: 1,
+    minWidth: '30%',
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  presetChipRed: {
+    backgroundColor: '#FEE2E2',
+    borderColor: '#FCA5A5'
+  },
+  presetChipAmber: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#FCD34D'
+  },
+  presetChipGreen: {
+    backgroundColor: '#DCFCE7',
+    borderColor: '#86EFAC'
+  },
+  presetChipTextRed: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#991B1B'
+  },
+  presetChipTextAmber: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#92400E'
+  },
+  presetChipTextGreen: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#166534'
+  },
+  historyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: APP_COLORS.borderDefault
+  },
+  historyHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4
+  },
+  historyTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: APP_COLORS.textPrimary
+  },
+  historySubBadge: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#047857',
+    backgroundColor: '#D1FAE5',
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: 6
+  },
+  historySubtitle: {
+    fontSize: 11,
+    color: APP_COLORS.textSecondary,
+    marginBottom: 10,
+    lineHeight: 15
+  },
+  historyItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    gap: 8
+  },
+  historyItemName: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: APP_COLORS.textPrimary
+  },
+  historyItemCoords: {
+    fontSize: 10,
+    color: APP_COLORS.textSecondary,
+    marginTop: 2
+  },
+  historyBadge: {
+    paddingVertical: 3,
+    paddingHorizontal: 7,
+    borderRadius: 6
+  },
+  badgeRed: {
+    backgroundColor: '#FEE2E2'
+  },
+  badgeOrange: {
+    backgroundColor: '#FFEDD5'
+  },
+  badgeYellow: {
+    backgroundColor: '#FEF3C7'
+  },
+  badgeGreen: {
+    backgroundColor: '#DCFCE7'
+  },
+  historyBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: APP_COLORS.textPrimary
   }
 });

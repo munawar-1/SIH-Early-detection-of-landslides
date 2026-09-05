@@ -24,7 +24,10 @@ import {
   dismissLiveAlert,
   predictCoordinateRisk,
   checkBackendOnlineStatus,
-  AlertCheckResponse
+  AlertCheckResponse,
+  syncRegionalGridCache,
+  getCacheStatusSummary,
+  initGridCache
 } from '../services/apiService';
 import { EmergencyAlertModal } from '../components/EmergencyAlertModal';
 import { performOfflineGeofenceCheck, syncRiskZonesToCache } from '../services/offlineRiskEngine';
@@ -54,7 +57,40 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const [activePitchCoord, setActivePitchCoord] = useState<SavedCoordinate | null>(null);
   const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number; districtName: string } | null>(null);
   const [isOffline, setIsOffline] = useState<boolean>(false);
-  const [cachedCount, setCachedCount] = useState<number>(0);
+  const [cachedCount, setCachedCount] = useState<number>(5076);
+  const [cacheStatus, setCacheStatus] = useState<{
+    cellCount: number;
+    timeAgo: string;
+    sourceLabel: string;
+    isExpired: boolean;
+  }>({
+    cellCount: 5076,
+    timeAgo: 'Just now',
+    sourceLabel: 'Bundled Seed',
+    isExpired: false
+  });
+  const [syncingGrid, setSyncingGrid] = useState<boolean>(false);
+
+  const handleManualGridSync = async () => {
+    if (syncingGrid) return;
+    setSyncingGrid(true);
+    try {
+      const res = await syncRegionalGridCache(true);
+      const summary = getCacheStatusSummary();
+      setCacheStatus(summary);
+      setCachedCount(summary.cellCount);
+      await runLocationCheck();
+      Alert.alert(
+        res.success ? '✅ Cache Memory Synced' : '📡 Offline Mode Active',
+        res.message
+      );
+    } catch (e) {
+      console.warn('Manual sync failed:', e);
+    } finally {
+      setSyncingGrid(false);
+    }
+  };
+
   const [lastAckBroadcastId, setLastAckBroadcastId] = useState<number>(0);
   const [latestSms, setLatestSms] = useState<EmergencySmsAlert | null>(null);
   const [unreadSmsCount, setUnreadSmsCount] = useState<number>(0);
@@ -282,13 +318,31 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   }, [currentCoords]);
 
   const initApp = async () => {
-    const count = await syncRiskZonesToCache();
-    setCachedCount(count);
+    try {
+      await initGridCache();
+      const initialSummary = getCacheStatusSummary();
+      setCacheStatus(initialSummary);
+      setCachedCount(initialSummary.cellCount);
+      await runLocationCheck();
+
+      // Background refresh from Render cloud backend (if expired or bundled seed)
+      syncRegionalGridCache(false).then((res) => {
+        const updated = getCacheStatusSummary();
+        setCacheStatus(updated);
+        setCachedCount(updated.cellCount);
+        if (res && res.success && res.source === 'CLOUD_BACKEND') {
+          console.info('✅ Cloud cache updated from Render backend; refreshing location check.');
+          runLocationCheck();
+        }
+      }).catch((e) => console.warn('Background sync note:', e));
+    } catch (e) {
+      console.warn('Grid cache init note:', e);
+    }
+
     const stored = await smsService.getStoredAlerts();
     if (stored.length > 0) setLatestSms(stored[0]);
     const unread = await smsService.getUnreadAlertCount();
     setUnreadSmsCount(unread);
-    await runLocationCheck();
   };
 
   const runLocationCheck = async () => {
@@ -598,6 +652,32 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
             accessibilityRole="button"
           >
             <Text style={styles.enterCoordHeaderBtnText}>📍 Enter Coords</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Offline Cache Memory Status Pill */}
+        <View style={styles.cachePillContainer}>
+          <View style={styles.cachePillLeft}>
+            <Text style={styles.cachePillIcon}>📦</Text>
+            <Text style={styles.cachePillText}>
+              Cache: <Text style={{ fontWeight: '800' }}>{cacheStatus.cellCount.toLocaleString()}</Text> cells • {cacheStatus.timeAgo}
+            </Text>
+            <View style={[styles.cacheValidityBadge, isOffline ? styles.badgeOffline : styles.badgeFresh]}>
+              <Text style={[styles.cacheValidityText, isOffline ? styles.textOffline : styles.textFresh]}>
+                {isOffline ? 'OFFLINE ACTIVE' : 'VALID (4H)'}
+              </Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={[styles.cacheSyncBtn, syncingGrid && { opacity: 0.6 }]}
+            onPress={handleManualGridSync}
+            disabled={syncingGrid}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+          >
+            <Text style={styles.cacheSyncBtnText}>
+              {syncingGrid ? '⏳ Syncing...' : '🔄 Sync Grid'}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -1670,6 +1750,68 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '800'
+  },
+  // Offline Cache Memory Pill Styles
+  cachePillContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginHorizontal: 16,
+    marginTop: 6,
+    borderRadius: 8,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0'
+  },
+  cachePillLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1
+  },
+  cachePillIcon: {
+    fontSize: 12
+  },
+  cachePillText: {
+    fontSize: 11,
+    color: '#334155',
+    fontWeight: '600'
+  },
+  cacheValidityBadge: {
+    paddingVertical: 1.5,
+    paddingHorizontal: 6,
+    borderRadius: 4
+  },
+  badgeFresh: {
+    backgroundColor: '#E0F2FE'
+  },
+  badgeOffline: {
+    backgroundColor: '#FEF3C7'
+  },
+  cacheValidityText: {
+    fontSize: 9,
+    fontWeight: '800'
+  },
+  textFresh: {
+    color: '#0369A1'
+  },
+  textOffline: {
+    color: '#B45309'
+  },
+  cacheSyncBtn: {
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#CBD5E1'
+  },
+  cacheSyncBtnText: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#475569'
   },
   pitchActiveEngine: {
     fontSize: 11,

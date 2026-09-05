@@ -82,7 +82,7 @@ export default function App() {
           { paddingTop: Platform.OS === 'android' ? insets.top : 0 }
         ]}
       >
-        <StatusBar style="dark" translucent={Platform.OS === 'android'} backgroundColor="transparent" />
+        <StatusBar style="dark" />
 
         {/* Global Non-Blocking Incoming SMS Banner */}
         <SmsAlertBanner

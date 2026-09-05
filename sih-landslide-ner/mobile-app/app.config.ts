@@ -1,6 +1,6 @@
 import { ExpoConfig, ConfigContext } from 'expo/config';
 
-export default ({ config }: ConfigContext): ExpoConfig => ({
+export default ({ config }: ConfigContext): any => ({
   ...config,
   name: 'NER Landslide Citizen Early Warning',
   slug: 'ner-landslide-citizen',
@@ -43,7 +43,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   web: {
     favicon: './assets/favicon.png'
   },
-  plugins: ['expo-secure-store'],
+  plugins: ['expo-secure-store', 'expo-status-bar'],
   extra: {
     apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL || 'https://ner-landslide-backend.onrender.com',
     mlApiBaseUrl: process.env.EXPO_PUBLIC_ML_API_BASE_URL || 'https://sih-early-detection-of-landslides.onrender.com',

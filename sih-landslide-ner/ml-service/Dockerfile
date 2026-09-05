@@ -25,8 +25,9 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy model artifacts and application code
+# Copy model artifacts, GIS data grids, and application code
 COPY models ./models
+COPY data ./data
 COPY src ./src
 
 # Set ownership of /app to appuser

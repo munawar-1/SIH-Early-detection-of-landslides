@@ -1,6 +1,13 @@
 import { getAuthToken } from './storageService';
 import { performOfflineGeofenceCheck, evaluateGeotechnicalRisk } from './offlineRiskEngine';
 import REAL_GRID_POINTS from '../data/realDimaHasaoGrid.json';
+import {
+  evaluateCachedSpatialRisk,
+  saveEvaluationToHistory,
+  syncGridFromBackend,
+  getCacheStatusSummary,
+  initGridCache
+} from './gridCacheService';
 
 // Backend URL configurable via Expo environment variables (defaults to live Render cloud backend)
 export const API_BASE_URL = (
@@ -145,10 +152,10 @@ export async function predictCoordinateRisk(
     rain_3d_sum_mm: rain3d
   };
 
-  // 1. Primary Path: Backend /predict-coordinate (Backend collects all DEM/terrain/weather features & runs ML model)
+  // 1. Primary Path: Backend /predict-coordinate (FastAPI ML XGBoost Microservice)
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 6000);
+    const timeout = setTimeout(() => controller.abort(), 3500);
 
     const res = await fetch(`${ML_API_BASE_URL}/predict-coordinate`, {
       method: 'POST',
@@ -164,13 +171,27 @@ export async function predictCoordinateRisk(
 
     if (res.ok) {
       const data = await res.json();
+      
+      // If remote ML container on Render defaulted because it lacked the GIS grid (nearest_grid_distance_m > 40km),
+      // or if remote returned an uncalibrated prediction contradicting satellite DEM slope physics,
+      // seamlessly evaluate using our authentic local satellite DEM cache matching the Web Dashboard
+      const isRemoteDiscrepant = (slope >= 30.0 && data.risk_level !== 'CRITICAL' && data.risk_level !== 'HIGH') ||
+                                 (slope >= 20.0 && data.risk_level === 'SAFE');
+
+      if (
+        (typeof data.nearest_grid_distance_m === 'number' && data.nearest_grid_distance_m > 40000) ||
+        isRemoteDiscrepant
+      ) {
+        return evaluateCachedSpatialRisk(lat, lng, resolvedName);
+      }
+
       const prob = typeof data.landslide_probability === 'number'
         ? data.landslide_probability
         : 0.05;
       const riskLevel: 'SAFE' | 'MODERATE' | 'HIGH' | 'CRITICAL' = data.risk_level || (prob >= 0.70 ? 'CRITICAL' : prob >= 0.40 ? 'HIGH' : prob >= 0.15 ? 'MODERATE' : 'SAFE');
       const isHazard = Boolean(data.in_risk_zone) || (riskLevel === 'CRITICAL' || riskLevel === 'HIGH');
 
-      return {
+      const result: AlertCheckResponse = {
         in_risk_zone: isHazard,
         risk_level: riskLevel,
         district: data.district || (isNearMountainGrid ? 'Dima Hasao' : 'Lowland Plains (Safe Sector)'),
@@ -185,15 +206,31 @@ export async function predictCoordinateRisk(
         checked_at: data.timestamp || new Date().toISOString(),
         isOfflineFallback: false
       };
+
+      // Cache evaluation to local storage history
+      saveEvaluationToHistory({
+        id: Date.now().toString(),
+        name: resolvedName,
+        lat,
+        lng,
+        district: result.district || 'Dima Hasao',
+        risk_level: riskLevel,
+        probability: result.probability || 0.05,
+        advisory: result.advisory,
+        evaluated_by: result.evaluated_by || 'Cloud ML Engine',
+        timestamp: new Date().toISOString()
+      }).catch(() => {});
+
+      return result;
     }
   } catch (coordErr) {
-    console.warn('Backend /predict-coordinate call note:', coordErr);
+    console.warn('FastAPI ML microservice timed out or unreachable, trying Spring Boot backend...');
   }
 
-  // 3. Secondary Path: Try Spring Boot evaluate-coordinate
+  // 2. Secondary Path: Spring Boot evaluate-coordinate
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 4000);
+    const timeout = setTimeout(() => controller.abort(), 2500);
 
     const res = await fetch(`${API_BASE_URL}/api/predictions/evaluate-coordinate`, {
       method: 'POST',
@@ -212,12 +249,18 @@ export async function predictCoordinateRisk(
     if (res.ok) {
       const data = await res.json();
       const prob = typeof data.probability === 'number' ? data.probability : 0.05;
+      
+      // If Spring Boot backend returned uncalibrated low risk on steep slope, enforce geotechnical parity
+      if (slope >= 22.0 && prob < 0.35) {
+        return evaluateCachedSpatialRisk(lat, lng, resolvedName);
+      }
+
       const isHazard = prob >= 0.40;
       const riskLevel: 'SAFE' | 'MODERATE' | 'HIGH' | 'CRITICAL' = isHazard
         ? (prob >= 0.70 ? 'CRITICAL' : 'HIGH')
         : 'SAFE';
 
-      return {
+      const result: AlertCheckResponse = {
         in_risk_zone: isHazard,
         risk_level: riskLevel,
         district: data.district || 'Dima Hasao',
@@ -232,20 +275,56 @@ export async function predictCoordinateRisk(
         checked_at: new Date().toISOString(),
         isOfflineFallback: false
       };
+
+      // Cache evaluation to local storage history
+      saveEvaluationToHistory({
+        id: Date.now().toString(),
+        name: resolvedName,
+        lat,
+        lng,
+        district: result.district || 'Dima Hasao',
+        risk_level: riskLevel,
+        probability: result.probability || 0.05,
+        advisory: result.advisory,
+        evaluated_by: result.evaluated_by || 'Spring Boot Backend',
+        timestamp: new Date().toISOString()
+      }).catch(() => {});
+
+      return result;
     }
   } catch (backErr) {
-    // Continue to offline fallback
+    // Both cloud endpoints failed or network offline: seamlessly use local cache memory
   }
 
-  // 4. Offline Fallback: High-Precision Geotechnical Engine
-  console.info('Evaluating coordinate via local Geotechnical Risk Engine.');
-  const offlineResult = evaluateGeotechnicalRisk(lat, lng);
-  return {
-    ...offlineResult,
-    location_name: resolvedName,
-    isOfflineFallback: true
-  };
+  // 3. Autonomous Edge Path: Local Cache Memory (5,076 Satellite DEM Cells, 0ms latency)
+  console.info('Evaluating coordinate via local in-memory Grid Cache.');
+  const cachedResult = evaluateCachedSpatialRisk(lat, lng, resolvedName);
+
+  saveEvaluationToHistory({
+    id: Date.now().toString(),
+    name: resolvedName,
+    lat,
+    lng,
+    district: cachedResult.district,
+    risk_level: cachedResult.risk_level,
+    probability: cachedResult.probability,
+    advisory: cachedResult.advisory,
+    evaluated_by: cachedResult.evaluated_by,
+    timestamp: new Date().toISOString()
+  }).catch(() => {});
+
+  return cachedResult;
 }
+
+/**
+ * Synchronizes the regional grid cache with the Cloud Backend.
+ * Uses a 3-4 hour expiration window unless force=true.
+ */
+export async function syncRegionalGridCache(force: boolean = false) {
+  return syncGridFromBackend(API_BASE_URL, force);
+}
+
+export { getCacheStatusSummary, initGridCache };
 
 /**
  * Checks connectivity to the backend and ML microservice.

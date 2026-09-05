@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import REAL_GRID_DATA from '../data/realGridData';
+import { REAL_GRID_DATA } from '../data/realGridData';
+import { initGridCache, findNearestCachedPoint } from './gridCacheService';
 
 export interface AlertCheckResponse {
   in_risk_zone: boolean;
@@ -56,18 +57,8 @@ export function evaluateGeotechnicalRisk(lat: number, lon: number): AlertCheckRe
     };
   }
 
-  // Find the closest grid point in authentic Dima Hasao satellite DEM (5,076 cells)
-  let minDistKm = Infinity;
-  let nearestPoint = REAL_GRID_DATA[0];
-
-  for (let i = 0; i < REAL_GRID_DATA.length; i++) {
-    const p = REAL_GRID_DATA[i];
-    const dist = haversineKm(lat, lon, p.lat, p.lng);
-    if (dist < minDistKm) {
-      minDistKm = dist;
-      nearestPoint = p;
-    }
-  }
+  // Find closest cell using dynamic local in-memory Grid Cache
+  const { point: nearestPoint, distanceKm: minDistKm } = findNearestCachedPoint(lat, lon);
 
   const distanceMeters = Math.round(minDistKm * 1000);
   const isNearCell = minDistKm <= 6.0;
@@ -146,7 +137,12 @@ export async function performOfflineGeofenceCheck(lat: number, lng: number): Pro
 }
 
 export async function syncRiskZonesToCache(): Promise<number> {
-  return 5076;
+  try {
+    const meta = await initGridCache();
+    return meta.pointCount || 5076;
+  } catch (e) {
+    return 5076;
+  }
 }
 
 export async function flushOfflineQueueToBackend(): Promise<number> {

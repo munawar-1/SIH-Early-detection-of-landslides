@@ -28,7 +28,7 @@ export const SmsAlertBanner: React.FC<SmsAlertBannerProps> = ({ onViewSms, onOpe
   const insets = getSafeAreaInsets();
   const OFFSCREEN_Y = -250;
   const translateY = useRef(new Animated.Value(OFFSCREEN_Y)).current;
-  const dismissTimer = useRef<NodeJS.Timeout | null>(null);
+  const dismissTimer = useRef<any>(null);
 
   useEffect(() => {
     AccessibilityInfo.isReduceMotionEnabled?.().then((enabled) => {
