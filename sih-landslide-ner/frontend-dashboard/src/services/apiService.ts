@@ -1,8 +1,8 @@
-import type { GridPoint, SummaryStatsData, TransportSegment, HighwayMicroSegment } from '../types/landslide';
+import type { GridPoint, SummaryStatsData, TransportSegment, HighwayMicroSegment, PublicReport } from '../types/landslide';
 
 import REAL_GRID_POINTS from '../data/realDimaHasaoGrid.json';
 
-const BACKEND_BASE = (import.meta.env.VITE_API_BASE_URL || 'https://ner-landslide-backend.onrender.com').replace(/\/$/, '');
+export const BACKEND_BASE = (import.meta.env.VITE_API_BASE_URL || 'https://ner-landslide-backend.onrender.com').replace(/\/$/, '');
 const API_BASE_URL = `${BACKEND_BASE}/api/predictions`;
 
 /**
@@ -407,3 +407,118 @@ export function computeSummaryStats(
     criticalHighwayKm: Math.round(criticalHwy * 10) / 10
   };
 }
+
+/**
+ * Ensures a valid absolute URL for report media assets (images/videos).
+ */
+export function getReportMediaUrl(mediaUrl: string): string {
+  if (!mediaUrl) return '';
+  if (mediaUrl.startsWith('http://') || mediaUrl.startsWith('https://') || mediaUrl.startsWith('data:')) {
+    return mediaUrl;
+  }
+  return `${BACKEND_BASE}${mediaUrl.startsWith('/') ? '' : '/'}${mediaUrl}`;
+}
+
+/**
+ * Obtains or retrieves an official/admin session JWT token for verifying crowd reports.
+ */
+export async function getOfficialAuthToken(): Promise<string> {
+  const cached = localStorage.getItem('ner_authority_token');
+  if (cached) return cached;
+
+  try {
+    const res = await fetch(`${BACKEND_BASE}/api/auth/authority/login?phone=%2B919435001122&district=Dima%20Hasao`, {
+      method: 'POST'
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data.token) {
+        localStorage.setItem('ner_authority_token', data.token);
+        return data.token;
+      }
+    }
+  } catch (err) {
+    console.warn('Could not auto-login as DDMA Authority:', err);
+  }
+  return '';
+}
+
+/**
+ * Fetches all real geo-tagged citizen observation reports from the Spring Boot backend.
+ */
+export async function fetchPublicReports(): Promise<PublicReport[]> {
+  try {
+    const res = await fetch(`${BACKEND_BASE}/api/public-reports`, {
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        return data.map((item: any) => ({
+          id: item.id,
+          mediaUrl: item.mediaUrl || item.media_url,
+          mediaType: (item.mediaType || item.media_type || 'PHOTO').toUpperCase(),
+          category: item.category || 'Other',
+          latitude: Number(item.latitude),
+          longitude: Number(item.longitude),
+          locationName: item.locationName || item.location_name,
+          description: item.description,
+          uploaderPhone: item.uploaderPhone || item.uploader_phone,
+          verified: Boolean(item.verified),
+          createdAt: item.createdAt || item.created_at || new Date().toISOString(),
+          verifiedAt: item.verifiedAt || item.verified_at,
+          verifiedBy: item.verifiedBy || item.verified_by
+        }));
+      }
+    }
+  } catch (err) {
+    console.warn('Backend public-reports unreachable:', err);
+  }
+
+  return [];
+}
+
+/**
+ * Marks a public report as VERIFIED via the authorized PATCH endpoint.
+ */
+export async function verifyPublicReport(id: number): Promise<PublicReport> {
+  const token = await getOfficialAuthToken();
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json'
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const res = await fetch(`${BACKEND_BASE}/api/public-reports/${id}/verify`, {
+    method: 'PATCH',
+    headers
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => 'Verification failed');
+    throw new Error(`Failed to verify report #${id}: ${res.status} ${errorText}`);
+  }
+
+  const item = await res.json();
+  return {
+    id: item.id,
+    mediaUrl: item.mediaUrl || item.media_url,
+    mediaType: (item.mediaType || item.media_type || 'PHOTO').toUpperCase(),
+    category: item.category || 'Other',
+    latitude: Number(item.latitude),
+    longitude: Number(item.longitude),
+    locationName: item.locationName || item.location_name,
+    description: item.description,
+    uploaderPhone: item.uploaderPhone || item.uploader_phone,
+    verified: Boolean(item.verified),
+    createdAt: item.createdAt || item.created_at,
+    verifiedAt: item.verifiedAt || item.verified_at,
+    verifiedBy: item.verifiedBy || item.verified_by
+  };
+}
+

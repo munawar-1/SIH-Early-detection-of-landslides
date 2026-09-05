@@ -46,9 +46,13 @@ public class SecurityConfig {
                     "/api/predictions/**",
                     "/api/risk-zones/**",
                     "/actuator/**",
-                    "/error"
+                    "/error",
+                    "/uploads/**"
                 ).permitAll()
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                .requestMatchers(HttpMethod.PATCH, "/api/public-reports/*/verify", "/api/public-reports/**/verify").hasAnyAuthority("ROLE_AUTHORITY", "ROLE_ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/public-reports", "/api/public-reports/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/public-reports").permitAll()
                 .requestMatchers("/api/authority/**").hasAnyAuthority("ROLE_AUTHORITY", "ROLE_ADMIN")
                 .anyRequest().authenticated()
             )

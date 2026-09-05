@@ -28,6 +28,7 @@ import { MonsoonSimulationPage } from './pages/MonsoonSimulationPage';
 import { CorridorsPage } from './pages/CorridorsPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { AlertsPage } from './pages/AlertsPage';
+import { PublicReportsPage } from './pages/PublicReportsPage';
 import { PointDetailsModal } from './components/Modal/PointDetailsModal';
 
 import {
@@ -43,11 +44,12 @@ import {
   Info,
   Home,
   Compass,
-  CloudRain
+  CloudRain,
+  Camera
 } from 'lucide-react';
 import './index.css';
 
-type ActivePage = 'landing' | 'map' | 'simulation' | 'corridors' | 'analytics' | 'alerts';
+type ActivePage = 'landing' | 'map' | 'simulation' | 'corridors' | 'analytics' | 'alerts' | 'public-reports';
 
 const DEFAULT_FILTERS: FilterState = {
   minRiskLevel: 'ALL',
@@ -295,6 +297,14 @@ export const App: React.FC = () => {
               <span className="nav-badge-count">{stats.highRiskCount}</span>
             )}
           </button>
+
+          <button
+            className={`nav-link-btn ${currentPage === 'public-reports' ? 'active' : ''}`}
+            onClick={() => setCurrentPage('public-reports')}
+          >
+            <Camera size={15} />
+            <span>Public Reports</span>
+          </button>
         </nav>
 
         {/* Header Right Actions */}
@@ -411,6 +421,10 @@ export const App: React.FC = () => {
                 highways={highways}
                 stations={stations}
               />
+            )}
+
+            {currentPage === 'public-reports' && (
+              <PublicReportsPage />
             )}
           </>
         )}

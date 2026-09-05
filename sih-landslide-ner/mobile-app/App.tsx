@@ -7,14 +7,26 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Text,
-  Platform
+  Platform,
+  LogBox
 } from 'react-native';
+
+// Suppress known development-only warning popups
+LogBox.ignoreLogs([
+  'SafeAreaView has been deprecated',
+  'FastAPI ML microservice timed out',
+  'Background grid sync attempted',
+  'Fetch request has been canceled',
+  'Cannot connect to Expo CLI',
+  'Method uploadAsync imported from'
+]);
 import { LoginScreen } from './src/screens/LoginScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { LocationPermissionScreen } from './src/screens/LocationPermissionScreen';
 import { PitchSimulationScreen } from './src/screens/PitchSimulationScreen';
 import { SmsInboxScreen } from './src/screens/SmsInboxScreen';
 import { SosSmsScreen } from './src/screens/SosSmsScreen';
+import { UploadReportScreen } from './src/screens/UploadReportScreen';
 import { SmsAlertBanner } from './src/components/SmsAlertBanner';
 import { InjuryFirstAidModal } from './src/components/InjuryFirstAidModal';
 import { smsService } from './src/services/smsService';
@@ -22,7 +34,7 @@ import { getAuthToken, removeAuthToken } from './src/services/storageService';
 import { APP_COLORS } from './src/constants/theme';
 import { getSafeAreaInsets, WEB_CONTAINER_STYLE } from './src/constants/layout';
 
-type AppTab = 'MONITOR' | 'SMS_INBOX' | 'SOS';
+type AppTab = 'MONITOR' | 'UPLOAD' | 'SMS_INBOX' | 'SOS';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -114,6 +126,10 @@ export default function App() {
                 />
               )}
 
+              {activeTab === 'UPLOAD' && (
+                <UploadReportScreen />
+              )}
+
               {activeTab === 'SMS_INBOX' && (
                 <SmsInboxScreen onOpenSos={() => setActiveTab('SOS')} />
               )}
@@ -121,7 +137,7 @@ export default function App() {
               {activeTab === 'SOS' && <SosSmsScreen />}
             </View>
 
-            {/* Bottom 3-Tab Navigation Bar with Safe Area Bottom Inset */}
+            {/* Bottom 4-Tab Navigation Bar with Safe Area Bottom Inset */}
             <View
               style={[
                 styles.bottomNav,
@@ -147,7 +163,23 @@ export default function App() {
                 </Text>
               </TouchableOpacity>
 
-              {/* Tab 2: SMS Alerts */}
+              {/* Tab 2: Upload */}
+              <TouchableOpacity
+                style={[styles.navItem, activeTab === 'UPLOAD' && styles.navItemActive]}
+                onPress={() => setActiveTab('UPLOAD')}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: activeTab === 'UPLOAD' }}
+                accessibilityLabel="Upload Tab: Geo-tagged photo and video reports"
+              >
+                <Text style={[styles.navIconText, activeTab === 'UPLOAD' && styles.navIconTextActive]}>
+                  📸
+                </Text>
+                <Text style={[styles.navLabel, activeTab === 'UPLOAD' && styles.navLabelActive]} numberOfLines={1}>
+                  Upload
+                </Text>
+              </TouchableOpacity>
+
+              {/* Tab 3: SMS Alerts */}
               <TouchableOpacity
                 style={[styles.navItem, activeTab === 'SMS_INBOX' && styles.navItemActive]}
                 onPress={() => setActiveTab('SMS_INBOX')}

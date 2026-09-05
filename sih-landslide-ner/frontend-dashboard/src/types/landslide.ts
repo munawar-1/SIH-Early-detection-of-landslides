@@ -93,3 +93,19 @@ export interface SummaryStatsData {
   criticalRailwayKm: number;
   criticalHighwayKm: number;
 }
+
+export interface PublicReport {
+  id: number;
+  mediaUrl: string;
+  mediaType: 'PHOTO' | 'VIDEO';
+  category: 'Crack' | 'Slope Movement' | 'Blocked Road' | 'Other' | string;
+  latitude: number;
+  longitude: number;
+  locationName?: string;
+  description?: string;
+  uploaderPhone?: string;
+  verified: boolean;
+  createdAt: string;
+  verifiedAt?: string;
+  verifiedBy?: string;
+}

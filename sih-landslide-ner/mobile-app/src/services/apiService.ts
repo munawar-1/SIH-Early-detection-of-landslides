@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+import * as FileSystem from 'expo-file-system/legacy';
 import { getAuthToken } from './storageService';
 import { performOfflineGeofenceCheck, evaluateGeotechnicalRisk } from './offlineRiskEngine';
 import REAL_GRID_POINTS from '../data/realDimaHasaoGrid.json';
@@ -554,5 +556,104 @@ export async function dismissActiveBroadcast(sourceFilter?: 'SIMULATOR' | 'LIVE_
     )
   );
 }
+
+export interface SubmitReportParams {
+  uri: string;
+  name?: string;
+  type?: string;
+  mediaType: 'PHOTO' | 'VIDEO';
+  category: string;
+  latitude: number;
+  longitude: number;
+  locationName?: string;
+  description?: string;
+  uploaderPhone?: string;
+}
+
+/**
+ * Uploads a real photo/video observation report with actual device GPS coordinates to the Spring Boot backend.
+ */
+export async function submitPublicReport(params: SubmitReportParams): Promise<any> {
+  const defaultExt = params.mediaType === 'VIDEO' ? 'mp4' : 'jpg';
+  const defaultMime = params.mediaType === 'VIDEO' ? 'video/mp4' : 'image/jpeg';
+  const filename = params.name || `citizen_report_${Date.now()}.${defaultExt}`;
+  const mimeType = params.type || defaultMime;
+  const token = await getAuthToken();
+
+  // 1. On Native Mobile (Android & iOS): Use FileSystem.uploadAsync to reliably stream multipart files without FormDataPart issues
+  if (Platform.OS !== 'web' && FileSystem.uploadAsync) {
+    const uploadHeaders: Record<string, string> = {
+      'Accept': 'application/json'
+    };
+    if (token) {
+      uploadHeaders['Authorization'] = `Bearer ${token}`;
+    }
+
+    const uploadParameters: Record<string, string> = {
+      category: params.category,
+      latitude: params.latitude.toString(),
+      longitude: params.longitude.toString(),
+      mediaType: params.mediaType
+    };
+
+    if (params.locationName) uploadParameters['locationName'] = params.locationName;
+    if (params.description) uploadParameters['description'] = params.description;
+    if (params.uploaderPhone) uploadParameters['uploaderPhone'] = params.uploaderPhone;
+
+    const res = await FileSystem.uploadAsync(`${API_BASE_URL}/api/public-reports`, params.uri, {
+      httpMethod: 'POST',
+      uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+      fieldName: 'file',
+      mimeType: mimeType,
+      parameters: uploadParameters,
+      headers: uploadHeaders
+    });
+
+    if (res.status < 200 || res.status >= 300) {
+      throw new Error(`Report upload failed (${res.status}): ${res.body}`);
+    }
+
+    try {
+      return JSON.parse(res.body);
+    } catch {
+      return { status: 'SUCCESS', body: res.body };
+    }
+  }
+
+  // 2. On Web: Fetch the local blob and append to browser FormData
+  const formData = new FormData();
+  const resBlob = await fetch(params.uri);
+  const blob = await resBlob.blob();
+  formData.append('file', blob, filename);
+
+  formData.append('category', params.category);
+  formData.append('latitude', params.latitude.toString());
+  formData.append('longitude', params.longitude.toString());
+  formData.append('mediaType', params.mediaType);
+  if (params.locationName) formData.append('locationName', params.locationName);
+  if (params.description) formData.append('description', params.description);
+  if (params.uploaderPhone) formData.append('uploaderPhone', params.uploaderPhone);
+
+  const headers: Record<string, string> = {
+    'Accept': 'application/json'
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}/api/public-reports`, {
+    method: 'POST',
+    headers,
+    body: formData
+  });
+
+  if (!response.ok) {
+    const errText = await response.text().catch(() => 'Upload failed');
+    throw new Error(`Report upload failed (${response.status}): ${errText}`);
+  }
+
+  return await response.json();
+}
+
 
 
