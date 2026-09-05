@@ -50,15 +50,26 @@ public class DataSeeder implements CommandLineRunner {
             try {
                 long currentCount = repository.count();
                 long riskZoneCount = riskZoneRepository.count();
+                boolean forceReseed = "true".equalsIgnoreCase(System.getenv("FORCE_RESEED")) 
+                        || "true".equalsIgnoreCase(System.getProperty("force.reseed"));
 
-                if (currentCount == 5076 && riskZoneCount > 0) {
-                    logger.info("Database contains exact 5,076 authentic Dima Hasao grid points & {} risk zones. Triggering live prediction pipeline...", riskZoneCount);
+                // Auto-detect if Supabase is still holding old uncalibrated baseline soil data
+                boolean needsSoilUpdate = false;
+                if (currentCount > 0) {
+                    var sample = repository.findAll().stream().findFirst();
+                    if (sample.isPresent() && sample.get().getClayPercent() > 30.0) {
+                        needsSoilUpdate = true;
+                    }
+                }
+
+                if (!forceReseed && !needsSoilUpdate && currentCount == 5076 && riskZoneCount > 0) {
+                    logger.info("Database contains exact 5,076 authentic Dima Hasao grid points & {} risk zones with calibrated ISRIC data. Triggering live prediction pipeline...", riskZoneCount);
                     orchestrationService.processDailyPredictions();
                     syncRiskZonesFromGridPoints();
                     return;
                 }
 
-                logger.info("Database contains {} points (expected 5,076 authentic points). Re-seeding database fresh...", currentCount);
+                logger.info("Re-seeding Supabase database fresh with authentic ISRIC soil grid (force={}, needsUpdate={}, count={})...", forceReseed, needsSoilUpdate, currentCount);
                 reseedDatabase();
             } catch (Exception e) {
                 logger.warn("Background seeding encountered note: {}", e.getMessage());

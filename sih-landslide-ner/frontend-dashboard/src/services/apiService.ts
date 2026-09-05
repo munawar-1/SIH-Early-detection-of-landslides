@@ -120,7 +120,7 @@ export async function fetchLiveOpenMeteoRainfall(points: GridPoint[]): Promise<G
     const res = await fetch(
       `https://api.open-meteo.com/v1/forecast?latitude=${latSample}&longitude=${lonSample}&daily=precipitation_sum&forecast_days=3&timezone=auto`
     );
-    
+
     // Default true zero readings if weather API unreachable
     let weatherCenters = [
       { lat: 25.18, lon: 92.76, d1: 0.0, d2: 0.0, d3: 0.0 }, // Haflong
@@ -158,7 +158,7 @@ export async function fetchLiveOpenMeteoRainfall(points: GridPoint[]): Promise<G
       // Orographic elevation factor: higher peaks experience enhanced precipitation
       const elevFactor = Math.max(0, (p.elevation - 200) / 400.0);
       const slopeFactor = p.slope >= 28.0 ? 3.5 : 0.0;
-      
+
       const rainDay1 = Math.round((nearest.d1 + elevFactor * 2.2 + slopeFactor) * 10) / 10;
       const rainDay2 = Math.round((nearest.d2 + elevFactor * 3.4 + slopeFactor * 1.5) * 10) / 10;
       const rainDay3 = Math.round((nearest.d3 + elevFactor * 1.8 + slopeFactor * 0.8) * 10) / 10;
@@ -167,7 +167,7 @@ export async function fetchLiveOpenMeteoRainfall(points: GridPoint[]): Promise<G
       const rain7dApi = rainDay1 + (rainDay2 + rainDay3) * 0.84 + 14.0 * 0.50;
       const sandPercent = Math.max(20.0, 100.0 - (p.clayPercent + 35.0));
       const porePressureIndex = (Math.sin(slopeRad) * (rain7dApi * p.clayPercent)) / (100.0 * 1.18 * (1.0 + sandPercent / 100.0));
-      
+
       // Slope and soil mechanics baseline (elevated risk on steep slopes >22° and >34°)
       const criticalBonus = p.slope >= 34.0 ? 0.42 : (p.slope >= 22.0 ? 0.22 : 0.0);
       const baseProb = 1.0 / (1.0 + Math.exp(-0.25 * (porePressureIndex - 11.0)));
@@ -211,10 +211,10 @@ export async function triggerLivePipeline(): Promise<{ success: boolean; message
     const res = await response.json();
     return { success: true, message: res.message || 'Live assessment initiated on backend.', isLive: true };
   } catch (err: any) {
-    return { 
-      success: false, 
+    return {
+      success: false,
       message: 'Backend server (:8080) is offline. Recalculating using live Open-Meteo satellite feed & GIS simulation.',
-      isLive: false 
+      isLive: false
     };
   }
 }
@@ -312,7 +312,7 @@ export function evaluateHighwayMicroSegments(
     let maxProb = 0;
     let highRiskNearCount = 0;
     let reasons: Set<string> = new Set();
-    
+
     for (const point of gridPoints) {
       let minDistance = Infinity;
       if (seg.coordinates) {
@@ -325,7 +325,7 @@ export function evaluateHighwayMicroSegments(
       if (minDistance <= bufferKm) {
         if (point.probability > maxProb) maxProb = point.probability;
         if (point.riskLevel === 'HIGH') highRiskNearCount++;
-        
+
         if (point.probability >= 0.40) {
           if (point.slope >= 30) reasons.add('Steep Slope (>30°)');
           if (point.clayPercent >= 40) reasons.add('High Clay/Shale Content');

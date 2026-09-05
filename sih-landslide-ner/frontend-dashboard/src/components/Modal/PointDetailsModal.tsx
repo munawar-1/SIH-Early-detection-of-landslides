@@ -1,12 +1,12 @@
 import React from 'react';
 import type { GridPoint, TransportSegment, StationNode } from '../../types/landslide';
-import { 
-  X, 
-  MapPin, 
-  Layers, 
-  CloudRain, 
-  ShieldAlert, 
-  Train, 
+import {
+  X,
+  MapPin,
+  Layers,
+  CloudRain,
+  ShieldAlert,
+  Train,
   Navigation,
   Gauge,
   AlertCircle

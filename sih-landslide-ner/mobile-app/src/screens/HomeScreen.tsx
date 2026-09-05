@@ -15,16 +15,16 @@ import {
 } from 'react-native';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { 
-  checkAlert, 
-  updateLocation, 
-  fetchActiveBroadcast, 
+import {
+  checkAlert,
+  updateLocation,
+  fetchActiveBroadcast,
   dismissActiveBroadcast,
   fetchLiveAlert,
   dismissLiveAlert,
   predictCoordinateRisk,
   checkBackendOnlineStatus,
-  AlertCheckResponse 
+  AlertCheckResponse
 } from '../services/apiService';
 import { EmergencyAlertModal } from '../components/EmergencyAlertModal';
 import { performOfflineGeofenceCheck, syncRiskZonesToCache } from '../services/offlineRiskEngine';
@@ -441,53 +441,53 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const statusIndicatorText = isSafe
     ? 'MONITORING NORMAL'
     : isCritical
-    ? 'CRITICAL HAZARD ALERT'
-    : isHigh
-    ? 'HIGH HAZARD WARNING'
-    : 'MODERATE ADVISORY';
+      ? 'CRITICAL HAZARD ALERT'
+      : isHigh
+        ? 'HIGH HAZARD WARNING'
+        : 'MODERATE ADVISORY';
 
   const statusHeading = isCritical
     ? 'CRITICAL HAZARD ZONE'
     : isHigh
-    ? 'HIGH WARNING HAZARD ZONE'
-    : isModerate
-    ? 'MODERATE ADVISORY ZONE'
-    : 'SAFE ZONE VERIFIED';
+      ? 'HIGH WARNING HAZARD ZONE'
+      : isModerate
+        ? 'MODERATE ADVISORY ZONE'
+        : 'SAFE ZONE VERIFIED';
 
   const statusSubLabel = isSafe
     ? 'No imminent landslide threat detected at your current coordinates.'
     : isCritical
-    ? 'Immediate danger: Severe slope instability & critical debris-flow threat.'
-    : isHigh
-    ? 'High hazard detected: Heavy soil saturation & elevated rockfall potential.'
-    : 'Moderate slope alert: Saturated ground conditions monitored in sector.';
+      ? 'Immediate danger: Severe slope instability & critical debris-flow threat.'
+      : isHigh
+        ? 'High hazard detected: Heavy soil saturation & elevated rockfall potential.'
+        : 'Moderate slope alert: Saturated ground conditions monitored in sector.';
 
   const probabilityPercent = alertStatus?.probability !== undefined
     ? Math.round(alertStatus.probability * 100)
     : isCritical
-    ? 94
-    : isHigh
-    ? 75
-    : isModerate
-    ? 45
-    : 8;
+      ? 94
+      : isHigh
+        ? 75
+        : isModerate
+          ? 45
+          : 8;
 
   const riskScoreLabel = isSafe
     ? `${probabilityPercent}% Low`
     : isCritical
-    ? `${probabilityPercent}% Critical`
-    : isHigh
-    ? `${probabilityPercent}% High`
-    : `${probabilityPercent}% Moderate`;
+      ? `${probabilityPercent}% Critical`
+      : isHigh
+        ? `${probabilityPercent}% High`
+        : `${probabilityPercent}% Moderate`;
 
   const citizenActionText = alertStatus?.action_required || (
     isCritical
       ? 'Move away from steep slopes, cliff edges, and natural drainage paths immediately.'
       : isHigh
-      ? 'Stay vigilant for ground movement, bulging retaining walls, and localized rockfalls.'
-      : isModerate
-      ? 'Monitor weather forecasts and avoid non-essential hillside corridor transit.'
-      : 'Normal conditions verified. Maintain standard situational awareness during monsoon.'
+        ? 'Stay vigilant for ground movement, bulging retaining walls, and localized rockfalls.'
+        : isModerate
+          ? 'Monitor weather forecasts and avoid non-essential hillside corridor transit.'
+          : 'Normal conditions verified. Maintain standard situational awareness during monsoon.'
   );
 
   const theme = getThreatTheme(currentRiskLevel);
