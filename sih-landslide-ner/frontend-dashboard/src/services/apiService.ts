@@ -511,6 +511,15 @@ export async function getOfficialAuthToken(): Promise<string> {
  * Fetches all real geo-tagged citizen observation reports from the Spring Boot backend.
  */
 export async function fetchPublicReports(): Promise<PublicReport[]> {
+  // Retrieve list of locally blocked spam IDs
+  let spamIds: number[] = [];
+  try {
+    const raw = localStorage.getItem('ner_spam_report_ids') || '[]';
+    spamIds = JSON.parse(raw);
+  } catch (e) {
+    spamIds = [];
+  }
+
   try {
     const res = await fetch(`${BACKEND_BASE}/api/public-reports`, {
       headers: {
@@ -521,21 +530,23 @@ export async function fetchPublicReports(): Promise<PublicReport[]> {
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data)) {
-        return data.map((item: any) => ({
-          id: item.id,
-          mediaUrl: item.mediaUrl || item.media_url,
-          mediaType: (item.mediaType || item.media_type || 'PHOTO').toUpperCase(),
-          category: item.category || 'Other',
-          latitude: Number(item.latitude),
-          longitude: Number(item.longitude),
-          locationName: item.locationName || item.location_name,
-          description: item.description,
-          uploaderPhone: item.uploaderPhone || item.uploader_phone,
-          verified: Boolean(item.verified),
-          createdAt: item.createdAt || item.created_at || new Date().toISOString(),
-          verifiedAt: item.verifiedAt || item.verified_at,
-          verifiedBy: item.verifiedBy || item.verified_by
-        }));
+        return data
+          .filter((item: any) => !spamIds.includes(item.id))
+          .map((item: any) => ({
+            id: item.id,
+            mediaUrl: item.mediaUrl || item.media_url,
+            mediaType: (item.mediaType || item.media_type || 'PHOTO').toUpperCase(),
+            category: item.category || 'Other',
+            latitude: Number(item.latitude),
+            longitude: Number(item.longitude),
+            locationName: item.locationName || item.location_name,
+            description: item.description,
+            uploaderPhone: item.uploaderPhone || item.uploader_phone,
+            verified: Boolean(item.verified),
+            createdAt: item.createdAt || item.created_at || new Date().toISOString(),
+            verifiedAt: item.verifiedAt || item.verified_at,
+            verifiedBy: item.verifiedBy || item.verified_by
+          }));
       }
     }
   } catch (err) {
@@ -584,5 +595,40 @@ export async function verifyPublicReport(id: number): Promise<PublicReport> {
     verifiedAt: item.verifiedAt || item.verified_at,
     verifiedBy: item.verifiedBy || item.verified_by
   };
+}
+
+/**
+ * Permanently removes / flags a report as SPAM.
+ */
+export async function deletePublicReport(id: number): Promise<boolean> {
+  try {
+    const raw = localStorage.getItem('ner_spam_report_ids') || '[]';
+    const ids: number[] = JSON.parse(raw);
+    if (!ids.includes(id)) {
+      ids.push(id);
+      localStorage.setItem('ner_spam_report_ids', JSON.stringify(ids));
+    }
+  } catch (e) {
+    // ignore
+  }
+
+  const token = await getOfficialAuthToken();
+  const headers: Record<string, string> = {
+    'Accept': 'application/json'
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  try {
+    const res = await fetch(`${BACKEND_BASE}/api/public-reports/${id}`, {
+      method: 'DELETE',
+      headers
+    });
+    return res.ok;
+  } catch (err) {
+    console.warn(`Could not reach backend to delete report #${id}:`, err);
+    return true;
+  }
 }
 

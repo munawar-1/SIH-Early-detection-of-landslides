@@ -152,6 +152,28 @@ public class PublicReportService {
         return updated;
     }
 
+    @Transactional
+    public void deleteReport(Long id) {
+        Optional<PublicReport> reportOpt = publicReportRepository.findById(id);
+        if (reportOpt.isPresent()) {
+            PublicReport report = reportOpt.get();
+            // Try to delete media file from disk if present
+            if (report.getMediaUrl() != null && report.getMediaUrl().startsWith("/api/public-reports/media/")) {
+                String filename = report.getMediaUrl().substring("/api/public-reports/media/".length());
+                try {
+                    Path filePath = this.uploadStorageLocation.resolve(filename).normalize();
+                    Files.deleteIfExists(filePath);
+                } catch (Exception e) {
+                    logger.warn("Could not delete media file {}: {}", filename, e.getMessage());
+                }
+            }
+            publicReportRepository.deleteById(id);
+            logger.info("🗑️ Deleted/Removed public report #{} (marked spam)", id);
+        } else {
+            throw new IllegalArgumentException("Report not found with ID: " + id);
+        }
+    }
+
     public Resource loadMediaAsResource(String filename) {
         try {
             Path filePath = this.uploadStorageLocation.resolve(filename).normalize();

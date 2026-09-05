@@ -141,4 +141,22 @@ public class PublicReportController {
                     .body(Map.of("error", "Verification failed: " + ex.getMessage()));
         }
     }
+
+    /**
+     * Delete / mark as spam a public report.
+     * Permanently removes the report record and associated media.
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteReport(@PathVariable Long id) {
+        try {
+            publicReportService.deleteReport(id);
+            return ResponseEntity.ok(Map.of("message", "Report #" + id + " has been successfully deleted/marked spam."));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", ex.getMessage()));
+        } catch (Exception ex) {
+            logger.error("Error deleting/marking spam for report #{}", id, ex);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Deletion failed: " + ex.getMessage()));
+        }
+    }
 }

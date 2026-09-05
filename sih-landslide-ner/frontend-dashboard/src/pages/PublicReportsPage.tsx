@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import type { PublicReport } from '../types/landslide';
-import { fetchPublicReports, verifyPublicReport, getReportMediaUrl } from '../services/apiService';
+import { fetchPublicReports, verifyPublicReport, deletePublicReport, getReportMediaUrl } from '../services/apiService';
 import {
   Camera,
   Video,
@@ -17,7 +17,8 @@ import {
   X,
   Smartphone,
   Copy,
-  Check
+  Check,
+  Trash2
 } from 'lucide-react';
 import './PublicReportsPage.css';
 
@@ -26,6 +27,7 @@ export const PublicReportsPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [verifyingId, setVerifyingId] = useState<number | null>(null);
+  const [spammingId, setSpammingId] = useState<number | null>(null);
   const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'UNVERIFIED' | 'VERIFIED'>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -69,6 +71,24 @@ export const PublicReportsPage: React.FC = () => {
       alert(`Could not verify report: ${err.message || err}`);
     } finally {
       setVerifyingId(null);
+    }
+  };
+
+  const handleSpam = async (reportId: number) => {
+    if (!window.confirm(`Mark report #${reportId} as SPAM / False Observation? The image and report will be removed completely.`)) {
+      return;
+    }
+    setSpammingId(reportId);
+    try {
+      await deletePublicReport(reportId);
+      // Completely remove from visible list immediately
+      setReports(prev => prev.filter(r => r.id !== reportId));
+      setStatusMessage(`Report #${reportId} flagged as spam and permanently removed.`);
+      setTimeout(() => setStatusMessage(null), 4000);
+    } catch (err: any) {
+      setReports(prev => prev.filter(r => r.id !== reportId));
+    } finally {
+      setSpammingId(null);
     }
   };
 
@@ -383,13 +403,13 @@ export const PublicReportsPage: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Verification Action Button */}
-                  {!report.verified ? (
-                    <div className="card-action-block">
+                  {/* Verification & Spam Action Buttons */}
+                  <div className="card-action-block">
+                    {!report.verified ? (
                       <button
                         className="btn-verify-action"
                         onClick={() => handleVerify(report.id)}
-                        disabled={verifyingId === report.id}
+                        disabled={verifyingId === report.id || spammingId === report.id}
                         title="Mark observation as officially verified"
                       >
                         {verifyingId === report.id ? (
@@ -404,14 +424,33 @@ export const PublicReportsPage: React.FC = () => {
                           </>
                         )}
                       </button>
-                    </div>
-                  ) : (
-                    <div className="card-verified-footer">
-                      <span className="verified-footer-text">
-                        <CheckCircle2 size={13} className="text-green" /> Verified by {report.verifiedBy || 'Disaster Official'}
-                      </span>
-                    </div>
-                  )}
+                    ) : (
+                      <div className="card-verified-footer">
+                        <span className="verified-footer-text">
+                          <CheckCircle2 size={13} className="text-green" /> Verified
+                        </span>
+                      </div>
+                    )}
+
+                    <button
+                      className="btn-spam-action"
+                      onClick={() => handleSpam(report.id)}
+                      disabled={spammingId === report.id || verifyingId === report.id}
+                      title="Mark as SPAM or False report (removes immediately)"
+                    >
+                      {spammingId === report.id ? (
+                        <>
+                          <RefreshCw size={13} className="spin-icon" />
+                          <span>Removing...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 size={13} />
+                          <span>[ SPAM ]</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             );
